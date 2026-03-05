@@ -1,0 +1,110 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 36 25% 96%;
+    --foreground: 0 0% 10%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 10%;
+
+    --primary: 160 48% 21%;
+    --primary-foreground: 0 0% 100%;
+    --primary-light: 155 44% 33%;
+
+    --secondary: 36 18% 92%;
+    --secondary-foreground: 0 0% 10%;
+
+    --muted: 36 18% 92%;
+    --muted-foreground: 0 0% 42%;
+
+    --accent: 28 79% 57%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 5 63% 47%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 155 44% 33%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 28 79% 57%;
+    --warning-foreground: 0 0% 100%;
+
+    --border: 36 16% 89%;
+    --input: 36 16% 89%;
+    --ring: 160 48% 21%;
+
+    --radius: 0.75rem;
+  }
+
+  .dark {
+    --background: 0 0% 7%;
+    --foreground: 0 0% 91%;
+
+    --card: 0 0% 12%;
+    --card-foreground: 0 0% 91%;
+
+    --primary: 148 42% 50%;
+    --primary-foreground: 0 0% 7%;
+    --primary-light: 148 42% 58%;
+
+    --secondary: 0 0% 15%;
+    --secondary-foreground: 0 0% 91%;
+
+    --muted: 0 0% 15%;
+    --muted-foreground: 0 0% 62%;
+
+    --accent: 28 79% 57%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 4 90% 63%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 148 42% 50%;
+    --success-foreground: 0 0% 7%;
+
+    --warning: 28 79% 57%;
+    --warning-foreground: 0 0% 100%;
+
+    --border: 0 0% 18%;
+    --input: 0 0% 18%;
+    --ring: 148 42% 50%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: 'rlig' 1, 'calt' 1;
+  }
+}
+
+@layer utilities {
+  .rounded-bubble-user {
+    border-radius: 18px 18px 6px 18px;
+  }
+  .rounded-bubble-ai {
+    border-radius: 18px 18px 18px 6px;
+  }
+}
+
+@layer base {
+  @keyframes typing-dot {
+    0%, 60%, 100% {
+      opacity: 0.4;
+      transform: translateY(0);
+    }
+    30% {
+      opacity: 1;
+      transform: translateY(-6px);
+    }
+  }
+  .animate-typing-dot {
+    animation: typing-dot 1.4s infinite;
+  }
+}
