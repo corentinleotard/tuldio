@@ -3,7 +3,7 @@ import type { ClientRow } from '../domain/client.entity.js';
 
 export async function findClientsByTeam(teamId: string): Promise<ClientRow[]> {
   const result = await query<ClientRow>(
-    'SELECT * FROM clients WHERE team_id = $1 ORDER BY name ASC',
+    'SELECT * FROM clients WHERE team_id = $1 ORDER BY last_name ASC, first_name ASC',
     [teamId],
   );
 

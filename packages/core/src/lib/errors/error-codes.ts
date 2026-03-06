@@ -84,6 +84,51 @@ export const errorCodes = {
     statusCode: 401,
     message: 'Session expirée, veuillez vous reconnecter',
   },
+  nameRequired: {
+    code: 'NAME_REQUIRED',
+    statusCode: 400,
+    message: 'Le nom de l\'entreprise est requis',
+  },
+  nameTooLong: {
+    code: 'NAME_TOO_LONG',
+    statusCode: 400,
+    message: 'Le nom de l\'entreprise ne peut pas dépasser 200 caractères',
+  },
+  invalidEmail: {
+    code: 'INVALID_EMAIL',
+    statusCode: 400,
+    message: 'Adresse email invalide',
+  },
+  invalidPhone: {
+    code: 'INVALID_PHONE',
+    statusCode: 400,
+    message: 'Numéro de téléphone fixe invalide',
+  },
+  invalidMobile: {
+    code: 'INVALID_MOBILE',
+    statusCode: 400,
+    message: 'Numéro de téléphone mobile invalide',
+  },
+  addressTooLong: {
+    code: 'ADDRESS_TOO_LONG',
+    statusCode: 400,
+    message: 'L\'adresse ne peut pas dépasser 500 caractères',
+  },
+  invalidTvaNumber: {
+    code: 'INVALID_TVA_NUMBER',
+    statusCode: 400,
+    message: 'Numéro de TVA invalide',
+  },
+  clientDuplicateEmail: {
+    code: 'CLIENT_DUPLICATE_EMAIL',
+    statusCode: 409,
+    message: 'Un client avec cet email existe déjà',
+  },
+  clientDuplicatePhone: {
+    code: 'CLIENT_DUPLICATE_PHONE',
+    statusCode: 409,
+    message: 'Un client avec ce numéro de téléphone existe déjà',
+  },
 } as const;
 
 export type ErrorCode = (typeof errorCodes)[keyof typeof errorCodes];

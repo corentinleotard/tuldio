@@ -1,0 +1,26 @@
+import { query } from '../../../lib/database/db.js';
+import { generateId } from '../../../lib/infra/id.js';
+import type { TeamFieldRow, FieldZone } from '../domain/team-field.entity.js';
+
+export async function insertTeamField(input: {
+  teamId: string;
+  key: string;
+  label: string;
+  value: string;
+  zone: FieldZone;
+  showQuote: boolean;
+  showInvoice: boolean;
+  sortOrder: number;
+  isSystem: boolean;
+}): Promise<TeamFieldRow> {
+  const id = generateId();
+
+  const result = await query<TeamFieldRow>(
+    `INSERT INTO team_fields (id, team_id, key, label, value, zone, show_quote, show_invoice, sort_order, is_system)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+     RETURNING *`,
+    [id, input.teamId, input.key, input.label, input.value, input.zone, input.showQuote, input.showInvoice, input.sortOrder, input.isSystem],
+  );
+
+  return result.rows[0]!;
+}

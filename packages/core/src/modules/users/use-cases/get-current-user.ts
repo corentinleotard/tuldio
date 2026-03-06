@@ -15,5 +15,6 @@ export async function getCurrentUser(userId: string): Promise<AuthUser> {
     name: user.name,
     teamId: user.team_id,
     role: user.role,
+    god: user.god,
   };
 }

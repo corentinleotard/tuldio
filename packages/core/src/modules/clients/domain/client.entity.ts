@@ -8,7 +8,8 @@ const clientNoteSchema = z.object({
 export const clientSchema = z.object({
   id: z.string().uuid(),
   team_id: z.string().uuid(),
-  name: z.string(),
+  first_name: z.string(),
+  last_name: z.string(),
   email: z.string().nullable(),
   phone: z.string().nullable(),
   address: z.string().nullable(),

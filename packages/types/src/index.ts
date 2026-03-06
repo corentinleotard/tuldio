@@ -14,36 +14,26 @@ export interface AuthUser {
   name: string;
   teamId: string;
   role: 'owner' | 'member';
+  god: boolean;
+}
+
+export interface TeamField {
+  id: string;
+  key: string;
+  label: string;
+  value: string;
+  zone: 'identity' | 'payment' | 'legal';
+  showQuote: boolean;
+  showInvoice: boolean;
+  sortOrder: number;
+  isSystem: boolean;
 }
 
 export interface TeamSummary {
   id: string;
   name: string;
-  siret: string | null;
-  address: string | null;
-  phone: string | null;
-  email: string | null;
-  mobile: string | null;
-  website: string | null;
   logoUrl: string | null;
-  tvaNumber: string | null;
-  tvaExempt: boolean;
-  apeCode: string | null;
-  legalForm: string | null;
-  capitalSocial: number | null;
-  rcsCity: string | null;
-  rmCity: string | null;
-  activityDescription: string | null;
-  insuranceCompany: string | null;
-  insurancePolicyNumber: string | null;
-  insuranceCoverageZone: string | null;
-  paymentTerms: string | null;
-  depositPercent: number | null;
-  earlyPaymentDiscount: string | null;
-  latePenaltyRate: string | null;
-  recoveryFee: number | null;
-  customClauses: string[];
-  originalDocumentUrl: string | null;
+  fields: TeamField[];
   termsAcceptedAt: string | null;
   subscriptionStatus: 'trial' | 'active' | 'cancelled' | 'expired';
   trialEndsAt: string | null;
@@ -60,6 +50,23 @@ export interface BootstrapResponse {
   messages: Message[];
 }
 
+// Team Fields
+export interface UpdateTeamFieldRequest {
+  value?: string;
+  showQuote?: boolean;
+  showInvoice?: boolean;
+}
+
+export interface CreateTeamFieldRequest {
+  label: string;
+  zone: 'identity' | 'payment' | 'legal';
+  value?: string;
+}
+
+export interface UpdateTeamRequest {
+  name?: string;
+}
+
 // Clients
 export interface ClientNote {
   content: string;
@@ -68,7 +75,8 @@ export interface ClientNote {
 
 export interface ClientView {
   id: string;
-  name: string;
+  firstName: string;
+  lastName: string;
   email: string | null;
   phone: string | null;
   address: string | null;
@@ -77,7 +85,8 @@ export interface ClientView {
 }
 
 export interface CreateClientRequest {
-  name: string;
+  firstName: string;
+  lastName: string;
   email?: string;
   phone?: string;
   address?: string;
@@ -169,6 +178,28 @@ export interface RichCard {
   data: unknown;
 }
 
+export interface DebugTraceToolCall {
+  name: string;
+  input: unknown;
+  output: unknown;
+  durationMs: number;
+}
+
+export interface DebugTraceRound {
+  inputTokens: number;
+  outputTokens: number;
+  costCents: number;
+  durationMs: number;
+  toolCalls: DebugTraceToolCall[];
+}
+
+export interface DebugTrace {
+  rounds: DebugTraceRound[];
+  totalTokens: number;
+  totalCostCents: number;
+  totalDurationMs: number;
+}
+
 export interface Message {
   id: string;
   userId: string;
@@ -177,12 +208,18 @@ export interface Message {
   attachments: Attachment[];
   toolCalls: unknown;
   richCard: RichCard | null;
+  debugTrace: DebugTrace | null;
   createdAt: string;
+}
+
+export interface MessageMetadata {
+  selectedClientId?: string;
 }
 
 export interface SendMessageRequest {
   content: string;
   attachments?: Attachment[];
+  metadata?: MessageMetadata;
 }
 
 // Stats
@@ -194,32 +231,24 @@ export interface MonthlyStatsView {
   bestClient: { clientId: string; clientName: string; total: number } | null;
 }
 
-// Teams
-export interface UpdateTeamRequest {
-  name?: string;
-  siret?: string;
-  address?: string;
-  phone?: string;
-  email?: string;
-  mobile?: string;
-  website?: string;
-  tvaNumber?: string;
-  tvaExempt?: boolean;
-  apeCode?: string;
-  legalForm?: string;
-  capitalSocial?: number;
-  rcsCity?: string;
-  rmCity?: string;
-  activityDescription?: string;
-  insuranceCompany?: string;
-  insurancePolicyNumber?: string;
-  insuranceCoverageZone?: string;
-  paymentTerms?: string;
-  depositPercent?: number;
-  earlyPaymentDiscount?: string;
-  latePenaltyRate?: string;
-  recoveryFee?: number;
-  customClauses?: string[];
+// AI Calls
+export interface AiCallView {
+  id: string;
+  model: string;
+  purpose: string;
+  inputTokens: number;
+  outputTokens: number;
+  costCents: number;
+  durationMs: number;
+  createdAt: string;
+}
+
+export interface AiCostsSummary {
+  totalCostCents: number;
+  totalCalls: number;
+  totalInputTokens: number;
+  totalOutputTokens: number;
+  calls: AiCallView[];
 }
 
 // Pagination

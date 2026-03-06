@@ -14,16 +14,25 @@
     "./expenses": "./src/modules/expenses/index.ts",
     "./messages": "./src/modules/messages/index.ts",
     "./stats": "./src/modules/stats/index.ts",
-    "./ai": "./src/lib/ai/chat-orchestrator.ts"
+    "./ai": "./src/lib/ai/chat-orchestrator.ts",
+    "./pdf": "./src/lib/pdf/index.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",
     "@tuldio/types": "workspace:*",
+    "pdfjs-dist": "^5.5.207",
     "pg": "^8.13.0",
+    "puppeteer": "^24.38.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "sharp": "^0.34.5",
     "winston": "^3.14.0",
     "zod": "^3.23.0"
   },
   "devDependencies": {
-    "@types/pg": "^8.11.0"
+    "@types/pg": "^8.11.0",
+    "@types/react": "^18.3.28",
+    "@types/react-dom": "^18.3.7",
+    "zod-to-json-schema": "^3.25.1"
   }
 }

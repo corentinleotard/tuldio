@@ -2,7 +2,8 @@ import type { ClientRow } from './client.entity.js';
 
 export interface ClientView {
   id: string;
-  name: string;
+  firstName: string;
+  lastName: string;
   email: string | null;
   phone: string | null;
   address: string | null;
@@ -13,7 +14,8 @@ export interface ClientView {
 export function toClientView(row: ClientRow): ClientView {
   return {
     id: row.id,
-    name: row.name,
+    firstName: row.first_name,
+    lastName: row.last_name,
     email: row.email,
     phone: row.phone,
     address: row.address,

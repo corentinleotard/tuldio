@@ -10,6 +10,9 @@ import { DocumentsPage } from '@/modules/documents/pages/documents-page';
 import { ClientsPage } from '@/modules/clients/pages/clients-page';
 import { StatsPage } from '@/modules/stats/pages/stats-page';
 import { SettingsPage } from '@/modules/settings/pages/settings-page';
+import { AiCostsPage } from '@/modules/settings/pages/ai-costs-page';
+import { DebugChatPage } from '@/modules/settings/pages/debug-chat-page';
+import { CompanyPage } from '@/modules/settings/pages/company-page';
 import { OnboardingPage } from '@/modules/onboarding/pages/onboarding-page';
 
 const queryClient = new QueryClient({
@@ -65,6 +68,9 @@ export function App() {
               <Route path="/clients" element={<ClientsPage />} />
               <Route path="/stats" element={<StatsPage />} />
               <Route path="/settings" element={<SettingsPage />} />
+              <Route path="/settings/company" element={<CompanyPage />} />
+              <Route path="/settings/ai-costs" element={<AiCostsPage />} />
+              <Route path="/settings/debug-chat" element={<DebugChatPage />} />
             </Route>
             <Route path="*" element={<Navigate to="/chat" replace />} />
           </Routes>

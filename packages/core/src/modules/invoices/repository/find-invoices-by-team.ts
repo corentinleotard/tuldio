@@ -9,7 +9,7 @@ export async function findInvoicesByTeam(
   teamId: string,
 ): Promise<InvoiceWithClient[]> {
   const result = await query<InvoiceWithClient>(
-    `SELECT i.*, c.name AS client_name
+    `SELECT i.*, c.first_name || ' ' || c.last_name AS client_name
      FROM invoices i
      JOIN clients c ON c.id = i.client_id
      WHERE i.team_id = $1

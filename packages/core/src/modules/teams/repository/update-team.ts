@@ -1,63 +1,45 @@
-import type { UpdateTeamRequest } from '@tuldio/types';
 import { query } from '../../../lib/database/db.js';
 import type { TeamRow } from '../domain/team.entity.js';
 
-const FIELD_MAP: Record<keyof UpdateTeamRequest, string> = {
-  name: 'name',
-  siret: 'siret',
-  address: 'address',
-  phone: 'phone',
-  email: 'email',
-  mobile: 'mobile',
-  website: 'website',
-  tvaNumber: 'tva_number',
-  tvaExempt: 'tva_exempt',
-  apeCode: 'ape_code',
-  legalForm: 'legal_form',
-  capitalSocial: 'capital_social',
-  rcsCity: 'rcs_city',
-  rmCity: 'rm_city',
-  activityDescription: 'activity_description',
-  insuranceCompany: 'insurance_company',
-  insurancePolicyNumber: 'insurance_policy_number',
-  insuranceCoverageZone: 'insurance_coverage_zone',
-  paymentTerms: 'payment_terms',
-  depositPercent: 'deposit_percent',
-  earlyPaymentDiscount: 'early_payment_discount',
-  latePenaltyRate: 'late_penalty_rate',
-  recoveryFee: 'recovery_fee',
-  customClauses: 'custom_clauses',
-};
-
-export async function updateTeam(input: {
+export async function updateTeamName(input: {
   teamId: string;
-} & UpdateTeamRequest): Promise<TeamRow> {
-  const fields: string[] = [];
-  const params: unknown[] = [];
-  let idx = 1;
+  name: string;
+}): Promise<TeamRow> {
+  const result = await query<TeamRow>(
+    'UPDATE teams SET name = $1 WHERE id = $2 RETURNING *',
+    [input.name, input.teamId],
+  );
 
-  for (const [camelKey, dbColumn] of Object.entries(FIELD_MAP)) {
-    const value = input[camelKey as keyof UpdateTeamRequest];
-    if (value !== undefined) {
-      fields.push(`${dbColumn} = $${idx++}`);
-      params.push(camelKey === 'customClauses' ? JSON.stringify(value) : value);
-    }
+  return result.rows[0]!;
+}
+
+export async function updateTeamMeta(input: {
+  teamId: string;
+  logoUrl?: string;
+  originalDocumentUrl?: string;
+}): Promise<TeamRow> {
+  const sets: string[] = [];
+  const values: unknown[] = [];
+  let i = 1;
+
+  if (input.logoUrl !== undefined) {
+    sets.push(`logo_url = $${i++}`);
+    values.push(input.logoUrl);
+  }
+  if (input.originalDocumentUrl !== undefined) {
+    sets.push(`original_document_url = $${i++}`);
+    values.push(input.originalDocumentUrl);
   }
 
-  if (fields.length === 0) {
-    const result = await query<TeamRow>(
-      'SELECT * FROM teams WHERE id = $1',
-      [input.teamId],
-    );
+  if (sets.length === 0) {
+    const result = await query<TeamRow>('SELECT * FROM teams WHERE id = $1', [input.teamId]);
     return result.rows[0]!;
   }
 
-  params.push(input.teamId);
-  const teamIdIdx = idx;
-
+  values.push(input.teamId);
   const result = await query<TeamRow>(
-    `UPDATE teams SET ${fields.join(', ')} WHERE id = $${teamIdIdx} RETURNING *`,
-    params,
+    `UPDATE teams SET ${sets.join(', ')} WHERE id = $${i} RETURNING *`,
+    values,
   );
 
   return result.rows[0]!;

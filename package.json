@@ -14,7 +14,7 @@
     "format:check": "prettier --check .",
     "typecheck": "tsc -p packages/types --noEmit && tsc -p packages/core --noEmit && tsc -p apps/api --noEmit && tsc -p apps/web --noEmit && tsc -p apps/crons --noEmit",
     "test": "vitest",
-    "db:migrate": "pnpm --filter @tuldio/core node src/lib/database/migrate.js"
+    "db:migrate": "pnpm --filter @tuldio/api exec tsx --env-file=.env ../../packages/core/src/lib/database/migrate.ts"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.3",

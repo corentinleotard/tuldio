@@ -38,6 +38,7 @@ export async function verifyOtp(input: {
       name: existingUser.name,
       teamId: existingUser.team_id,
       role: existingUser.role,
+      god: existingUser.god,
     };
     teamId = existingUser.team_id;
   } else {

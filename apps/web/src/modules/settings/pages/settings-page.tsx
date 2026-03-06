@@ -1,10 +1,13 @@
 import { useState } from 'react';
 import {
-  User,
+  Home,
   CreditCard,
   Bell,
   Download,
+  Cpu,
+  MessageSquare,
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/lib/auth-context';
 import { Avatar } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -13,6 +16,7 @@ import { SettingsRow } from '../components/settings-row';
 
 export function SettingsPage() {
   const { user, team, signOut } = useAuth();
+  const navigate = useNavigate();
   const [notifications, setNotifications] = useState(true);
 
   const subscriptionLabel =
@@ -28,6 +32,9 @@ export function SettingsPage() {
     team?.subscriptionStatus === 'active' || team?.subscriptionStatus === 'trial'
       ? 'success'
       : 'warning';
+
+  const filledCount = team?.fields.filter((f) => f.value && f.key !== 'original_document_url').length ?? 0;
+  const totalCount = team?.fields.filter((f) => f.key !== 'original_document_url').length ?? 0;
 
   return (
     <div className="mx-auto max-w-lg p-4 md:p-6">
@@ -51,7 +58,13 @@ export function SettingsPage() {
         <p className="px-4 pt-3 text-xs font-medium uppercase text-muted-foreground">
           Compte
         </p>
-        <SettingsRow icon={User} label="Mon profil" subLabel={user?.email} iconClassName="bg-primary/10 text-primary" onClick={() => {}} />
+        <SettingsRow
+          icon={Home}
+          label="Mon entreprise"
+          subLabel={`${filledCount}/${totalCount} champs renseignes`}
+          iconClassName="bg-primary/10 text-primary"
+          onClick={() => navigate('/settings/company')}
+        />
       </div>
 
       {/* Subscription section */}
@@ -86,6 +99,29 @@ export function SettingsPage() {
         />
         <SettingsRow icon={Download} label="Exporter mes donnees" onClick={() => {}} />
       </div>
+
+      {/* Admin section — owners only */}
+      {user?.god && (
+        <div className="mb-6 overflow-hidden rounded-2xl border bg-card">
+          <p className="px-4 pt-3 text-xs font-medium uppercase text-muted-foreground">
+            Administration
+          </p>
+          <SettingsRow
+            icon={Cpu}
+            label="Consommation IA"
+            subLabel="Couts et utilisation"
+            iconClassName="bg-accent/10 text-accent"
+            onClick={() => navigate('/settings/ai-costs')}
+          />
+          <SettingsRow
+            icon={MessageSquare}
+            label="Debug Chat"
+            subLabel="Messages, tools, tokens"
+            iconClassName="bg-accent/10 text-accent"
+            onClick={() => navigate('/settings/debug-chat')}
+          />
+        </div>
+      )}
 
       {/* Logout */}
       <div className="overflow-hidden rounded-2xl border bg-card">

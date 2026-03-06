@@ -6,7 +6,8 @@ import { useAuth } from '@/lib/auth-context';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
-import { updateTeam, acceptTerms, uploadDocument } from '../api/onboarding.api';
+import { updateTeam, acceptTerms, uploadDocument, downloadPreviewPdf } from '../api/onboarding.api';
+import { updateTeamField } from '@/modules/settings/api/fields.api';
 import { cn } from '@/lib/utils';
 
 type Step = 1 | 2 | 3;
@@ -19,6 +20,14 @@ interface CompanyForm {
   mobile: string;
   email: string;
   tvaNumber: string;
+}
+
+function getFieldValue(fields: { key: string; value: string }[], key: string): string {
+  return fields.find((f) => f.key === key)?.value ?? '';
+}
+
+function getFieldId(fields: { id: string; key: string }[], key: string): string | undefined {
+  return fields.find((f) => f.key === key)?.id;
 }
 
 function StepIndicator({ current, onNavigate }: { current: Step; onNavigate: (step: Step) => void }) {
@@ -48,26 +57,47 @@ export function OnboardingPage() {
   const queryClient = useQueryClient();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [step, setStep] = useState<Step>(1);
+  const fields = team?.fields ?? [];
+  const siretVal = getFieldValue(fields, 'siret');
+  const hasInfo = Boolean(team?.name || siretVal || getFieldValue(fields, 'address'));
+  const [step, setStep] = useState<Step>(hasInfo ? 2 : 1);
   const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [error, setError] = useState('');
+  const [downloading, setDownloading] = useState<'quote' | 'invoice' | null>(null);
   const [form, setForm] = useState<CompanyForm>({
     name: team?.name ?? '',
-    siret: team?.siret ?? '',
-    address: team?.address ?? '',
-    phone: team?.phone ?? '',
-    mobile: team?.mobile ?? '',
-    email: team?.email ?? '',
-    tvaNumber: team?.tvaNumber ?? '',
+    siret: formatSiret(siretVal),
+    address: getFieldValue(fields, 'address'),
+    phone: getFieldValue(fields, 'phone'),
+    mobile: getFieldValue(fields, 'mobile'),
+    email: getFieldValue(fields, 'email'),
+    tvaNumber: formatTva(getFieldValue(fields, 'tva_number')),
   });
 
-  if (team?.termsAcceptedAt && team?.siret) {
+  if (team?.termsAcceptedAt && siretVal) {
     return <Navigate to="/chat" replace />;
   }
 
-  function updateField(field: keyof CompanyForm, value: string) {
+  function formatSiret(value: string): string {
+    const digits = value.replace(/\D/g, '').slice(0, 14);
+    const parts = [digits.slice(0, 3), digits.slice(3, 6), digits.slice(6, 9), digits.slice(9, 14)];
+    return parts.filter(Boolean).join(' ');
+  }
+
+  function formatTva(value: string): string {
+    const upper = value.toUpperCase();
+    const digits = upper.replace(/[^0-9]/g, '').slice(0, 11);
+    if (digits.length === 0) return upper.startsWith('F') ? upper.slice(0, 2) : '';
+    const key = digits.slice(0, 2);
+    const siren = digits.slice(2, 11);
+    return `FR ${[key, siren].filter(Boolean).join(' ')}`;
+  }
+
+  function updateFormField(field: keyof CompanyForm, value: string) {
+    if (field === 'siret') value = formatSiret(value);
+    if (field === 'tvaNumber') value = formatTva(value);
     setForm((prev) => ({ ...prev, [field]: value }));
   }
 
@@ -75,7 +105,17 @@ export function OnboardingPage() {
     setUploading(true);
     setError('');
     try {
-      await uploadDocument(file);
+      const updated = await uploadDocument(file);
+      const uf = updated.fields;
+      setForm({
+        name: updated.name ?? '',
+        siret: formatSiret(getFieldValue(uf, 'siret')),
+        address: getFieldValue(uf, 'address'),
+        phone: getFieldValue(uf, 'phone'),
+        mobile: getFieldValue(uf, 'mobile'),
+        email: getFieldValue(uf, 'email'),
+        tvaNumber: formatTva(getFieldValue(uf, 'tva_number')),
+      });
       await queryClient.invalidateQueries({ queryKey: ['auth', 'bootstrap'] });
       setStep(2);
     } catch (err) {
@@ -90,15 +130,26 @@ export function OnboardingPage() {
     setLoading(true);
     setError('');
     try {
-      await updateTeam({
-        name: form.name.trim(),
-        siret: form.siret.trim(),
-        address: form.address.trim(),
-        phone: form.phone.trim() || undefined,
-        mobile: form.mobile.trim() || undefined,
-        email: form.email.trim() || undefined,
-        tvaNumber: form.tvaNumber.trim() || undefined,
-      });
+      // Update team name
+      await updateTeam({ name: form.name.trim() });
+
+      // Update field values
+      const fieldUpdates: { key: string; value: string }[] = [
+        { key: 'siret', value: form.siret.replace(/\s/g, '').trim() },
+        { key: 'address', value: form.address.trim() },
+        { key: 'phone', value: form.phone.trim() },
+        { key: 'mobile', value: form.mobile.trim() },
+        { key: 'email', value: form.email.trim() },
+        { key: 'tva_number', value: form.tvaNumber.replace(/\s/g, '').trim() },
+      ];
+
+      for (const { key, value } of fieldUpdates) {
+        const fieldId = getFieldId(fields, key);
+        if (fieldId) {
+          await updateTeamField(fieldId, { value });
+        }
+      }
+
       await queryClient.invalidateQueries({ queryKey: ['auth', 'bootstrap'] });
       setStep(3);
     } catch (err) {
@@ -119,6 +170,17 @@ export function OnboardingPage() {
       setError(err instanceof Error ? err.message : 'Une erreur est survenue');
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleDownloadPreview(type: 'quote' | 'invoice') {
+    setDownloading(type);
+    try {
+      await downloadPreviewPdf(type);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erreur lors du telechargement');
+    } finally {
+      setDownloading(null);
     }
   }
 
@@ -151,7 +213,7 @@ export function OnboardingPage() {
         <div
           className={cn(
             'w-full',
-            step === 2 ? 'max-w-[600px]' : 'max-w-[520px]',
+            step === 2 ? 'max-w-[680px]' : 'max-w-[520px]',
             step === 2
               ? 'flex flex-col md:rounded-2xl md:border md:bg-card md:p-10'
               : 'px-7 text-center md:rounded-2xl md:border md:bg-card md:p-10',
@@ -209,7 +271,7 @@ export function OnboardingPage() {
           <div className="flex-1">
             <div className="text-[15px] font-semibold">Envoyer un document</div>
             <div className="text-[13px] leading-snug text-muted-foreground">
-              PDF d&apos;un devis ou facture existant
+              Devis ou facture existante
             </div>
           </div>
           <ChevronRight className="h-[18px] w-[18px] shrink-0 text-muted-foreground" />
@@ -258,27 +320,30 @@ export function OnboardingPage() {
           <div className="md:grid md:grid-cols-2 md:gap-x-4 md:gap-y-3">
             <div className="md:col-span-2">
               <label className="mb-1 block text-left text-xs text-muted-foreground">
-                Nom de l&apos;entreprise
+                Nom de l&apos;entreprise <span className="text-destructive">*</span>
               </label>
               <Input
                 value={form.name}
-                onChange={(e) => updateField('name', e.target.value)}
+                onChange={(e) => updateFormField('name', e.target.value)}
+                placeholder="Ex : Dupont Renovation"
                 className="mb-2.5 font-semibold md:mb-0"
               />
             </div>
             <div>
-              <label className="mb-1 block text-left text-xs text-muted-foreground">SIRET</label>
+              <label className="mb-1 block text-left text-xs text-muted-foreground">SIRET <span className="text-destructive">*</span></label>
               <Input
                 value={form.siret}
-                onChange={(e) => updateField('siret', e.target.value)}
+                onChange={(e) => updateFormField('siret', e.target.value)}
+                placeholder="123 456 789 00012"
                 className="mb-2.5 md:mb-0"
               />
             </div>
             <div>
-              <label className="mb-1 block text-left text-xs text-muted-foreground">Adresse</label>
+              <label className="mb-1 block text-left text-xs text-muted-foreground">Adresse <span className="text-destructive">*</span></label>
               <Input
                 value={form.address}
-                onChange={(e) => updateField('address', e.target.value)}
+                onChange={(e) => updateFormField('address', e.target.value)}
+                placeholder="12 rue des Lilas, 75011 Paris"
                 className="mb-2.5 md:mb-0"
               />
             </div>
@@ -295,7 +360,8 @@ export function OnboardingPage() {
               </label>
               <Input
                 value={form.phone}
-                onChange={(e) => updateField('phone', e.target.value)}
+                onChange={(e) => updateFormField('phone', e.target.value)}
+                placeholder="01 23 45 67 89"
                 className="mb-2.5 md:mb-0"
               />
             </div>
@@ -305,7 +371,8 @@ export function OnboardingPage() {
               </label>
               <Input
                 value={form.mobile}
-                onChange={(e) => updateField('mobile', e.target.value)}
+                onChange={(e) => updateFormField('mobile', e.target.value)}
+                placeholder="06 12 34 56 78"
                 className="mb-2.5 md:mb-0"
               />
             </div>
@@ -314,7 +381,8 @@ export function OnboardingPage() {
               <Input
                 type="email"
                 value={form.email}
-                onChange={(e) => updateField('email', e.target.value)}
+                onChange={(e) => updateFormField('email', e.target.value)}
+                placeholder="contact@dupont-renovation.fr"
                 className="mb-2.5 md:mb-0"
               />
             </div>
@@ -325,7 +393,8 @@ export function OnboardingPage() {
               </label>
               <Input
                 value={form.tvaNumber}
-                onChange={(e) => updateField('tvaNumber', e.target.value)}
+                onChange={(e) => updateFormField('tvaNumber', e.target.value)}
+                placeholder="FR 32 123456789"
                 className="mb-2.5 md:mb-0"
               />
             </div>
@@ -359,7 +428,9 @@ export function OnboardingPage() {
         <div className="flex flex-col gap-4 md:flex-row">
           <button
             type="button"
-            className="flex flex-1 items-center gap-3 rounded-xl border border-primary bg-primary-lightest p-4 text-left transition-colors hover:bg-primary-lightest/80"
+            disabled={downloading === 'quote'}
+            onClick={() => handleDownloadPreview('quote')}
+            className="flex flex-1 items-center gap-3 rounded-xl border border-primary bg-primary-lightest p-4 text-left transition-colors hover:bg-primary-lightest/80 disabled:opacity-60"
           >
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] bg-primary text-primary-foreground">
               <FileText className="h-5 w-5" />
@@ -370,12 +441,18 @@ export function OnboardingPage() {
                 Telecharger l&apos;apercu PDF
               </div>
             </div>
-            <Download className="h-[18px] w-[18px] shrink-0 text-primary" />
+            {downloading === 'quote' ? (
+              <Loader2 className="h-[18px] w-[18px] shrink-0 animate-spin text-primary" />
+            ) : (
+              <Download className="h-[18px] w-[18px] shrink-0 text-primary" />
+            )}
           </button>
 
           <button
             type="button"
-            className="flex flex-1 items-center gap-3 rounded-xl border border-primary bg-primary-lightest p-4 text-left transition-colors hover:bg-primary-lightest/80"
+            disabled={downloading === 'invoice'}
+            onClick={() => handleDownloadPreview('invoice')}
+            className="flex flex-1 items-center gap-3 rounded-xl border border-primary bg-primary-lightest p-4 text-left transition-colors hover:bg-primary-lightest/80 disabled:opacity-60"
           >
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] bg-primary text-primary-foreground">
               <FileText className="h-5 w-5" />
@@ -386,7 +463,11 @@ export function OnboardingPage() {
                 Telecharger l&apos;apercu PDF
               </div>
             </div>
-            <Download className="h-[18px] w-[18px] shrink-0 text-primary" />
+            {downloading === 'invoice' ? (
+              <Loader2 className="h-[18px] w-[18px] shrink-0 animate-spin text-primary" />
+            ) : (
+              <Download className="h-[18px] w-[18px] shrink-0 text-primary" />
+            )}
           </button>
         </div>
 

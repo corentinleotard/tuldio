@@ -12,6 +12,7 @@ export function toMessageView(row: MessageRow): MessageView {
     attachments: row.attachments,
     toolCalls: row.tool_calls,
     richCard: row.rich_card as MessageView['richCard'],
+    debugTrace: row.debug_trace as MessageView['debugTrace'],
     createdAt: row.created_at.toISOString(),
   };
 }

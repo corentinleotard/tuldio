@@ -17,7 +17,8 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
     return <Navigate to="/login" replace />;
   }
 
-  const needsOnboarding = team && (!team.termsAcceptedAt || !team.siret);
+  const siret = team?.fields.find((f) => f.key === 'siret')?.value;
+  const needsOnboarding = team && (!team.termsAcceptedAt || !siret);
   if (needsOnboarding && location.pathname !== '/onboarding') {
     return <Navigate to="/onboarding" replace />;
   }

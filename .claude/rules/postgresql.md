@@ -6,6 +6,8 @@
 - Connection pool in `packages/core/src/lib/database/db.ts`
 - Schemas validated with Zod at insert boundaries
 - Migrations are plain `.sql` files in `packages/core/src/lib/database/migrations/`
+- To apply pending migrations: `pnpm db:migrate`
+- Migration naming: `NNN-description.sql` (sequential, e.g. `005-add-foo.sql`)
 
 ## Why no ORM
 

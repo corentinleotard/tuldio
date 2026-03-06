@@ -4,7 +4,8 @@ import type { ClientRow } from '../domain/client.entity.js';
 export async function updateClient(input: {
   teamId: string;
   clientId: string;
-  name?: string;
+  firstName?: string;
+  lastName?: string;
   email?: string;
   phone?: string;
   address?: string;
@@ -13,9 +14,27 @@ export async function updateClient(input: {
   const params: unknown[] = [];
   let idx = 1;
 
-  if (input.name !== undefined) {
-    fields.push(`name = $${idx++}`);
-    params.push(input.name);
+  if (
+    input.firstName === undefined &&
+    input.lastName === undefined &&
+    input.email === undefined &&
+    input.phone === undefined &&
+    input.address === undefined
+  ) {
+    const result = await query<ClientRow>(
+      `SELECT * FROM clients WHERE id = $1 AND team_id = $2`,
+      [input.clientId, input.teamId],
+    );
+    return result.rows[0]!;
+  }
+
+  if (input.firstName !== undefined) {
+    fields.push(`first_name = $${idx++}`);
+    params.push(input.firstName);
+  }
+  if (input.lastName !== undefined) {
+    fields.push(`last_name = $${idx++}`);
+    params.push(input.lastName);
   }
   if (input.email !== undefined) {
     fields.push(`email = $${idx++}`);

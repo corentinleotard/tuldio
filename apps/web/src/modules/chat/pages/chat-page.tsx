@@ -8,7 +8,7 @@ import { ChatInputBar } from '../components/chat-input-bar';
 import { TypingIndicator } from '../components/typing-indicator';
 import { DesktopContextPanel } from '../components/desktop-context-panel';
 import { sendMessage, fetchMessages } from '../api/chat.api';
-import type { Message } from '@tuldio/types';
+import type { Message, MessageMetadata } from '@tuldio/types';
 
 export function ChatPage() {
   const { user } = useAuth();
@@ -31,7 +31,7 @@ export function ChatPage() {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isSending]);
 
-  async function handleSend(content: string) {
+  async function handleSend(content: string, metadata?: MessageMetadata) {
     const tempUserMsg: Message = {
       id: `temp-${Date.now()}`,
       userId: user?.id ?? '',
@@ -40,13 +40,14 @@ export function ChatPage() {
       attachments: [],
       toolCalls: null,
       richCard: null,
+      debugTrace: null,
       createdAt: new Date().toISOString(),
     };
     setMessages((prev) => [...prev, tempUserMsg]);
     setIsSending(true);
 
     try {
-      const response = await sendMessage(content);
+      const response = await sendMessage(content, metadata);
       setMessages((prev) => [...prev, response]);
     } catch {
       const errorMsg: Message = {
@@ -57,6 +58,7 @@ export function ChatPage() {
         attachments: [],
         toolCalls: null,
         richCard: null,
+        debugTrace: null,
         createdAt: new Date().toISOString(),
       };
       setMessages((prev) => [...prev, errorMsg]);
@@ -92,7 +94,7 @@ export function ChatPage() {
 
           <div className="flex-1 overflow-y-auto">
             <div className="mx-auto max-w-2xl">
-              <ChatMessageList messages={messages} />
+              <ChatMessageList messages={messages} onSendMessage={handleSend} />
               {isSending && (
                 <div className="px-4 pb-4">
                   <TypingIndicator />

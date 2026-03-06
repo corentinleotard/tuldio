@@ -1,4 +1,6 @@
 import type { Request, Response } from 'express';
+import { processTeamDocument } from '@tuldio/core/teams';
+import { getTeamId } from '../middleware/auth.js';
 
 export async function handleUploadDocument(req: Request, res: Response): Promise<void> {
   const file = req.file;
@@ -7,10 +9,15 @@ export async function handleUploadDocument(req: Request, res: Response): Promise
     return;
   }
 
-  const originalDocumentUrl = `/files/documents/${file.filename}`;
+  const teamId = getTeamId(res);
+  const documentUrl = `/files/documents/${file.filename}`;
 
-  // TODO: trigger LLM extraction of company info from uploaded document
-  // and update team fields with extracted data
+  const team = await processTeamDocument({
+    teamId,
+    filePath: file.path,
+    mimeType: file.mimetype,
+    documentUrl,
+  });
 
-  res.json({ data: { originalDocumentUrl } });
+  res.json({ data: team });
 }

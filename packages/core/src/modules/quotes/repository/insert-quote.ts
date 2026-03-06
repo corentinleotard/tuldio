@@ -31,11 +31,13 @@ export async function insertQuote(input: {
   await query('BEGIN');
 
   try {
+    // Advisory lock per team to prevent race conditions on sequential numbering
+    await query(`SELECT pg_advisory_xact_lock(hashtext($1 || 'quote'))`, [validated.teamId]);
+
     const seqResult = await query<{ next_num: number }>(
       `SELECT COALESCE(MAX(CAST(SPLIT_PART(number, '-', 3) AS INTEGER)), 0) + 1 AS next_num
        FROM quotes
-       WHERE team_id = $1 AND number LIKE $2
-       FOR UPDATE`,
+       WHERE team_id = $1 AND number LIKE $2`,
       [validated.teamId, `${prefix}%`],
     );
 

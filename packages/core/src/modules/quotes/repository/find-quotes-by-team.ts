@@ -9,7 +9,7 @@ export async function findQuotesByTeam(
   teamId: string,
 ): Promise<QuoteWithClient[]> {
   const result = await query<QuoteWithClient>(
-    `SELECT q.*, c.name AS client_name
+    `SELECT q.*, c.first_name || ' ' || c.last_name AS client_name
      FROM quotes q
      JOIN clients c ON c.id = q.client_id
      WHERE q.team_id = $1

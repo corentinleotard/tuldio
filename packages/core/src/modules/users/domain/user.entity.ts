@@ -7,6 +7,7 @@ export const userSchema = z.object({
   phone: z.string().nullable(),
   name: z.string(),
   role: z.enum(['owner', 'member']),
+  god: z.boolean(),
   created_at: z.date(),
 });
 

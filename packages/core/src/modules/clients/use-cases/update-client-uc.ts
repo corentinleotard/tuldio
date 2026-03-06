@@ -7,7 +7,8 @@ import { toClientView, type ClientView } from '../domain/client.view.js';
 export async function updateClientUc(input: {
   teamId: string;
   clientId: string;
-  name?: string;
+  firstName?: string;
+  lastName?: string;
   email?: string;
   phone?: string;
   address?: string;

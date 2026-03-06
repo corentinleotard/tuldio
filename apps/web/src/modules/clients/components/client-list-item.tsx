@@ -19,9 +19,9 @@ export function ClientListItem({ client, isSelected, onClick }: ClientListItemPr
         isSelected ? 'bg-primary/10' : 'hover:bg-muted/50',
       )}
     >
-      <Avatar name={client.name} size="md" />
+      <Avatar name={`${client.firstName} ${client.lastName}`} size="md" />
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium">{client.name}</p>
+        <p className="truncate text-sm font-medium">{client.firstName} {client.lastName}</p>
         <p className="truncate text-sm text-muted-foreground">
           {client.email ?? client.phone ?? ''}
         </p>

@@ -14,6 +14,7 @@ import messagesRoutes from './routes/messages.routes.js';
 import statsRoutes from './routes/stats.routes.js';
 import quotesRoutes from './routes/quotes.routes.js';
 import invoicesRoutes from './routes/invoices.routes.js';
+import adminRoutes from './routes/admin.routes.js';
 
 const PORT = process.env.PORT || 3003;
 
@@ -42,6 +43,7 @@ app.use('/api/messages', messagesRoutes);
 app.use('/api/stats', statsRoutes);
 app.use('/api/quotes', quotesRoutes);
 app.use('/api/invoices', invoicesRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Static files
 const FILES_DIR = process.env.FILES_DIR || '/var/tuldio/files';

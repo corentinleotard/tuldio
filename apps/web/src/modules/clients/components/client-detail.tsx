@@ -11,8 +11,8 @@ export function ClientDetail({ client }: ClientDetailProps) {
   return (
     <div className="flex flex-col gap-6 p-6">
       <div className="flex flex-col items-center gap-3 text-center">
-        <Avatar name={client.name} size="lg" />
-        <h2 className="text-xl font-semibold">{client.name}</h2>
+        <Avatar name={`${client.firstName} ${client.lastName}`} size="lg" />
+        <h2 className="text-xl font-semibold">{client.firstName} {client.lastName}</h2>
       </div>
 
       <div className="flex flex-col gap-3">

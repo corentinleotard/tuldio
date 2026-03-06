@@ -1,13 +1,36 @@
+import { HandledError } from '../../../lib/errors/handled-error.js';
+import { errorCodes } from '../../../lib/errors/error-codes.js';
 import { insertClient } from '../repository/insert-client.js';
+import { findClientByEmail } from '../repository/find-client-by-email.js';
+import { findClientByPhone } from '../repository/find-client-by-phone.js';
 import { toClientView, type ClientView } from '../domain/client.view.js';
 
 export async function createClient(input: {
   teamId: string;
-  name: string;
+  firstName: string;
+  lastName: string;
   email?: string;
   phone?: string;
   address?: string;
 }): Promise<ClientView> {
+  const { teamId, email, phone } = input;
+
+  // Dedup guard: email uniqueness
+  if (email) {
+    const existing = await findClientByEmail({ teamId, email });
+    if (existing) {
+      throw new HandledError(errorCodes.clientDuplicateEmail);
+    }
+  }
+
+  // Dedup guard: phone uniqueness
+  if (phone) {
+    const existing = await findClientByPhone({ teamId, phone });
+    if (existing) {
+      throw new HandledError(errorCodes.clientDuplicatePhone);
+    }
+  }
+
   const client = await insertClient(input);
 
   return toClientView(client);

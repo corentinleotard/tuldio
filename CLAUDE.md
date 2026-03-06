@@ -53,6 +53,7 @@ pnpm lint             # ESLint
 pnpm lint:fix         # ESLint auto-fix
 pnpm format           # Prettier
 pnpm typecheck        # TypeScript (all workspaces)
+pnpm db:migrate       # Apply pending SQL migrations
 ```
 
 ## After Code Changes

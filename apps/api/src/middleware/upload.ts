@@ -45,11 +45,30 @@ const MB = 1024 * 1024;
 export const uploadDocument: Middleware = multer({
   storage: createStorage('documents'),
   fileFilter,
-  limits: { fileSize: 10 * MB },
+  limits: { fileSize: 5 * MB },
 }).single('file') as unknown as Middleware;
 
 export const uploadReceipt: Middleware = multer({
   storage: createStorage('receipts'),
   fileFilter,
   limits: { fileSize: 10 * MB },
+}).single('file') as unknown as Middleware;
+
+const logoFilter = (
+  _req: Express.Request,
+  file: Express.Multer.File,
+  cb: multer.FileFilterCallback,
+) => {
+  const allowed = ['image/jpeg', 'image/png', 'image/webp'];
+  if (allowed.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(new Error('Seuls les fichiers PNG, JPG et WebP sont autorises'));
+  }
+};
+
+export const uploadLogo: Middleware = multer({
+  storage: createStorage('logos'),
+  fileFilter: logoFilter,
+  limits: { fileSize: 2 * MB },
 }).single('file') as unknown as Middleware;
