@@ -1,18 +1,19 @@
 import type { Request, Response } from 'express';
-import { getQuote } from '@tuldio/core/quotes';
-import { getFilePath } from '@tuldio/core/lib';
+import { downloadQuotePdf } from '@tuldio/core/quotes';
 import { getTeamId } from '../middleware/auth.js';
 
 export async function handleDownloadQuotePdf(req: Request, res: Response): Promise<void> {
   const teamId = getTeamId(res);
   const quoteId = req.params.id as string;
 
-  const quote = await getQuote({ teamId, quoteId });
-  if (!quote.pdfUrl) {
-    res.status(404).json({ error: { code: 'NOT_FOUND', message: 'PDF non disponible' } });
+  const result = await downloadQuotePdf({ teamId, quoteId });
+
+  if (result.type === 'file') {
+    res.sendFile(result.filePath);
     return;
   }
 
-  const filePath = getFilePath(quote.pdfUrl);
-  res.sendFile(filePath);
+  res.setHeader('Content-Type', 'application/pdf');
+  res.setHeader('Content-Disposition', `inline; filename="${result.fileName}"`);
+  res.send(result.buffer);
 }

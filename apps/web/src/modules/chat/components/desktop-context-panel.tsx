@@ -97,29 +97,27 @@ function LatestDocumentCard({ doc }: { doc: AnyDocument }) {
 }
 
 function MonthSummaryCard({ stats }: { stats: MonthlyStatsView }) {
-  const result = stats.revenue.totalTtc - stats.expenses.total;
-
   return (
     <Card>
       <CardContent className="p-3">
         <p className="text-xs font-medium uppercase text-muted-foreground">Resume du mois</p>
         <div className="mt-2 space-y-1.5">
           <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">Recettes</span>
+            <span className="text-muted-foreground">CA encaisse</span>
             <span className="font-bold text-success">
               {formatCurrency(stats.revenue.totalTtc)}
             </span>
           </div>
           <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">Depenses</span>
-            <span className="font-bold text-destructive">
-              {formatCurrency(stats.expenses.total)}
+            <span className="text-muted-foreground">Impaye</span>
+            <span className="font-bold text-warning">
+              {formatCurrency(stats.unpaid.total)}
             </span>
           </div>
           <div className="border-t pt-1.5">
             <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Resultat</span>
-              <span className="font-bold text-success">{formatCurrency(result)}</span>
+              <span className="text-muted-foreground">Conversion devis</span>
+              <span className="font-bold">{Math.round(stats.quoteConversion.rate)}%</span>
             </div>
           </div>
         </div>

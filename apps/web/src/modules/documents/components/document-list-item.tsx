@@ -10,6 +10,7 @@ interface DocumentListItemProps {
   amount: number;
   status: string;
   isSelected?: boolean;
+  isEven?: boolean;
   onClick: () => void;
 }
 
@@ -20,6 +21,7 @@ export function DocumentListItem({
   amount,
   status,
   isSelected,
+  isEven,
   onClick,
 }: DocumentListItemProps) {
   const badge = statusConfig[status] ?? { ...defaultStatus, label: status };
@@ -29,24 +31,28 @@ export function DocumentListItem({
       type="button"
       onClick={onClick}
       className={cn(
-        'flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-secondary/50',
-        isSelected && 'bg-secondary',
+        'flex w-full items-center gap-3 border-b border-border px-5 py-3.5 text-left focus-visible:outline-none',
+        isSelected ? 'bg-primary/10' : 'hover:bg-secondary',
+        !isSelected && isEven && 'bg-secondary/50',
       )}
     >
-      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-primary/10">
-        <FileText className="h-5 w-5 text-primary" />
+      {/* Icon — mobile only */}
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] bg-primary/10 md:hidden">
+        <FileText className="h-[18px] w-[18px] text-primary" />
       </div>
 
+      {/* Info */}
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium">{clientName}</p>
-        <p className="text-xs text-muted-foreground">
-          {number} &middot; {formatShortDate(date)}
-        </p>
-      </div>
-
-      <div className="flex shrink-0 flex-col items-end gap-1">
-        <span className="text-lg font-bold">{formatCurrency(amount)}</span>
-        <Badge variant={badge.variant}>{badge.label}</Badge>
+        <div className="flex items-center justify-between gap-2">
+          <p className="truncate text-[15px] font-semibold">{clientName}</p>
+          <span className="shrink-0 text-base font-bold">{formatCurrency(amount)}</span>
+        </div>
+        <div className="mt-0.5 flex items-center justify-between gap-2">
+          <p className="text-xs text-muted-foreground">
+            {number} · {formatShortDate(date)}
+          </p>
+          <Badge variant={badge.variant}>{badge.label}</Badge>
+        </div>
       </div>
     </button>
   );

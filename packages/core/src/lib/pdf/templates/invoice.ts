@@ -10,7 +10,13 @@ import {
   type PdfTeam,
   type PdfClient,
   type PdfLine,
+  type PdfTvaGroup,
 } from './shared.js';
+
+function formatTvaRate(basisPoints: number): string {
+  const percent = basisPoints / 100;
+  return Number.isInteger(percent) ? `${percent}` : percent.toFixed(1);
+}
 
 export function renderInvoiceHtml(input: {
   team: PdfTeam;
@@ -19,14 +25,13 @@ export function renderInvoiceHtml(input: {
   lines: PdfLine[];
   totalHt: number;
   totalTtc: number;
-  tvaRate: number;
+  tvaGroups: PdfTvaGroup[];
   createdAt: Date;
   dueDate: Date | null;
 }): string {
-  const { team, client, number, lines, totalHt, totalTtc, tvaRate, createdAt, dueDate } = input;
+  const { team, client, number, lines, totalHt, totalTtc, tvaGroups, createdAt, dueDate } = input;
   const f = team.fields;
   const dt = 'invoice' as const;
-  const tvaAmount = totalTtc - totalHt;
   const legal = renderLegalMentions(f, dt);
 
   const siret = getField(f, 'siret', dt);
@@ -40,6 +45,8 @@ export function renderInvoiceHtml(input: {
   const logoUrl = team.logoUrl;
   const paymentTerms = getField(f, 'payment_terms', dt);
   const iban = getField(f, 'iban', dt);
+
+  const hasMixedTva = tvaGroups.length > 1;
 
   return `<!DOCTYPE html>
 <html lang="fr">
@@ -67,9 +74,9 @@ export function renderInvoiceHtml(input: {
 
     <div class="doc-col">
       <div class="doc-title">FACTURE</div>
-      <div class="doc-meta">N° ${esc(number)}</div>
+      <div class="doc-meta">N\u00B0 ${esc(number)}</div>
       <div class="doc-meta">Date : ${formatDate(createdAt)}</div>
-      ${dueDate ? `<div class="doc-meta">Echeance : ${formatDate(dueDate)}</div>` : ''}
+      ${dueDate ? `<div class="doc-meta">\u00C9ch\u00E9ance : ${formatDate(dueDate)}</div>` : ''}
 
       <div class="client-block">
         <div class="client-label">Client</div>
@@ -88,8 +95,10 @@ export function renderInvoiceHtml(input: {
     <thead>
       <tr>
         <th>Description</th>
-        <th class="r">Qte</th>
+        <th class="r">Qt\u00E9</th>
+        <th class="r">Unit\u00E9</th>
         <th class="r">P.U. HT</th>
+        ${hasMixedTva ? '<th class="r">TVA</th>' : ''}
         <th class="r">Total HT</th>
       </tr>
     </thead>
@@ -97,8 +106,10 @@ export function renderInvoiceHtml(input: {
       ${lines.map((l) => `<tr>
         <td>${esc(l.description)}</td>
         <td class="r">${l.quantity}</td>
+        <td class="r">${esc(l.unit)}</td>
         <td class="r">${formatCurrency(l.unitPrice)}</td>
-        <td class="r">${formatCurrency(l.total)}</td>
+        ${hasMixedTva ? `<td class="r">${formatTvaRate(l.tvaRate)} %</td>` : ''}
+        <td class="r">${formatCurrency(l.totalHt)}</td>
       </tr>`).join('')}
     </tbody>
   </table>
@@ -110,10 +121,10 @@ export function renderInvoiceHtml(input: {
         <td>Total HT</td>
         <td class="r">${formatCurrency(totalHt)}</td>
       </tr>
-      ${tvaRate > 0 ? `<tr>
-        <td>TVA ${tvaRate} %</td>
-        <td class="r">${formatCurrency(tvaAmount)}</td>
-      </tr>` : ''}
+      ${tvaGroups.map((g) => g.tvaRate > 0 ? `<tr>
+        <td>TVA ${formatTvaRate(g.tvaRate)} %</td>
+        <td class="r">${formatCurrency(g.tvaMontant)}</td>
+      </tr>` : '').join('')}
       ${tvaExempt ? `<tr>
         <td colspan="2" style="font-size:7.5pt;color:#999;">TVA non applicable, art. 293 B du CGI</td>
       </tr>` : ''}
@@ -130,7 +141,7 @@ export function renderInvoiceHtml(input: {
     const hasPayment = paymentTerms || dueDate || iban || customPayment.length > 0;
     if (!hasPayment) return '';
     return `<div class="payment-box">
-    ${paymentTerms ? `<strong>Reglement :</strong> ${esc(paymentTerms)}` : ''}
+    ${paymentTerms ? `<strong>R\u00E8glement :</strong> ${esc(paymentTerms)}` : ''}
     ${paymentTerms && dueDate ? '<br>' : ''}
     ${dueDate ? `<strong>Date limite :</strong> ${formatDate(dueDate)}` : ''}
     ${iban ? `${paymentTerms || dueDate ? '<br>' : ''}<strong>IBAN :</strong> ${esc(iban)}` : ''}

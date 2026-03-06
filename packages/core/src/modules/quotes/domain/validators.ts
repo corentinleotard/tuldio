@@ -1,33 +1,41 @@
-export function computeQuoteTotals(input: {
-  lines: { description: string; quantity: number; unitPrice: number }[];
-  tvaRate: number;
-}): {
-  totalHt: number;
-  totalTtc: number;
-  lines: { description: string; quantity: number; unitPrice: number; total: number }[];
-} {
-  const lines = input.lines.map((line) => ({
-    description: line.description,
-    quantity: line.quantity,
-    unitPrice: line.unitPrice,
-    total: line.quantity * line.unitPrice,
-  }));
+import {
+  validateDocumentLine,
+  computeDocumentLineTotals,
+  validateStatusTransition,
+  type DocumentLineInput,
+} from '../../shared/domain/document-validators.js';
+import type { DocumentTotals } from '../../shared/domain/document-math.js';
 
-  const totalHt = lines.reduce((sum, line) => sum + line.total, 0);
-  const totalTtc = Math.round(totalHt + (totalHt * input.tvaRate) / 100);
+export type { DocumentLineInput as QuoteLineInput };
 
-  return { totalHt, totalTtc, lines };
+export const validateQuoteLine = validateDocumentLine;
+
+export function computeQuoteTotals(lines: DocumentLineInput[]): DocumentTotals {
+  return computeDocumentLineTotals(lines);
 }
 
-const validTransitions: Record<string, string[]> = {
-  draft: ['sent'],
-  sent: ['accepted', 'refused'],
+const quoteTransitions: Record<string, string[]> = {
+  draft: ['sent', 'accepted', 'cancelled'],
+  sent: ['accepted', 'refused', 'cancelled'],
 };
 
-export function validateStatusTransition(input: {
+export function validateQuoteStatusTransition(input: {
   from: string;
   to: string;
 }): boolean {
-  const allowed = validTransitions[input.from];
-  return !!allowed && allowed.includes(input.to);
+  return validateStatusTransition({ ...input, transitions: quoteTransitions });
+}
+
+export function canEditQuote(input: {
+  status: string;
+  hasLinkedInvoices: boolean;
+}): boolean {
+  if (input.hasLinkedInvoices) return false;
+  return input.status === 'draft' || input.status === 'sent';
+}
+
+export function defaultValidUntil(createdAt: Date): Date {
+  const date = new Date(createdAt);
+  date.setDate(date.getDate() + 30);
+  return date;
 }

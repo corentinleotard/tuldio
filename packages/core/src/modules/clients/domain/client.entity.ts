@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 const clientNoteSchema = z.object({
   content: z.string(),
+  type: z.enum(['note', 'warning']).default('note'),
   createdAt: z.string(),
 });
 

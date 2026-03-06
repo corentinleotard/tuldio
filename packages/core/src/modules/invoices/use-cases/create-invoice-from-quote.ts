@@ -3,18 +3,15 @@ import { HandledError } from '../../../lib/errors/handled-error.js';
 import { errorCodes } from '../../../lib/errors/error-codes.js';
 import { findQuoteById } from '../../quotes/repository/find-quote-by-id.js';
 import { findClientById } from '../../clients/repository/find-client-by-id.js';
-import { findTeamById } from '../../teams/repository/find-team-by-id.js';
-import { findTeamFields } from '../../teams/repository/find-team-fields.js';
-import { toTeamField } from '../../teams/domain/team-field.view.js';
 import { insertInvoice } from '../repository/insert-invoice.js';
-import { updateInvoicePdfUrl } from '../repository/update-invoice-pdf-url.js';
-import { generatePdf } from '../../../lib/pdf/generate-pdf.js';
-import { logger } from '../../../lib/infra/logger.js';
+import { findInvoiceById } from '../repository/find-invoice-by-id.js';
+import { toInvoiceView } from './create-invoice.js';
 
 export async function createInvoiceFromQuote(input: {
   teamId: string;
   userId: string;
   quoteId: string;
+  title?: string;
 }): Promise<InvoiceView> {
   const quote = await findQuoteById({
     teamId: input.teamId,
@@ -25,68 +22,38 @@ export async function createInvoiceFromQuote(input: {
     throw new HandledError(errorCodes.quoteNotFound);
   }
 
+  // Only accepted or sent quotes can be invoiced
+  if (quote.status !== 'accepted' && quote.status !== 'sent') {
+    throw new HandledError(errorCodes.invalidStatusTransition);
+  }
+
+  // Copy quote lines to invoice lines
+  const insertLines = quote.lines.map((l) => ({
+    description: l.description,
+    quantity: Number(l.quantity),
+    unit: l.unit,
+    unitPrice: l.unit_price,
+    tvaRate: l.tva_rate,
+    totalHt: l.total_ht,
+    prestationId: l.prestation_id,
+  }));
+
   const invoice = await insertInvoice({
     teamId: input.teamId,
     createdBy: input.userId,
     clientId: quote.client_id,
     quoteId: quote.id,
-    lines: quote.lines,
+    title: input.title ?? quote.title,
+    lines: insertLines,
     totalHt: quote.total_ht,
     totalTtc: quote.total_ttc,
-    tvaRate: quote.tva_rate,
   });
 
-  // Generate PDF
-  let pdfUrl: string | null = null;
-  try {
-    const [teamRow, clientRow, fieldRows] = await Promise.all([
-      findTeamById(input.teamId),
-      findClientById({ teamId: input.teamId, clientId: quote.client_id }),
-      findTeamFields(input.teamId),
-    ]);
+  const client = await findClientById({ teamId: input.teamId, clientId: quote.client_id });
+  const full = await findInvoiceById({ teamId: input.teamId, invoiceId: invoice.id });
 
-    if (!teamRow) throw new HandledError(errorCodes.teamNotFound);
-    if (!clientRow) throw new HandledError(errorCodes.clientNotFound);
-
-    pdfUrl = await generatePdf({
-      type: 'invoice',
-      id: invoice.id,
-      number: invoice.number,
-      team: { name: teamRow.name, logoUrl: teamRow.logo_url, fields: fieldRows.map(toTeamField) },
-      client: {
-        name: clientRow.first_name + ' ' + clientRow.last_name,
-        email: clientRow.email,
-        phone: clientRow.phone,
-        address: clientRow.address,
-      },
-      lines: invoice.lines,
-      totalHt: invoice.total_ht,
-      totalTtc: invoice.total_ttc,
-      tvaRate: invoice.tva_rate,
-      createdAt: invoice.created_at,
-      dueDate: invoice.due_date,
-    });
-
-    await updateInvoicePdfUrl({ teamId: input.teamId, invoiceId: invoice.id, pdfUrl });
-  } catch (err) {
-    logger.error('PDF generation failed for invoice', { invoiceId: invoice.id, error: err });
-  }
-
-  return {
-    id: invoice.id,
-    number: invoice.number,
-    clientId: invoice.client_id,
-    clientName: undefined,
-    quoteId: invoice.quote_id,
-    lines: invoice.lines,
-    totalHt: invoice.total_ht,
-    totalTtc: invoice.total_ttc,
-    tvaRate: invoice.tva_rate,
-    status: invoice.status,
-    pdfUrl,
-    sentAt: invoice.sent_at?.toISOString() ?? null,
-    paidAt: invoice.paid_at?.toISOString() ?? null,
-    dueDate: invoice.due_date?.toISOString() ?? null,
-    createdAt: invoice.created_at.toISOString(),
-  };
+  return toInvoiceView(full!, {
+    clientName: client ? `${client.first_name} ${client.last_name}` : undefined,
+    clientEmail: client?.email ?? undefined,
+  });
 }

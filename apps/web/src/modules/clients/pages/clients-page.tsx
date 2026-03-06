@@ -39,73 +39,92 @@ export function ClientsPage() {
   const selectedClient = clients.find((c) => c.id === selectedId) ?? null;
 
   return (
-    <div className="flex h-full flex-col">
-      <div className="flex items-center justify-between border-b border-border p-4 md:px-5 md:pb-4 md:pt-5">
-        <h1 className="text-[22px] font-bold tracking-tight text-primary">Clients</h1>
-        {!isLoading && clients.length > 0 && (
-          <span className="text-[13px] font-medium text-muted-foreground">
-            {clients.length} client{clients.length > 1 ? 's' : ''}
-          </span>
-        )}
-      </div>
-
-      <div className="flex min-h-0 flex-1">
-        {/* List panel */}
-        <div className="flex w-full flex-col border-r border-border md:w-[380px]">
-          <div className="p-4">
+    <div className="flex h-full">
+      {/* List panel */}
+      <div className="flex w-full flex-shrink-0 flex-col border-r border-border md:w-[380px]">
+        {/* Header */}
+        <div className="border-b border-border px-5 pb-4 pt-5">
+          <div className="flex items-center justify-between">
+            <h1 className="text-[22px] font-bold tracking-tight text-primary">Clients</h1>
+            {!isLoading && clients.length > 0 && (
+              <span className="text-[13px] font-medium text-muted-foreground">
+                {clients.length} client{clients.length > 1 ? 's' : ''}
+              </span>
+            )}
+          </div>
+          <div className="mt-3">
             <SearchInput
               placeholder="Rechercher un client..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
-
-          <div className="flex-1 overflow-y-auto px-2 pb-4">
-            {isLoading ? (
-              <div className="flex items-center justify-center py-16">
-                <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-              </div>
-            ) : clients.length === 0 ? (
-              <EmptyState
-                icon={Users}
-                message={
-                  isSearching
-                    ? 'Aucun client trouvé pour cette recherche.'
-                    : "Aucun client pour l'instant. Mentionnez un client dans le chat pour l'ajouter !"
-                }
-              />
-            ) : (
-              grouped.map((group) => (
-                <div key={group.letter}>
-                  <p className="px-3 pb-1 pt-3 text-xs font-semibold text-muted-foreground">
-                    {group.letter}
-                  </p>
-                  {group.clients.map((client) => (
-                    <ClientListItem
-                      key={client.id}
-                      client={client}
-                      isSelected={client.id === selectedId}
-                      onClick={() => setSelectedId(client.id)}
-                    />
-                  ))}
-                </div>
-              ))
-            )}
-          </div>
         </div>
 
-        {/* Detail panel — desktop only */}
-        <div className="hidden flex-1 overflow-y-auto md:block">
-          {selectedClient ? (
-            <ClientDetail client={selectedClient} />
-          ) : (
-            <div className="flex h-full items-center justify-center">
-              <p className="text-sm text-muted-foreground">
-                Sélectionnez un client pour voir ses détails
-              </p>
+        {/* Scrollable list */}
+        <div className="flex-1 overflow-y-auto">
+          {isLoading && (
+            <div className="flex items-center justify-center py-16">
+              <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
             </div>
           )}
+
+          {!isLoading && clients.length === 0 && (
+            <EmptyState
+              icon={Users}
+              message={
+                isSearching
+                  ? 'Aucun client trouvé pour cette recherche.'
+                  : "Aucun client pour l'instant. Mentionnez un client dans le chat pour l'ajouter !"
+              }
+            />
+          )}
+
+          {!isLoading &&
+            (() => {
+              let rowIndex = 0;
+              return grouped.map((group) => (
+                <div key={group.letter}>
+                  <p className="bg-secondary/50 px-5 py-1.5 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+                    {group.letter}
+                  </p>
+                  {group.clients.map((client) => {
+                    const isEven = rowIndex % 2 === 1;
+                    rowIndex++;
+                    return (
+                      <ClientListItem
+                        key={client.id}
+                        client={client}
+                        isSelected={client.id === selectedId}
+                        isEven={isEven}
+                        onClick={() => setSelectedId(client.id)}
+                      />
+                    );
+                  })}
+                </div>
+              ));
+            })()}
         </div>
+      </div>
+
+      {/* Detail panel — desktop only */}
+      <div className="hidden flex-1 overflow-y-auto md:block">
+        {selectedClient ? (
+          <ClientDetail client={selectedClient} />
+        ) : (
+          <div className="flex h-full flex-col items-center justify-center px-12 text-center">
+            <div className="mb-6 flex h-[88px] w-[88px] items-center justify-center rounded-3xl bg-primary/10">
+              <Users className="h-10 w-10 text-primary" strokeWidth={1.5} />
+            </div>
+            <h2 className="mb-2 text-[22px] font-bold tracking-tight">
+              Vos clients, en un coup d&rsquo;oeil
+            </h2>
+            <p className="max-w-xs text-[15px] leading-relaxed text-muted-foreground">
+              Sélectionnez un client à gauche pour voir ses informations, ses notes et son
+              historique.
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );

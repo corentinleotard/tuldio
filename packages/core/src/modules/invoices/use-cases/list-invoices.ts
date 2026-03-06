@@ -1,47 +1,26 @@
+import type { InvoiceView } from '@tuldio/types';
 import { findInvoicesByTeam } from '../repository/find-invoices-by-team.js';
-import type { InvoiceWithClient } from '../repository/find-invoices-by-team.js';
-import type { InvoiceRow } from '../domain/invoice.entity.js';
 
-interface InvoiceView {
-  id: string;
-  number: string;
-  clientId: string;
-  clientName: string | null;
-  quoteId: string | null;
-  lines: InvoiceRow['lines'];
-  totalHt: number;
-  totalTtc: number;
-  tvaRate: number;
-  status: string;
-  pdfUrl: string | null;
-  sentAt: string | null;
-  paidAt: string | null;
-  dueDate: string | null;
-  createdAt: string;
-}
+export async function listInvoices(teamId: string): Promise<InvoiceView[]> {
+  const invoices = await findInvoicesByTeam(teamId);
 
-function toInvoiceView(row: InvoiceWithClient): InvoiceView {
-  return {
+  return invoices.map((row) => ({
     id: row.id,
     number: row.number,
     clientId: row.client_id,
     clientName: row.client_name,
+    clientEmail: row.client_email ?? undefined,
     quoteId: row.quote_id,
-    lines: row.lines,
+    title: row.title,
+    lines: [],
     totalHt: row.total_ht,
     totalTtc: row.total_ttc,
-    tvaRate: row.tva_rate,
+    tvaGroups: [],
     status: row.status,
     pdfUrl: row.pdf_url,
     sentAt: row.sent_at?.toISOString() ?? null,
     paidAt: row.paid_at?.toISOString() ?? null,
     dueDate: row.due_date?.toISOString() ?? null,
     createdAt: row.created_at.toISOString(),
-  };
-}
-
-export async function listInvoices(teamId: string): Promise<InvoiceView[]> {
-  const invoices = await findInvoicesByTeam(teamId);
-
-  return invoices.map(toInvoiceView);
+  }));
 }

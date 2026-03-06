@@ -28,6 +28,13 @@ export function formatShortDate(iso: string): string {
   }).format(new Date(iso));
 }
 
+export function formatMonthYear(iso: string): string {
+  return new Intl.DateTimeFormat('fr-FR', {
+    month: 'long',
+    year: 'numeric',
+  }).format(new Date(iso));
+}
+
 export function getInitials(name: string): string {
   return name
     .split(/\s+/)

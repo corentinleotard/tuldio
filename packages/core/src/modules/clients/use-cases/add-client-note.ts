@@ -7,6 +7,7 @@ export async function addClientNote(input: {
   teamId: string;
   clientId: string;
   content: string;
+  type?: 'note' | 'warning';
 }): Promise<void> {
   const client = await findClientById({
     teamId: input.teamId,
@@ -18,7 +19,7 @@ export async function addClientNote(input: {
 
   const notes = [
     ...client.notes,
-    { content: input.content, createdAt: new Date().toISOString() },
+    { content: input.content, type: input.type ?? 'note', createdAt: new Date().toISOString() },
   ];
 
   await updateClientNotes({

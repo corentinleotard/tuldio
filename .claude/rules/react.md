@@ -84,6 +84,9 @@ apps/web/src/
 ## State
 
 - TanStack Query for all server data (`useQuery`, `useMutation`) — never cache API data in Zustand
+- **React Query cache is the single source of truth for server data** — never duplicate it into `useState`
+- After mutations (create, update, send), update the cache via `queryClient.setQueryData` (optimistic) or `queryClient.invalidateQueries` — never maintain a parallel local state
+- Read data with `useQuery`, write back with `setQueryData` or invalidation — no `useEffect` sync loops
 - Zustand only for client-only state (UI toggles, current chat input) — not the default choice
 - Prefer derived state over synced state — compute from existing data instead of storing separately
 - Never `useEffect` to sync state — it's almost always wrong data flow

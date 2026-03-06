@@ -9,7 +9,6 @@ import { requestLogger } from './lib/request-logger.js';
 import authRoutes from './routes/auth.routes.js';
 import clientsRoutes from './routes/clients.routes.js';
 import teamsRoutes from './routes/teams.routes.js';
-import expensesRoutes from './routes/expenses.routes.js';
 import messagesRoutes from './routes/messages.routes.js';
 import statsRoutes from './routes/stats.routes.js';
 import quotesRoutes from './routes/quotes.routes.js';
@@ -38,7 +37,6 @@ app.use('/api/auth', authRoutes);
 // Protected routes
 app.use('/api/clients', clientsRoutes);
 app.use('/api/teams', teamsRoutes);
-app.use('/api/expenses', expensesRoutes);
 app.use('/api/messages', messagesRoutes);
 app.use('/api/stats', statsRoutes);
 app.use('/api/quotes', quotesRoutes);

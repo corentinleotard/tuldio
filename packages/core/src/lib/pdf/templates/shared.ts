@@ -20,8 +20,16 @@ export interface PdfClient {
 export interface PdfLine {
   description: string;
   quantity: number;
+  unit: string;
   unitPrice: number;
-  total: number;
+  tvaRate: number; // basis points
+  totalHt: number;
+}
+
+export interface PdfTvaGroup {
+  tvaRate: number;
+  baseHt: number;
+  tvaMontant: number;
 }
 
 /** Get a field value by key, respecting visibility for the given doc type */
@@ -175,26 +183,21 @@ export const CSS = `
   /* Left: logo + company info */
   .company-col {
     max-width: 50%;
-    text-align: center;
   }
   .logo-box {
-    max-width: 140px;
-    max-height: 80px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin: 0 auto 14px auto;
+    margin-bottom: 8px;
   }
   .logo-box img {
+    display: block;
     max-width: 100%;
-    max-height: 100%;
+    max-height: 55px;
     object-fit: contain;
   }
   .company-name {
     font-size: 13pt;
     font-weight: 700;
     color: #1B4D3E;
-    margin-bottom: 6px;
+    margin-bottom: 3px;
   }
   .company-info {
     font-size: 8pt;

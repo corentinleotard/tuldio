@@ -1,100 +1,222 @@
+import { useState, useRef, useEffect } from 'react';
 import type { QuoteView, InvoiceView } from '@tuldio/types';
-import { Download } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { formatCurrency, formatDate } from '@/lib/utils';
+import { Download, ChevronDown } from 'lucide-react';
+import { cn, formatCurrency, formatDate, formatShortDate } from '@/lib/utils';
 import { API_URL } from '@/lib/api-fetch';
-import { statusConfig, defaultStatus } from './status-config.js';
+import {
+  statusConfig,
+  defaultStatus,
+  quoteTransitions,
+  invoiceTransitions,
+  getOrderedStatuses,
+  getStatusDotClass,
+  getStatusCssVar,
+} from './status-config.js';
 
 interface DocumentDetailProps {
   document: QuoteView | InvoiceView;
   type: 'quote' | 'invoice';
+  onStatusChange: (status: string) => void;
 }
 
-export function DocumentDetail({ document: doc, type }: DocumentDetailProps) {
+export function DocumentDetail({ document: doc, type, onStatusChange }: DocumentDetailProps) {
   const badge = statusConfig[doc.status] ?? { ...defaultStatus, label: doc.status };
   const typeLabel = type === 'quote' ? 'Devis' : 'Facture';
-  const tvaAmount = doc.totalTtc - doc.totalHt;
+
+
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setDropdownOpen(false);
+      }
+    }
+    if (dropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [dropdownOpen]);
+
+  const transitions = type === 'quote' ? quoteTransitions : invoiceTransitions;
+  const nextStatuses = transitions[doc.status as keyof typeof transitions] ?? [];
+  const allStatuses = getOrderedStatuses(type);
+  const hasTransitions = nextStatuses.length > 0;
+
+  function handleStatusSelect(status: string) {
+    setDropdownOpen(false);
+    onStatusChange(status);
+  }
 
   return (
-    <div className="flex flex-col gap-6 p-6">
-      {/* Header */}
-      <div className="flex items-start justify-between">
-        <div>
-          <div className="flex items-center gap-3">
-            <h2 className="text-xl font-semibold">
-              {typeLabel} {doc.number}
-            </h2>
-            <Badge variant={badge.variant}>{badge.label}</Badge>
+    <div className="flex flex-col items-center p-5 md:p-8">
+      <div className="w-full max-w-[600px] rounded-xl bg-card p-6 shadow-sm md:p-8">
+        {/* Header */}
+        <div className="mb-6 flex items-start justify-between">
+          <div>
+            <p className="mb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              {typeLabel}
+            </p>
+            <h2 className="text-2xl font-bold tracking-tight">{doc.number}</h2>
           </div>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {doc.clientName ?? 'Client inconnu'} &middot; {formatDate(doc.createdAt)}
-          </p>
+
+          {/* Status dropdown */}
+          <div ref={dropdownRef} className="relative">
+            <button
+              type="button"
+              onClick={() => hasTransitions && setDropdownOpen(!dropdownOpen)}
+              className={cn(
+                'inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold text-white transition-opacity',
+                hasTransitions && 'cursor-pointer hover:opacity-85',
+                !hasTransitions && 'cursor-default',
+              )}
+              style={{
+                backgroundColor: `hsl(var(${getStatusCssVar(badge.variant)}))`,
+              }}
+            >
+              {badge.label}
+              {hasTransitions && <ChevronDown className="h-3 w-3" />}
+            </button>
+
+            {dropdownOpen && (
+              <div className="absolute right-0 top-full z-10 mt-1.5 min-w-[180px] overflow-hidden rounded-[10px] border border-border bg-card shadow-lg">
+                <p className="px-3.5 pb-1.5 pt-2.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                  Changer le statut
+                </p>
+                {allStatuses.map((s) => {
+                  const sc = statusConfig[s] ?? defaultStatus;
+                  const isCurrent = s === doc.status;
+                  const isClickable = nextStatuses.includes(s as never);
+
+                  return (
+                    <button
+                      key={s}
+                      type="button"
+                      disabled={!isClickable && !isCurrent}
+                      onClick={() => isClickable && handleStatusSelect(s)}
+                      className={cn(
+                        'flex w-full items-center gap-2.5 px-3.5 py-2.5 text-sm transition-colors',
+                        isCurrent && 'bg-primary/5',
+                        isClickable && 'cursor-pointer hover:bg-secondary',
+                        !isClickable && !isCurrent && 'cursor-default opacity-40',
+                      )}
+                    >
+                      <span className={cn('h-2 w-2 shrink-0 rounded-full', getStatusDotClass(sc.variant))} />
+                      <span
+                        className={cn(
+                          'font-medium',
+                          isCurrent && 'font-semibold text-primary',
+                        )}
+                      >
+                        {sc.label}
+                      </span>
+                      {isCurrent && (
+                        <span className="ml-auto text-[11px] text-muted-foreground">actuel</span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
 
-        {doc.pdfUrl && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => window.open(`${API_URL}${doc.pdfUrl}`, '_blank')}
-          >
-            <Download className="mr-2 h-4 w-4" />
-            T\u00e9l\u00e9charger PDF
-          </Button>
-        )}
-      </div>
-
-      {/* Lines table */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Lignes</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b text-left text-muted-foreground">
-                  <th className="pb-2 pr-4 font-medium">Description</th>
-                  <th className="pb-2 pr-4 text-right font-medium">Qt\u00e9</th>
-                  <th className="pb-2 pr-4 text-right font-medium">Prix unit.</th>
-                  <th className="pb-2 text-right font-medium">Total</th>
-                </tr>
-              </thead>
-              <tbody>
-                {doc.lines.map((line, i) => (
-                  <tr key={i} className="border-b last:border-0">
-                    <td className="py-2 pr-4">{line.description}</td>
-                    <td className="py-2 pr-4 text-right">{line.quantity}</td>
-                    <td className="py-2 pr-4 text-right">{formatCurrency(line.unitPrice)}</td>
-                    <td className="py-2 text-right">{formatCurrency(line.total)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        {/* Client / Date grid */}
+        <div className="mb-6 grid grid-cols-2 gap-4">
+          <div>
+            <p className="mb-1 text-xs text-muted-foreground">Client</p>
+            <p className="text-[15px] font-semibold">{doc.clientName ?? 'Client inconnu'}</p>
+            {doc.clientEmail && (
+              <p className="text-[13px] text-muted-foreground">{doc.clientEmail}</p>
+            )}
           </div>
-        </CardContent>
-      </Card>
+          <div>
+            <p className="mb-1 text-xs text-muted-foreground">Date</p>
+            <p className="text-[15px] font-semibold">{formatDate(doc.createdAt)}</p>
+            {doc.sentAt && (
+              <p className="text-[13px] text-muted-foreground">
+                Envoyé le {formatShortDate(doc.sentAt)}
+              </p>
+            )}
+          </div>
+        </div>
 
-      {/* Totals */}
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex flex-col gap-2">
-            <div className="flex justify-between text-sm">
+        {/* Lines table */}
+        <div className="mb-6 overflow-hidden rounded-[10px] border border-border bg-card">
+          {/* Header — full on desktop, compact on mobile */}
+          <div className="hidden border-b border-border bg-secondary/50 px-3.5 py-2.5 text-xs font-semibold text-muted-foreground md:grid md:grid-cols-[1fr_60px_80px_100px]">
+            <div>Description</div>
+            <div className="text-center">Qté</div>
+            <div className="text-right">Prix unit.</div>
+            <div className="text-right">Total</div>
+          </div>
+          <div className="border-b border-border bg-secondary/50 px-3.5 py-2.5 text-xs font-semibold text-muted-foreground md:hidden">
+            <div className="flex justify-between">
+              <span>Description</span>
+              <span>Total</span>
+            </div>
+          </div>
+
+          {/* Rows */}
+          {doc.lines.map((line, i) => (
+            <div key={i} className={cn(i < doc.lines.length - 1 && 'border-b border-border')}>
+              {/* Desktop row */}
+              <div className="hidden px-3.5 py-3 text-sm md:grid md:grid-cols-[1fr_60px_80px_100px]">
+                <div>{line.description}</div>
+                <div className="text-center">{line.quantity}</div>
+                <div className="text-right">{formatCurrency(line.unitPrice)}</div>
+                <div className="text-right font-semibold">{formatCurrency(line.totalHt)}</div>
+              </div>
+              {/* Mobile row */}
+              <div className="flex items-start justify-between px-3.5 py-3 text-sm md:hidden">
+                <div>
+                  <p className="font-medium">{line.description}</p>
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    {line.quantity} × {formatCurrency(line.unitPrice)}
+                  </p>
+                </div>
+                <p className="shrink-0 font-semibold">{formatCurrency(line.totalHt)}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Totals */}
+        <div className="mb-6 flex justify-end">
+          <div className="w-[220px]">
+            <div className="mb-1.5 flex justify-between text-sm">
               <span className="text-muted-foreground">Total HT</span>
-              <span>{formatCurrency(doc.totalHt)}</span>
+              <span className="font-semibold">{formatCurrency(doc.totalHt)}</span>
             </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">TVA ({doc.tvaRate}%)</span>
-              <span>{formatCurrency(tvaAmount)}</span>
-            </div>
-            <div className="mt-2 flex justify-between border-t pt-2">
+            {doc.tvaGroups.map((g) => (
+              <div key={g.tvaRate} className="mb-1.5 flex justify-between text-sm">
+                <span className="text-muted-foreground">TVA {g.tvaRate / 100}%</span>
+                <span>{formatCurrency(g.tvaMontant)}</span>
+              </div>
+            ))}
+            <div className="my-2 h-px bg-border" />
+            <div className="flex justify-between text-base">
               <span className="font-semibold">Total TTC</span>
-              <span className="text-xl font-bold">{formatCurrency(doc.totalTtc)}</span>
+              <span className="font-bold">{formatCurrency(doc.totalTtc)}</span>
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+
+        {/* Actions */}
+        <div className="flex gap-2.5">
+          {doc.pdfUrl && (
+            <button
+              type="button"
+              onClick={() => window.open(`${API_URL}${doc.pdfUrl}`, '_blank')}
+              className="inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
+            >
+              <Download className="h-4 w-4" />
+              Télécharger PDF
+            </button>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

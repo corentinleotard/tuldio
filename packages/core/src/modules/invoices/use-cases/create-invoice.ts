@@ -1,30 +1,34 @@
 import type { InvoiceView } from '@tuldio/types';
-import { computeInvoiceTotals } from '../domain/validators.js';
+import { computeInvoiceTotals, validateInvoiceLine } from '../domain/validators.js';
 import { insertInvoice } from '../repository/insert-invoice.js';
-import { updateInvoicePdfUrl } from '../repository/update-invoice-pdf-url.js';
+import { findInvoiceById } from '../repository/find-invoice-by-id.js';
 import { findClientById } from '../../clients/repository/find-client-by-id.js';
-import { findTeamById } from '../../teams/repository/find-team-by-id.js';
-import { findTeamFields } from '../../teams/repository/find-team-fields.js';
-import { toTeamField } from '../../teams/domain/team-field.view.js';
-import { generatePdf } from '../../../lib/pdf/generate-pdf.js';
+import { computeLineTotal } from '../../shared/domain/document-math.js';
+import { toLineViews, toTvaGroups } from '../../shared/domain/to-line-views.js';
 import { HandledError } from '../../../lib/errors/handled-error.js';
 import { errorCodes } from '../../../lib/errors/error-codes.js';
-import { logger } from '../../../lib/infra/logger.js';
 import type { InvoiceRow } from '../domain/invoice.entity.js';
+import type { InvoiceLineRow } from '../domain/invoice.entity.js';
 
-function toInvoiceView(row: InvoiceRow, pdfUrl?: string | null): InvoiceView {
+export function toInvoiceView(
+  row: InvoiceRow & { lines?: InvoiceLineRow[] },
+  opts?: { clientName?: string; clientEmail?: string },
+): InvoiceView {
+  const lines = row.lines ?? [];
   return {
     id: row.id,
     number: row.number,
     clientId: row.client_id,
-    clientName: undefined,
+    clientName: opts?.clientName,
+    clientEmail: opts?.clientEmail,
     quoteId: row.quote_id,
-    lines: row.lines,
+    title: row.title,
+    lines: toLineViews(lines),
     totalHt: row.total_ht,
     totalTtc: row.total_ttc,
-    tvaRate: row.tva_rate,
+    tvaGroups: toTvaGroups(lines),
     status: row.status,
-    pdfUrl: pdfUrl ?? row.pdf_url,
+    pdfUrl: row.pdf_url,
     sentAt: row.sent_at?.toISOString() ?? null,
     paidAt: row.paid_at?.toISOString() ?? null,
     dueDate: row.due_date?.toISOString() ?? null,
@@ -32,65 +36,65 @@ function toInvoiceView(row: InvoiceRow, pdfUrl?: string | null): InvoiceView {
   };
 }
 
+interface CreateInvoiceLineInput {
+  description: string;
+  quantity: number;
+  unit?: string;
+  unitPrice: number;
+  tvaRate?: number;
+}
+
 export async function createInvoice(input: {
   teamId: string;
   userId: string;
   clientId: string;
-  lines: { description: string; quantity: number; unitPrice: number }[];
-  tvaRate: number;
+  title?: string;
+  lines: CreateInvoiceLineInput[];
   dueDate?: Date;
 }): Promise<InvoiceView> {
-  const { totalHt, totalTtc, lines } = computeInvoiceTotals({
-    lines: input.lines,
-    tvaRate: input.tvaRate,
-  });
+  const linesWithDefaults = input.lines.map((l) => ({
+    description: l.description,
+    quantity: l.quantity,
+    unit: l.unit ?? 'u',
+    unitPrice: l.unitPrice,
+    tvaRate: l.tvaRate ?? 2000,
+  }));
+
+  // Validate each line
+  for (const line of linesWithDefaults) {
+    const errors = validateInvoiceLine(line);
+    if (errors.length > 0) {
+      throw new HandledError(errorCodes.invalidInput);
+    }
+  }
+
+  const { totalHt, totalTtc } = computeInvoiceTotals(linesWithDefaults);
+
+  const insertLines = linesWithDefaults.map((l) => ({
+    description: l.description,
+    quantity: l.quantity,
+    unit: l.unit,
+    unitPrice: l.unitPrice,
+    tvaRate: l.tvaRate,
+    totalHt: computeLineTotal({ quantity: l.quantity, unitPrice: l.unitPrice }),
+  }));
 
   const invoice = await insertInvoice({
     teamId: input.teamId,
     createdBy: input.userId,
     clientId: input.clientId,
-    lines,
+    title: input.title ?? null,
+    lines: insertLines,
     totalHt,
     totalTtc,
-    tvaRate: input.tvaRate,
     dueDate: input.dueDate,
   });
 
-  // Generate PDF
-  let pdfUrl: string | null = null;
-  try {
-    const [teamRow, clientRow, fieldRows] = await Promise.all([
-      findTeamById(input.teamId),
-      findClientById({ teamId: input.teamId, clientId: input.clientId }),
-      findTeamFields(input.teamId),
-    ]);
+  const client = await findClientById({ teamId: input.teamId, clientId: input.clientId });
+  const full = await findInvoiceById({ teamId: input.teamId, invoiceId: invoice.id });
 
-    if (!teamRow) throw new HandledError(errorCodes.teamNotFound);
-    if (!clientRow) throw new HandledError(errorCodes.clientNotFound);
-
-    pdfUrl = await generatePdf({
-      type: 'invoice',
-      id: invoice.id,
-      number: invoice.number,
-      team: { name: teamRow.name, logoUrl: teamRow.logo_url, fields: fieldRows.map(toTeamField) },
-      client: {
-        name: clientRow.first_name + ' ' + clientRow.last_name,
-        email: clientRow.email,
-        phone: clientRow.phone,
-        address: clientRow.address,
-      },
-      lines: invoice.lines,
-      totalHt: invoice.total_ht,
-      totalTtc: invoice.total_ttc,
-      tvaRate: invoice.tva_rate,
-      createdAt: invoice.created_at,
-      dueDate: invoice.due_date,
-    });
-
-    await updateInvoicePdfUrl({ teamId: input.teamId, invoiceId: invoice.id, pdfUrl });
-  } catch (err) {
-    logger.error('PDF generation failed for invoice', { invoiceId: invoice.id, error: err });
-  }
-
-  return toInvoiceView(invoice, pdfUrl);
+  return toInvoiceView(full!, {
+    clientName: client ? `${client.first_name} ${client.last_name}` : undefined,
+    clientEmail: client?.email ?? undefined,
+  });
 }

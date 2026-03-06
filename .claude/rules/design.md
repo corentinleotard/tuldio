@@ -72,17 +72,23 @@ Let content breathe — when in doubt, add more whitespace, not less.
 
 ## Status Indicators
 
-Consistent across the entire app:
+**Single source of truth**: `apps/web/src/modules/documents/components/status-config.ts`
 
-| Status | Color | Badge text |
-|--------|-------|------------|
-| Draft | `textSecondary` | Brouillon |
-| Sent | `primary` | Envoyé |
-| Accepted | `success` | Accepté |
-| Refused | `error` | Refusé |
-| Paid | `success` | Payé |
-| Overdue | `warning` | En retard |
-| Pending | `warning` | En attente |
+All status colors, labels, transitions, and helpers are defined there. Never duplicate status config — always import from `status-config.ts`. The file exports:
+- `statusConfig` — maps status key → `{ variant, label }`
+- `getStatusDotClass(variant)` — returns Tailwind `bg-*` class for dots/pills
+- `getStatusCssVar(variant)` — returns CSS custom property name for inline styles
+- `quoteTransitions` / `invoiceTransitions` — valid status transitions
+- `getOrderedStatuses(type)` — ordered list of all statuses for a document type
+
+| Status | Design token | Badge variant | Badge text |
+|--------|-------------|---------------|------------|
+| Draft | `muted-foreground` | `secondary` | Brouillon |
+| Sent | `info` | `info` | Envoyé |
+| Accepted | `success` | `success` | Accepté |
+| Refused | `destructive` | `destructive` | Refusé |
+| Paid | `success` | `success` | Payé |
+| Overdue | `warning` | `warning` | En retard |
 
 ## Number & Currency Formatting
 

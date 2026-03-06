@@ -11,14 +11,14 @@ const SAMPLE_CLIENT = {
 };
 
 const SAMPLE_LINES = [
-  { description: 'Prestation principale', quantity: 1, unitPrice: 80000, total: 80000 },
-  { description: 'Fournitures', quantity: 1, unitPrice: 25000, total: 25000 },
-  { description: 'Deplacement', quantity: 1, unitPrice: 5000, total: 5000 },
+  { description: 'Prestation principale', quantity: 1, unit: 'u', unitPrice: 80000, tvaRate: 2000, totalHt: 80000 },
+  { description: 'Fournitures', quantity: 1, unit: 'u', unitPrice: 25000, tvaRate: 2000, totalHt: 25000 },
+  { description: 'Deplacement', quantity: 1, unit: 'u', unitPrice: 5000, tvaRate: 2000, totalHt: 5000 },
 ];
 
 const SAMPLE_TOTAL_HT = 110000;
-const SAMPLE_TVA_RATE = 20;
 const SAMPLE_TOTAL_TTC = 132000;
+const SAMPLE_TVA_GROUPS = [{ tvaRate: 2000, baseHt: 110000, tvaMontant: 22000 }];
 
 export async function generatePreviewPdf(input: {
   type: 'quote' | 'invoice';
@@ -36,8 +36,9 @@ export async function generatePreviewPdf(input: {
           lines: SAMPLE_LINES,
           totalHt: SAMPLE_TOTAL_HT,
           totalTtc: SAMPLE_TOTAL_TTC,
-          tvaRate: SAMPLE_TVA_RATE,
+          tvaGroups: SAMPLE_TVA_GROUPS,
           createdAt: now,
+          validUntil: null,
         })
       : renderInvoiceHtml({
           team,
@@ -46,7 +47,7 @@ export async function generatePreviewPdf(input: {
           lines: SAMPLE_LINES,
           totalHt: SAMPLE_TOTAL_HT,
           totalTtc: SAMPLE_TOTAL_TTC,
-          tvaRate: SAMPLE_TVA_RATE,
+          tvaGroups: SAMPLE_TVA_GROUPS,
           createdAt: now,
           dueDate: new Date(now.getTime() + 30 * 86400000),
         });

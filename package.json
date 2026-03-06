@@ -14,16 +14,19 @@
     "format:check": "prettier --check .",
     "typecheck": "tsc -p packages/types --noEmit && tsc -p packages/core --noEmit && tsc -p apps/api --noEmit && tsc -p apps/web --noEmit && tsc -p apps/crons --noEmit",
     "test": "vitest",
-    "db:migrate": "pnpm --filter @tuldio/api exec tsx --env-file=.env ../../packages/core/src/lib/database/migrate.ts"
+    "db:migrate": "pnpm --filter @tuldio/api exec tsx --env-file=.env ../../packages/core/src/lib/database/migrate.ts",
+    "db:test:setup": "pnpm --filter @tuldio/api exec tsx ../../packages/core/src/lib/database/setup-test-db.ts"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.3",
+    "@types/pg": "^8.18.0",
     "concurrently": "^9.0.0",
     "eslint": "^9.0.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.4.0",
+    "pg": "^8.19.0",
     "prettier": "^3.0.0",
     "typescript": "^5.6.0",
     "typescript-eslint": "^8.56.1",

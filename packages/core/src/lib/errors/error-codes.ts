@@ -54,10 +54,20 @@ export const errorCodes = {
     statusCode: 404,
     message: 'Devis introuvable',
   },
+  quoteNotDraft: {
+    code: 'QUOTE_NOT_DRAFT',
+    statusCode: 409,
+    message: 'Ce devis ne peut plus être modifié',
+  },
   invoiceNotFound: {
     code: 'INVOICE_NOT_FOUND',
     statusCode: 404,
     message: 'Facture introuvable',
+  },
+  invoiceNotDraft: {
+    code: 'INVOICE_NOT_DRAFT',
+    statusCode: 409,
+    message: 'Cette facture ne peut plus être modifiée',
   },
   invalidStatusTransition: {
     code: 'INVALID_STATUS_TRANSITION',
@@ -128,6 +138,11 @@ export const errorCodes = {
     code: 'CLIENT_DUPLICATE_PHONE',
     statusCode: 409,
     message: 'Un client avec ce numéro de téléphone existe déjà',
+  },
+  invalidInput: {
+    code: 'INVALID_INPUT',
+    statusCode: 400,
+    message: 'Données invalides',
   },
 } as const;
 

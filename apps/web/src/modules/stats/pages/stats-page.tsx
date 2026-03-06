@@ -2,11 +2,9 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   TrendingUp,
-  TrendingDown,
   Wallet,
   ChevronLeft,
   ChevronRight,
-  AlertCircle,
   Trophy,
   BarChart3,
 } from 'lucide-react';
@@ -63,7 +61,6 @@ export function StatsPage() {
   const hasData =
     stats &&
     (stats.revenue.count > 0 ||
-      stats.expenses.count > 0 ||
       stats.quoteConversion.total > 0 ||
       stats.unpaid.count > 0);
 
@@ -110,25 +107,20 @@ export function StatsPage() {
 
         {!isLoading && hasData && stats && (
           <>
-            <div className="grid gap-4 md:grid-cols-3">
+            <div className="grid gap-4 md:grid-cols-2">
               <StatCard
                 icon={TrendingUp}
-                label="Recettes"
+                label="CA encaissé"
                 value={formatCurrency(stats.revenue.totalTtc)}
-                subValue={`${stats.revenue.count} facture${stats.revenue.count > 1 ? 's' : ''}`}
+                subValue={`${stats.revenue.count} facture${stats.revenue.count > 1 ? 's' : ''} payée${stats.revenue.count > 1 ? 's' : ''}`}
                 accentClassName="border-l-success"
               />
               <StatCard
-                icon={TrendingDown}
-                label="Depenses"
-                value={formatCurrency(stats.expenses.total)}
-                subValue={`${stats.expenses.count} depense${stats.expenses.count > 1 ? 's' : ''}`}
-                accentClassName="border-l-destructive"
-              />
-              <StatCard
                 icon={Wallet}
-                label="Resultat"
-                value={formatCurrency(stats.revenue.totalTtc - stats.expenses.total)}
+                label="Impayé"
+                value={formatCurrency(stats.unpaid.total)}
+                subValue={`${stats.unpaid.count} facture${stats.unpaid.count > 1 ? 's' : ''} en attente`}
+                accentClassName="border-l-warning"
               />
             </div>
 
@@ -138,25 +130,6 @@ export function StatsPage() {
                 accepted={stats.quoteConversion.accepted}
                 rate={stats.quoteConversion.rate}
               />
-            )}
-
-            {stats.unpaid.count > 0 && (
-              <Card className="border-l-[3px] border-l-warning">
-                <CardContent className="flex items-start gap-4 p-4">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-warning/10 text-warning">
-                    <AlertCircle className="h-5 w-5" />
-                  </div>
-                  <div className="flex flex-col gap-0.5">
-                    <span className="text-xs font-medium uppercase text-muted-foreground">
-                      Impayes
-                    </span>
-                    <span className="text-2xl font-bold">{formatCurrency(stats.unpaid.total)}</span>
-                    <span className="text-sm text-muted-foreground">
-                      {stats.unpaid.count} facture{stats.unpaid.count > 1 ? 's' : ''} en attente
-                    </span>
-                  </div>
-                </CardContent>
-              </Card>
             )}
 
             {stats.bestClient && (

@@ -10,7 +10,13 @@ import {
   type PdfTeam,
   type PdfClient,
   type PdfLine,
+  type PdfTvaGroup,
 } from './shared.js';
+
+function formatTvaRate(basisPoints: number): string {
+  const percent = basisPoints / 100;
+  return Number.isInteger(percent) ? `${percent}` : percent.toFixed(1);
+}
 
 export function renderQuoteHtml(input: {
   team: PdfTeam;
@@ -19,15 +25,13 @@ export function renderQuoteHtml(input: {
   lines: PdfLine[];
   totalHt: number;
   totalTtc: number;
-  tvaRate: number;
+  tvaGroups: PdfTvaGroup[];
   createdAt: Date;
+  validUntil: Date | null;
 }): string {
-  const { team, client, number, lines, totalHt, totalTtc, tvaRate, createdAt } = input;
+  const { team, client, number, lines, totalHt, totalTtc, tvaGroups, createdAt, validUntil } = input;
   const f = team.fields;
   const dt = 'quote' as const;
-  const tvaAmount = totalTtc - totalHt;
-  const validityDate = new Date(createdAt);
-  validityDate.setDate(validityDate.getDate() + 30);
   const legal = renderLegalMentions(f, dt);
 
   const siret = getField(f, 'siret', dt);
@@ -41,6 +45,14 @@ export function renderQuoteHtml(input: {
   const logoUrl = team.logoUrl;
   const paymentTerms = getField(f, 'payment_terms', dt);
   const depositPercent = getField(f, 'deposit_percent', dt);
+
+  const validityDate = validUntil ?? (() => {
+    const d = new Date(createdAt);
+    d.setDate(d.getDate() + 30);
+    return d;
+  })();
+
+  const hasMixedTva = tvaGroups.length > 1;
 
   return `<!DOCTYPE html>
 <html lang="fr">
@@ -68,9 +80,9 @@ export function renderQuoteHtml(input: {
 
     <div class="doc-col">
       <div class="doc-title">DEVIS</div>
-      <div class="doc-meta">N° ${esc(number)}</div>
+      <div class="doc-meta">N\u00B0 ${esc(number)}</div>
       <div class="doc-meta">Date : ${formatDate(createdAt)}</div>
-      <div class="doc-meta">Validite : ${formatDate(validityDate)}</div>
+      <div class="doc-meta">Validit\u00E9 : ${formatDate(validityDate)}</div>
 
       <div class="client-block">
         <div class="client-label">Client</div>
@@ -89,8 +101,10 @@ export function renderQuoteHtml(input: {
     <thead>
       <tr>
         <th>Description</th>
-        <th class="r">Qte</th>
+        <th class="r">Qt\u00E9</th>
+        <th class="r">Unit\u00E9</th>
         <th class="r">P.U. HT</th>
+        ${hasMixedTva ? '<th class="r">TVA</th>' : ''}
         <th class="r">Total HT</th>
       </tr>
     </thead>
@@ -98,8 +112,10 @@ export function renderQuoteHtml(input: {
       ${lines.map((l) => `<tr>
         <td>${esc(l.description)}</td>
         <td class="r">${l.quantity}</td>
+        <td class="r">${esc(l.unit)}</td>
         <td class="r">${formatCurrency(l.unitPrice)}</td>
-        <td class="r">${formatCurrency(l.total)}</td>
+        ${hasMixedTva ? `<td class="r">${formatTvaRate(l.tvaRate)} %</td>` : ''}
+        <td class="r">${formatCurrency(l.totalHt)}</td>
       </tr>`).join('')}
     </tbody>
   </table>
@@ -111,10 +127,10 @@ export function renderQuoteHtml(input: {
         <td>Total HT</td>
         <td class="r">${formatCurrency(totalHt)}</td>
       </tr>
-      ${tvaRate > 0 ? `<tr>
-        <td>TVA ${tvaRate} %</td>
-        <td class="r">${formatCurrency(tvaAmount)}</td>
-      </tr>` : ''}
+      ${tvaGroups.map((g) => g.tvaRate > 0 ? `<tr>
+        <td>TVA ${formatTvaRate(g.tvaRate)} %</td>
+        <td class="r">${formatCurrency(g.tvaMontant)}</td>
+      </tr>` : '').join('')}
       ${tvaExempt ? `<tr>
         <td colspan="2" style="font-size:7.5pt;color:#999;">TVA non applicable, art. 293 B du CGI</td>
       </tr>` : ''}
@@ -131,7 +147,7 @@ export function renderQuoteHtml(input: {
     const hasPayment = paymentTerms || depositPercent || customPayment.length > 0;
     if (!hasPayment) return '';
     return `<div class="payment-box">
-    ${paymentTerms ? `<strong>Reglement :</strong> ${esc(paymentTerms)}` : ''}
+    ${paymentTerms ? `<strong>R\u00E8glement :</strong> ${esc(paymentTerms)}` : ''}
     ${paymentTerms && depositPercent ? '<br>' : ''}
     ${depositPercent ? `<strong>Acompte :</strong> ${depositPercent} % soit ${formatCurrency(Math.round(totalTtc * Number(depositPercent) / 100))}` : ''}
     ${customPayment.map((cf) => `${paymentTerms || depositPercent ? '<br>' : ''}${esc(cf.value)}`).join('')}

@@ -1,13 +1,19 @@
 import { z } from 'zod';
 
 export const invoiceLineSchema = z.object({
+  id: z.string().uuid(),
+  invoice_id: z.string().uuid(),
+  prestation_id: z.string().uuid().nullable(),
+  sort_order: z.number().int(),
   description: z.string(),
   quantity: z.number(),
-  unitPrice: z.number(), // cents
-  total: z.number(), // cents
+  unit: z.string(),
+  unit_price: z.number().int(), // cents
+  tva_rate: z.number().int(), // basis points
+  total_ht: z.number().int(), // cents
 });
 
-export type InvoiceLine = z.infer<typeof invoiceLineSchema>;
+export type InvoiceLineRow = z.infer<typeof invoiceLineSchema>;
 
 export const invoiceSchema = z.object({
   id: z.string().uuid(),
@@ -16,11 +22,10 @@ export const invoiceSchema = z.object({
   client_id: z.string().uuid(),
   quote_id: z.string().uuid().nullable(),
   number: z.string(),
-  lines: z.array(invoiceLineSchema),
+  title: z.string().nullable(),
   total_ht: z.number().int(),
   total_ttc: z.number().int(),
-  tva_rate: z.number().int(),
-  status: z.enum(['draft', 'sent', 'paid', 'overdue']),
+  status: z.enum(['draft', 'sent', 'paid', 'overdue', 'cancelled']),
   pdf_url: z.string().nullable(),
   sent_at: z.date().nullable(),
   paid_at: z.date().nullable(),

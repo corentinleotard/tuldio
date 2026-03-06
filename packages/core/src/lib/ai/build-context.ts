@@ -7,8 +7,8 @@ const MAX_SUMMARY_ACTIONS = 20;
 type ToolInput = Record<string, unknown>;
 
 function formatCents(cents: unknown): string {
-  if (typeof cents !== 'number') return '?€';
-  return (cents / 100).toLocaleString('fr-FR', { minimumFractionDigits: 2 }) + '€';
+  if (typeof cents !== 'number') return '?\u20AC';
+  return (cents / 100).toLocaleString('fr-FR', { minimumFractionDigits: 2 }) + '\u20AC';
 }
 
 function describeLines(lines: unknown): string {
@@ -17,8 +17,9 @@ function describeLines(lines: unknown): string {
     .map((l) => {
       const desc = l.description ?? '?';
       const qty = l.quantity ?? '?';
+      const unit = l.unit ?? 'u';
       const price = formatCents(l.unitPrice);
-      return `${desc} (${qty} × ${price})`;
+      return `${desc} (${qty} ${unit} \u00D7 ${price})`;
     })
     .join(', ');
 }
@@ -27,30 +28,41 @@ const toolDescribers: Record<string, (i: ToolInput) => string> = {
   resolve_client: (i) => {
     const parts = [`Recherche client "${i.search}"`];
     if (i.email) parts.push(`email: ${i.email}`);
-    if (i.phone) parts.push(`tél: ${i.phone}`);
+    if (i.phone) parts.push(`t\u00E9l: ${i.phone}`);
     return parts.join(', ');
   },
   create_client: (i) => {
-    const parts = [`Client créé: ${i.firstName} ${i.lastName}`];
+    const parts = [`Client cr\u00E9\u00E9: ${i.firstName} ${i.lastName}`];
     if (i.email) parts.push(`${i.email}`);
     if (i.phone) parts.push(`${i.phone}`);
     if (i.address) parts.push(`${i.address}`);
-    return parts.join(' — ');
+    return parts.join(' \u2014 ');
   },
   generate_quote: (i) => {
     const lines = describeLines(i.lines);
-    return `Devis créé (clientId: ${i.clientId}, TVA: ${i.tvaRate}%) — ${lines}`;
+    return `Devis cr\u00E9\u00E9 (clientId: ${i.clientId}${i.title ? `, "${i.title}"` : ''}) \u2014 ${lines}`;
+  },
+  update_quote: (i) => {
+    const lines = describeLines(i.lines);
+    return `Devis modifi\u00E9 (quoteId: ${i.quoteId}) \u2014 ${lines}`;
   },
   generate_invoice: (i) => {
     const lines = describeLines(i.lines);
-    return `Facture créée (clientId: ${i.clientId}, TVA: ${i.tvaRate}%) — ${lines}`;
+    return `Facture cr\u00E9\u00E9e (clientId: ${i.clientId}${i.title ? `, "${i.title}"` : ''}) \u2014 ${lines}`;
   },
-  record_expense: (i) => {
-    return `Dépense: ${formatCents(i.amount)} chez ${i.vendor} le ${i.date}${i.category ? ` (${i.category})` : ''}`;
+  invoice_from_quote: (i) => `Facture cr\u00E9\u00E9e depuis devis ${i.quoteId}`,
+  get_stats: (i) => `Stats consult\u00E9es: ${i.month}/${i.year}`,
+  mark_as_paid: (i) => `Facture ${i.invoiceId} marqu\u00E9e pay\u00E9e`,
+  update_client: (i) => {
+    const parts = [`Client ${i.clientId} modifi\u00E9`];
+    if (i.email) parts.push(`email: ${i.email}`);
+    if (i.phone) parts.push(`t\u00E9l: ${i.phone}`);
+    if (i.address) parts.push(`adresse: ${i.address}`);
+    return parts.join(' \u2014 ');
   },
-  get_stats: (i) => `Stats consultées: ${i.month}/${i.year}`,
-  mark_as_paid: (i) => `Facture ${i.invoiceId} marquée payée`,
-  add_client_note: (i) => `Note ajoutée au client ${i.clientId}: "${String(i.content).slice(0, 80)}"`,
+  list_quotes: (i) => `Devis list\u00E9s${i.clientId ? ` (client: ${i.clientId})` : ''}`,
+  list_invoices: (i) => `Factures list\u00E9es${i.clientId ? ` (client: ${i.clientId})` : ''}`,
+  add_client_note: (i) => `Note ajout\u00E9e au client ${i.clientId}: "${String(i.content).slice(0, 80)}"`,
 };
 
 function describeToolCall(tc: { name: string; input: unknown }): string {
@@ -75,7 +87,7 @@ function buildSummary(olderMessages: Message[]): string | null {
   const skipped = actions.length - recent.length;
   const prefix = skipped > 0 ? `(${skipped} actions plus anciennes omises)\n` : '';
 
-  return `Actions précédentes dans cette conversation:\n${prefix}${recent.map((a) => `- ${a}`).join('\n')}`;
+  return `⚠️ HISTORIQUE (mémoire des échanges passés — NE PAS réutiliser les IDs ci-dessous, ils ne font pas partie du contexte actuel. Si tu as besoin d'un ID, appelle l'outil approprié pour l'obtenir à nouveau):\n${prefix}${recent.map((a) => `- ${a}`).join('\n')}`;
 }
 
 /** Build the context summary to append to the system prompt */

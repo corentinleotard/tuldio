@@ -1,35 +1,46 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { Settings } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import { ChatMessageList } from '../components/chat-message-list';
 import { ChatInputBar } from '../components/chat-input-bar';
-import { TypingIndicator } from '../components/typing-indicator';
 import { DesktopContextPanel } from '../components/desktop-context-panel';
 import { sendMessage, fetchMessages } from '../api/chat.api';
 import type { Message, MessageMetadata } from '@tuldio/types';
 
 export function ChatPage() {
   const { user } = useAuth();
-  const [messages, setMessages] = useState<Message[]>([]);
+  const queryClient = useQueryClient();
   const [isSending, setIsSending] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
 
-  const { data: history } = useQuery({
+  const {
+    data,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteQuery({
     queryKey: ['messages'],
-    queryFn: () => fetchMessages(),
+    queryFn: ({ pageParam }) => fetchMessages(pageParam),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (lastPage) => {
+      if (lastPage.length === 0) return undefined;
+      return lastPage[0]?.createdAt;
+    },
   });
 
-  useEffect(() => {
-    if (history && messages.length === 0) {
-      setMessages(history);
+  const messages = data?.pages ? [...data.pages].reverse().flat() : [];
+
+  const handleLoadOlder = useCallback(() => {
+    if (hasNextPage && !isFetchingNextPage) {
+      fetchNextPage();
     }
-  }, [history, messages.length]);
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, isSending]);
+  }, [isSending]);
 
   async function handleSend(content: string, metadata?: MessageMetadata) {
     const tempUserMsg: Message = {
@@ -43,12 +54,30 @@ export function ChatPage() {
       debugTrace: null,
       createdAt: new Date().toISOString(),
     };
-    setMessages((prev) => [...prev, tempUserMsg]);
+    queryClient.setQueryData(
+      ['messages'],
+      (old: typeof data) => {
+        if (!old) return { pages: [[tempUserMsg]], pageParams: [undefined] };
+        return {
+          ...old,
+          pages: [[...(old.pages[0] ?? []), tempUserMsg], ...old.pages.slice(1)],
+        };
+      },
+    );
     setIsSending(true);
 
     try {
       const response = await sendMessage(content, metadata);
-      setMessages((prev) => [...prev, response]);
+      queryClient.setQueryData(
+        ['messages'],
+        (old: typeof data) => {
+          if (!old) return { pages: [[response]], pageParams: [undefined] };
+          return {
+            ...old,
+            pages: [[...(old.pages[0] ?? []), response], ...old.pages.slice(1)],
+          };
+        },
+      );
     } catch {
       const errorMsg: Message = {
         id: `error-${Date.now()}`,
@@ -61,9 +90,19 @@ export function ChatPage() {
         debugTrace: null,
         createdAt: new Date().toISOString(),
       };
-      setMessages((prev) => [...prev, errorMsg]);
+      queryClient.setQueryData(
+        ['messages'],
+        (old: typeof data) => {
+          if (!old) return { pages: [[errorMsg]], pageParams: [undefined] };
+          return {
+            ...old,
+            pages: [[...(old.pages[0] ?? []), errorMsg], ...old.pages.slice(1)],
+          };
+        },
+      );
     } finally {
       setIsSending(false);
+      setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
     }
   }
 
@@ -87,30 +126,28 @@ export function ChatPage() {
       <div className="flex min-h-0 flex-1">
         {/* Chat column */}
         <div className="flex flex-1 flex-col">
-          {/* Desktop header — same padding as sidebar header for border alignment */}
+          {/* Desktop header */}
           <div className="hidden items-center border-b px-5 pb-4 pt-5 md:flex">
-            <h1 className="text-[22px] font-bold tracking-tight text-primary">Conversation</h1>
+            <h1 className="text-[22px] font-bold tracking-tight text-primary">Chat</h1>
           </div>
 
-          <div className="flex-1 overflow-y-auto">
-            <div className="mx-auto max-w-2xl">
-              <ChatMessageList messages={messages} onSendMessage={handleSend} />
-              {isSending && (
-                <div className="px-4 pb-4">
-                  <TypingIndicator />
-                </div>
-              )}
-              <div ref={bottomRef} />
-            </div>
-          </div>
+          <ChatMessageList
+            messages={messages}
+            onSendMessage={handleSend}
+            onLoadOlder={handleLoadOlder}
+            isLoadingOlder={isFetchingNextPage}
+            hasOlderMessages={!!hasNextPage}
+            isSending={isSending}
+            bottomRef={bottomRef}
+          />
 
-          {/* Input bar — border-t connects with context panel border-l */}
+          {/* Input bar */}
           <div className="border-t bg-background">
             <ChatInputBar onSend={handleSend} disabled={isSending} />
           </div>
         </div>
 
-        {/* Context panel — border-l runs full height, grows on larger screens */}
+        {/* Context panel */}
         <div className="hidden w-80 shrink-0 flex-col border-l bg-background md:flex lg:w-96">
           <div className="flex items-center border-b px-5 pb-4 pt-5">
             <h2 className="text-[22px] font-bold tracking-tight text-primary">Contexte</h2>

@@ -1,5 +1,4 @@
 import { getRevenueStats, type RevenueStats } from '../repository/get-revenue-stats.js';
-import { getExpenseStats, type ExpenseStats } from '../repository/get-expense-stats.js';
 import { getUnpaidStats, type UnpaidStats } from '../repository/get-unpaid-stats.js';
 import {
   getQuoteConversionStats,
@@ -9,7 +8,6 @@ import { getBestClient, type BestClientStats } from '../repository/get-best-clie
 
 export interface MonthlyStatsView {
   revenue: RevenueStats;
-  expenses: ExpenseStats;
   unpaid: UnpaidStats;
   quoteConversion: QuoteConversionStats;
   bestClient: BestClientStats | null;
@@ -23,9 +21,8 @@ export async function getMonthlyStats(input: {
   const startDate = new Date(input.year, input.month - 1, 1);
   const endDate = new Date(input.year, input.month, 0, 23, 59, 59, 999);
 
-  const [revenue, expenses, unpaid, quoteConversion, bestClient] = await Promise.all([
+  const [revenue, unpaid, quoteConversion, bestClient] = await Promise.all([
     getRevenueStats({ teamId: input.teamId, startDate, endDate }),
-    getExpenseStats({ teamId: input.teamId, startDate, endDate }),
     getUnpaidStats(input.teamId),
     getQuoteConversionStats({ teamId: input.teamId, startDate, endDate }),
     getBestClient({ teamId: input.teamId, startDate, endDate }),
@@ -33,7 +30,6 @@ export async function getMonthlyStats(input: {
 
   return {
     revenue,
-    expenses,
     unpaid,
     quoteConversion,
     bestClient,

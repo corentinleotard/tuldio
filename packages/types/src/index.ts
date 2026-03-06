@@ -70,6 +70,7 @@ export interface UpdateTeamRequest {
 // Clients
 export interface ClientNote {
   content: string;
+  type: 'note' | 'warning';
   createdAt: string;
 }
 
@@ -92,33 +93,55 @@ export interface CreateClientRequest {
   address?: string;
 }
 
-// Quotes
-export interface QuoteLine {
+// Document Lines (shared between quotes and invoices)
+export interface DocumentLineView {
+  id: string;
   description: string;
   quantity: number;
+  unit: string;
   unitPrice: number;
-  total: number;
+  tvaRate: number; // basis points (2000 = 20%)
+  totalHt: number;
+  prestationId: string | null;
 }
 
+export interface TvaGroupView {
+  tvaRate: number;
+  baseHt: number;
+  tvaMontant: number;
+}
+
+// Quotes
 export interface QuoteView {
   id: string;
   number: string;
   clientId: string;
   clientName?: string;
-  lines: QuoteLine[];
+  clientEmail?: string;
+  title: string | null;
+  lines: DocumentLineView[];
   totalHt: number;
   totalTtc: number;
-  tvaRate: number;
-  status: 'draft' | 'sent' | 'accepted' | 'refused';
+  tvaGroups: TvaGroupView[];
+  status: 'draft' | 'sent' | 'accepted' | 'refused' | 'cancelled';
   pdfUrl: string | null;
+  validUntil: string | null;
   sentAt: string | null;
   createdAt: string;
 }
 
+export interface CreateQuoteLineRequest {
+  description: string;
+  quantity: number;
+  unit?: string;
+  unitPrice: number;
+  tvaRate?: number;
+}
+
 export interface CreateQuoteRequest {
   clientId: string;
-  lines: { description: string; quantity: number; unitPrice: number }[];
-  tvaRate: number;
+  title?: string;
+  lines: CreateQuoteLineRequest[];
 }
 
 // Invoices
@@ -127,12 +150,14 @@ export interface InvoiceView {
   number: string;
   clientId: string;
   clientName?: string;
+  clientEmail?: string;
   quoteId: string | null;
-  lines: QuoteLine[];
+  title: string | null;
+  lines: DocumentLineView[];
   totalHt: number;
   totalTtc: number;
-  tvaRate: number;
-  status: 'draft' | 'sent' | 'paid' | 'overdue';
+  tvaGroups: TvaGroupView[];
+  status: 'draft' | 'sent' | 'paid' | 'overdue' | 'cancelled';
   pdfUrl: string | null;
   sentAt: string | null;
   paidAt: string | null;
@@ -140,30 +165,31 @@ export interface InvoiceView {
   createdAt: string;
 }
 
+export interface CreateInvoiceLineRequest {
+  description: string;
+  quantity: number;
+  unit?: string;
+  unitPrice: number;
+  tvaRate?: number;
+}
+
 export interface CreateInvoiceRequest {
   clientId: string;
-  lines: { description: string; quantity: number; unitPrice: number }[];
-  tvaRate: number;
+  title?: string;
+  lines: CreateInvoiceLineRequest[];
   dueDate?: string;
 }
 
-// Expenses
-export interface ExpenseView {
+// Prestations
+export interface PrestationView {
   id: string;
-  amount: number;
-  category: string | null;
-  vendor: string | null;
-  receiptUrl: string | null;
-  date: string;
-  createdAt: string;
-}
-
-export interface CreateExpenseRequest {
-  amount: number;
-  category?: string;
-  vendor?: string;
-  receiptUrl?: string;
-  date: string;
+  type: 'service' | 'fourniture';
+  description: string;
+  reference: string | null;
+  unit: string;
+  defaultUnitPrice: number | null;
+  defaultTvaRate: number;
+  archived: boolean;
 }
 
 // Messages
@@ -225,7 +251,6 @@ export interface SendMessageRequest {
 // Stats
 export interface MonthlyStatsView {
   revenue: { totalHt: number; totalTtc: number; count: number };
-  expenses: { total: number; count: number };
   unpaid: { total: number; count: number };
   quoteConversion: { total: number; accepted: number; rate: number };
   bestClient: { clientId: string; clientName: string; total: number } | null;
