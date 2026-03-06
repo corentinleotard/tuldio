@@ -1,4 +1,4 @@
-export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3002';
+export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3003';
 
 export class ApiError extends Error {
   constructor(
@@ -31,12 +31,13 @@ async function tryRefresh(): Promise<boolean> {
 }
 
 export async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
+  const isFormData = options?.body instanceof FormData;
   const doFetch = () =>
     fetch(`${API_URL}${path}`, {
       credentials: 'include',
       ...options,
       headers: {
-        'Content-Type': 'application/json',
+        ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
         ...options?.headers,
       },
     });

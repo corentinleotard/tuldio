@@ -16,7 +16,7 @@ import templatesRoutes from './routes/templates.routes.js';
 import quotesRoutes from './routes/quotes.routes.js';
 import invoicesRoutes from './routes/invoices.routes.js';
 
-const PORT = process.env.PORT || 3002;
+const PORT = process.env.PORT || 3003;
 
 const app = express();
 

@@ -8,3 +8,4 @@ coverage/
 android/
 ios/
 migrations/meta/
+data/

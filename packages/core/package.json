@@ -15,20 +15,16 @@
     "./messages": "./src/modules/messages/index.ts",
     "./templates": "./src/modules/templates/index.ts",
     "./stats": "./src/modules/stats/index.ts",
-    "./ai": "./src/lib/ai/chat-orchestrator.ts",
-    "./pdf": "./src/lib/pdf/render-pdf.ts"
+    "./ai": "./src/lib/ai/chat-orchestrator.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",
-    "@react-pdf/renderer": "^4.3.2",
     "@tuldio/types": "workspace:*",
     "pg": "^8.13.0",
-    "react": "^18.3.1",
     "winston": "^3.14.0",
     "zod": "^3.23.0"
   },
   "devDependencies": {
-    "@types/pg": "^8.11.0",
-    "@types/react": "^18.3.28"
+    "@types/pg": "^8.11.0"
   }
 }

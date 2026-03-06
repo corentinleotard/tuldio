@@ -14,7 +14,7 @@
 | Storage | Local disk (V1) → S3 when needed | Zero config, fast, simple backup via rsync/VPS snapshot |
 | Hosting (API) | OVH / Scaleway | French servers, RGPD compliant |
 | Hosting (DB) | OVH Managed PostgreSQL | Backups, pgvector included, ~15€/month |
-| PDF | React-PDF (@react-pdf/renderer) | Lightweight, real text output, no headless Chrome needed |
+| PDF | Puppeteer + React | Singleton browser, React component renders HTML to A4 PDF. See docs/pdf-generation.md |
 | i18n | i18next + react-i18next | French-first, keys ready for future languages |
 | Crons | node-cron | Monthly summaries, payment reminders, trial expiry |
 
@@ -52,7 +52,6 @@ packages/
       errors/         # HandledError, error codes
       infra/          # Logger, ID generation
       ai/             # Claude client, chat orchestration, template extraction
-      pdf/            # React-PDF document builders
       storage/        # Local disk file storage (migrate to S3 later)
   types/src/          # Shared API contract types
 ```
@@ -61,15 +60,11 @@ packages/
 
 ### 1. Template Upload
 ```
-User takes photo/uploads PDF
-  → API receives file → stores original on disk
-  → Claude Vision analyzes document:
-    - Extracts layout structure (header, client zone, line items, footer)
-    - Identifies logo position and dimensions
-    - Reads legal mentions, company info
-    - Detects line item format (columns, alignment)
-  → Structured template stored in PostgreSQL
-  → Confirmation sent to user with preview
+User uploads a quote or invoice PDF (one file is enough for both)
+  → API stores original on disk
+  → LLM extracts CompanyProfile + LegalInfo (company identity, not document content)
+  → Stored in DB — reused for all future quotes AND invoices
+  → See docs/pdf-generation.md for full data model
 ```
 
 ### 2. Quote/Invoice Generation
@@ -78,8 +73,8 @@ User: "Devis pour Martin Jean, 25m² parquet 50€/m²"
   → Claude parses intent + extracts:
     { type: "quote", client: "Martin Jean", lines: [{ desc: "Parquet", qty: 25, unit: "m²", price: 50 }] }
   → Look up or create client "Martin Jean"
-  → Look up user's quote template
-  → React-PDF generates document using template layout + line data
+  → Look up user's CompanyProfile
+  → Puppeteer renders React template (A4, paginated) with company identity + document data
   → PDF stored on disk
   → Record saved in PostgreSQL (quote with lines, total, status)
   → Response: rich card with PDF preview + "Envoyer à Martin Jean ?"

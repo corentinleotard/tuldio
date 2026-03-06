@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CheckCircle } from 'lucide-react';
+import { CheckCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { UploadZone } from '../components/upload-zone';
+import { uploadTemplate } from '../api/onboarding.api';
 
 type Step = 'quote' | 'invoice';
 
@@ -11,8 +12,11 @@ export function TemplatesPage() {
   const [step, setStep] = useState<Step>('quote');
   const [quoteFile, setQuoteFile] = useState<File | null>(null);
   const [invoiceFile, setInvoiceFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   function handleFile(file: File) {
+    setError(null);
     if (step === 'quote') {
       setQuoteFile(file);
     } else {
@@ -20,7 +24,23 @@ export function TemplatesPage() {
     }
   }
 
-  function handleNext() {
+  async function handleNext() {
+    const file = step === 'quote' ? quoteFile : invoiceFile;
+
+    if (file) {
+      setIsUploading(true);
+      setError(null);
+      try {
+        await uploadTemplate({ file, type: step });
+      } catch {
+        const message = 'Erreur lors de l\u2019analyse du modele. Reessayez.';
+        setError(message);
+        setIsUploading(false);
+        return;
+      }
+      setIsUploading(false);
+    }
+
     if (step === 'quote') {
       setStep('invoice');
     } else {
@@ -79,14 +99,28 @@ export function TemplatesPage() {
           />
         )}
 
+        {error && (
+          <p className="text-center text-sm text-destructive">{error}</p>
+        )}
+
         <div className="space-y-3">
-          <Button className="w-full" onClick={handleNext}>
-            {step === 'invoice' ? 'Commencer a utiliser Tuldio' : 'Continuer'}
+          <Button className="w-full" onClick={handleNext} disabled={isUploading}>
+            {isUploading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Analyse du modele...
+              </>
+            ) : step === 'invoice' ? (
+              'Commencer a utiliser Tuldio'
+            ) : (
+              'Continuer'
+            )}
           </Button>
           <button
             type="button"
             onClick={handleSkip}
-            className="w-full py-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
+            disabled={isUploading}
+            className="w-full py-2 text-sm text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
           >
             Passer cette etape
           </button>

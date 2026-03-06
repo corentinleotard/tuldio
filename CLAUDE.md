@@ -19,7 +19,6 @@ packages/
         errors/     # error-codes.ts, handled-error.ts
         infra/      # logger.ts, id.ts
         ai/         # Claude API client, template extraction, chat orchestration
-        pdf/        # React-PDF document generation from templates
         storage/    # Local disk file storage (templates, PDFs, receipts)
   types/        # API contract types (shared between API and web)
 ```
@@ -55,7 +54,7 @@ Row-level security enforced at repository layer — all queries MUST include tea
 
 ```bash
 pnpm dev              # Launch api + web + crons
-pnpm dev:api          # API only (port 3002)
+pnpm dev:api          # API only (port 3003)
 pnpm dev:web          # Vite dev server (port 5174)
 pnpm dev:crons        # Crons only
 pnpm lint             # ESLint
@@ -81,8 +80,8 @@ pnpm typecheck        # TypeScript (all workspaces)
 
 ## Environment Variables
 
-- `PORT` — API port (default: 3002)
-- `VITE_API_URL` — Frontend API base URL (default: http://localhost:3002)
+- `PORT` — API port (default: 3003)
+- `VITE_API_URL` — Frontend API base URL (default: http://localhost:3003)
 - `DATABASE_URL` — PostgreSQL connection string
 - `ANTHROPIC_API_KEY` — Claude API key
 - `FILES_DIR` — Local file storage path (default: /var/tuldio/files)

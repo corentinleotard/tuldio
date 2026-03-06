@@ -1,11 +1,6 @@
 import type { QuoteView } from '@tuldio/types';
 import { computeQuoteTotals } from '../domain/validators.js';
 import { insertQuote } from '../repository/insert-quote.js';
-import { updateQuotePdfUrl } from '../repository/update-quote-pdf-url.js';
-import { findTeamById } from '../../teams/repository/find-team-by-id.js';
-import { findClientById } from '../../clients/repository/find-client-by-id.js';
-import { renderQuotePdf } from '../../../lib/pdf/render-pdf.js';
-import { formatShortDate } from '../../../lib/infra/format.js';
 
 export async function createQuote(input: {
   teamId: string;
@@ -31,31 +26,7 @@ export async function createQuote(input: {
     tvaRate: input.tvaRate,
   });
 
-  const [team, client] = await Promise.all([
-    findTeamById(input.teamId),
-    findClientById({ teamId: input.teamId, clientId: input.clientId }),
-  ]);
-
-  if (team && client) {
-    const pdfUrl = await renderQuotePdf({
-      number: row.number,
-      date: formatShortDate(row.created_at.toISOString()),
-      company: { name: team.name, siret: team.siret, address: team.address },
-      client: { name: client.name, email: client.email, address: client.address },
-      lines: row.lines.map((l) => ({
-        description: l.description,
-        quantity: l.quantity,
-        unitPrice: l.unitPrice,
-        total: l.quantity * l.unitPrice,
-      })),
-      totalHt: row.total_ht,
-      totalTtc: row.total_ttc,
-      tvaRate: row.tva_rate,
-    });
-
-    await updateQuotePdfUrl({ teamId: input.teamId, quoteId: row.id, pdfUrl });
-    row.pdf_url = pdfUrl;
-  }
+  // TODO: PDF generation will be reimplemented with Puppeteer + React template
 
   return {
     id: row.id,
