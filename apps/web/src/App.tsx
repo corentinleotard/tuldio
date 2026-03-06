@@ -10,9 +10,7 @@ import { DocumentsPage } from '@/modules/documents/pages/documents-page';
 import { ClientsPage } from '@/modules/clients/pages/clients-page';
 import { StatsPage } from '@/modules/stats/pages/stats-page';
 import { SettingsPage } from '@/modules/settings/pages/settings-page';
-import { TemplatesSettingsPage } from '@/modules/settings/pages/templates-settings-page';
-import { SiretPage } from '@/modules/onboarding/pages/siret-page';
-import { TemplatesPage } from '@/modules/onboarding/pages/templates-page';
+import { OnboardingPage } from '@/modules/onboarding/pages/onboarding-page';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -47,18 +45,10 @@ export function App() {
             />
             {/* Onboarding — outside AppLayout */}
             <Route
-              path="/onboarding/siret"
+              path="/onboarding"
               element={
                 <AuthGuard>
-                  <SiretPage />
-                </AuthGuard>
-              }
-            />
-            <Route
-              path="/onboarding/templates"
-              element={
-                <AuthGuard>
-                  <TemplatesPage />
+                  <OnboardingPage />
                 </AuthGuard>
               }
             />
@@ -75,7 +65,6 @@ export function App() {
               <Route path="/clients" element={<ClientsPage />} />
               <Route path="/stats" element={<StatsPage />} />
               <Route path="/settings" element={<SettingsPage />} />
-              <Route path="/settings/templates" element={<TemplatesSettingsPage />} />
             </Route>
             <Route path="*" element={<Navigate to="/chat" replace />} />
           </Routes>

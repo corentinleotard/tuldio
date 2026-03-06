@@ -42,8 +42,8 @@ const fileFilter = (
 
 const MB = 1024 * 1024;
 
-export const uploadTemplate: Middleware = multer({
-  storage: createStorage('templates'),
+export const uploadDocument: Middleware = multer({
+  storage: createStorage('documents'),
   fileFilter,
   limits: { fileSize: 10 * MB },
 }).single('file') as unknown as Middleware;

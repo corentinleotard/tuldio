@@ -1,6 +1,6 @@
 import { logger } from './logger.js';
 
-interface SiretResult {
+export interface SiretResult {
   siret: string;
   name: string;
   address: string;

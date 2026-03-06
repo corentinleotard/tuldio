@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { query } from '../../../lib/database/db.js';
 import { generateId } from '../../../lib/infra/id.js';
+import { hashToken } from '../domain/validators.js';
 
 const REFRESH_TOKEN_DAYS = 90;
 
@@ -19,6 +20,6 @@ export async function insertRefreshToken(input: {
 
   await query(
     'INSERT INTO refresh_tokens (id, user_id, token, expires_at) VALUES ($1, $2, $3, $4)',
-    [id, validated.userId, validated.token, expiresAt],
+    [id, validated.userId, hashToken(validated.token), expiresAt],
   );
 }

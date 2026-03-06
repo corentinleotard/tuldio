@@ -13,13 +13,13 @@ apps/
 packages/
   core/
     src/
-      modules/  # Domain modules (clients, quotes, invoices, expenses, templates)
+      modules/  # Domain modules (clients, quotes, invoices, expenses, teams, auth, users, stats, messages)
       lib/
         database/   # db.ts, connection pool (raw pg + Zod validation)
         errors/     # error-codes.ts, handled-error.ts
         infra/      # logger.ts, id.ts
-        ai/         # Claude API client, template extraction, chat orchestration
-        storage/    # Local disk file storage (templates, PDFs, receipts)
+        ai/         # Claude API client, chat orchestration
+        storage/    # Local disk file storage (PDFs, receipts, documents)
   types/        # API contract types (shared between API and web)
 ```
 
@@ -36,16 +36,8 @@ Coding conventions are in `.claude/rules/` — auto-loaded per path.
 
 ## Data Model
 
-```
-teams           (id, name, siret, address, stripe_customer_id, trial_ends_at, subscription_status)
-users           (id, team_id, email, phone, name, role: owner|member)
-templates       (id, team_id, type: quote|invoice, layout_data, original_url)
-clients         (id, team_id, name, email, phone, address, notes[])
-quotes          (id, team_id, created_by, client_id, template_id, lines[], total, status, pdf_url)
-invoices        (id, team_id, created_by, client_id, quote_id?, template_id, lines[], total, status, paid_at, pdf_url)
-expenses        (id, team_id, created_by, amount, category, vendor, receipt_url, date)
-messages        (id, user_id, team_id, role, content, attachments, tool_calls, rich_card)
-```
+Tables: `teams`, `users`, `clients`, `quotes`, `invoices`, `expenses`, `messages`.
+Schemas defined in each module's `domain/*.entity.ts`. Migrations in `packages/core/src/lib/database/migrations/`.
 
 Business data scoped by `team_id`. Messages scoped by `user_id` (each user has their own chat).
 Row-level security enforced at repository layer — all queries MUST include team_id or user_id.

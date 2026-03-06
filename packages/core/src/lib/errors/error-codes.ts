@@ -49,11 +49,6 @@ export const errorCodes = {
     statusCode: 409,
     message: 'Cette dépense semble être un doublon',
   },
-  templateNotFound: {
-    code: 'TEMPLATE_NOT_FOUND',
-    statusCode: 404,
-    message: 'Modèle introuvable',
-  },
   quoteNotFound: {
     code: 'QUOTE_NOT_FOUND',
     statusCode: 404,

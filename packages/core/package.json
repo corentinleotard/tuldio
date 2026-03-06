@@ -13,7 +13,6 @@
     "./invoices": "./src/modules/invoices/index.ts",
     "./expenses": "./src/modules/expenses/index.ts",
     "./messages": "./src/modules/messages/index.ts",
-    "./templates": "./src/modules/templates/index.ts",
     "./stats": "./src/modules/stats/index.ts",
     "./ai": "./src/lib/ai/chat-orchestrator.ts"
   },

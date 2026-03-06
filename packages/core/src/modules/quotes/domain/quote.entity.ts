@@ -14,7 +14,6 @@ export const quoteSchema = z.object({
   team_id: z.string().uuid(),
   created_by: z.string().uuid(),
   client_id: z.string().uuid(),
-  template_id: z.string().uuid(),
   number: z.string(),
   lines: z.array(quoteLineSchema),
   total_ht: z.number().int(),

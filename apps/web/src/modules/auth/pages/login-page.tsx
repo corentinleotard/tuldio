@@ -44,13 +44,6 @@ export function LoginPage() {
   return (
     <div className="flex min-h-dvh flex-col items-center justify-center px-6">
       <div className="w-full max-w-sm space-y-8">
-        {/* Step indicator */}
-        <div className="flex items-center justify-center gap-2">
-          <div className="h-2 w-6 rounded-full bg-primary" />
-          <div className="h-2 w-2 rounded-full bg-secondary" />
-          <div className="h-2 w-2 rounded-full bg-secondary" />
-        </div>
-
         <div className="text-center">
           <h1 className="text-4xl font-bold tracking-tight text-primary">Tuldio</h1>
           <p className="mt-1 text-sm italic text-muted-foreground">

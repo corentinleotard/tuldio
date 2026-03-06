@@ -6,7 +6,6 @@ export async function createQuote(input: {
   teamId: string;
   userId: string;
   clientId: string;
-  templateId: string;
   lines: { description: string; quantity: number; unitPrice: number }[];
   tvaRate: number;
 }): Promise<QuoteView> {
@@ -19,7 +18,6 @@ export async function createQuote(input: {
     teamId: input.teamId,
     createdBy: input.userId,
     clientId: input.clientId,
-    templateId: input.templateId,
     lines,
     totalHt,
     totalTtc,

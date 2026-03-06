@@ -770,35 +770,197 @@
   }
   .otp-box.filled { border-color: var(--primary); }
 
-  /* SIRET card */
-  .siret-card {
+  /* Method choice cards */
+  .method-card {
+    width: 100%;
+    background: var(--surface);
+    border: 2px solid var(--border);
+    border-radius: 14px;
+    padding: 20px;
+    margin-bottom: 12px;
+    text-align: left;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+  }
+  .method-card:hover, .method-card.selected {
+    border-color: var(--primary);
+    background: var(--primary-lightest);
+  }
+  .method-card-icon {
+    width: 44px; height: 44px;
+    border-radius: 10px;
+    background: var(--primary-lightest);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--primary);
+    flex-shrink: 0;
+  }
+  .method-card-text {
+    flex: 1;
+  }
+  .method-card-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 2px;
+  }
+  .method-card-desc {
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.4;
+  }
+
+  /* Company info form */
+  .form-section-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 10px;
+    margin-top: 16px;
+    text-align: left;
+    width: 100%;
+  }
+  .form-row {
+    width: 100%;
+    display: flex;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  .form-row .input-field {
+    flex: 1;
+    margin-bottom: 0;
+  }
+  .input-label {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+    text-align: left;
+    width: 100%;
+  }
+
+  /* Terms checkbox */
+  .terms-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    width: 100%;
+    text-align: left;
+    margin-bottom: 20px;
+  }
+  .checkbox {
+    width: 22px; height: 22px;
+    border: 2px solid var(--border);
+    border-radius: 6px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 1px;
+  }
+  .checkbox.checked {
+    background: var(--primary);
+    border-color: var(--primary);
+  }
+  .terms-text {
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+  }
+  .terms-text a {
+    color: var(--primary);
+    text-decoration: underline;
+  }
+
+  /* Download models card */
+  .download-card {
     width: 100%;
     background: var(--primary-lightest);
     border: 1px solid var(--primary);
     border-radius: 12px;
     padding: 16px;
-    margin-bottom: 24px;
-    text-align: left;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
   }
-  .siret-card .company-name {
-    font-size: 16px;
+  .download-card-icon {
+    width: 40px; height: 40px;
+    border-radius: 10px;
+    background: var(--primary);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .download-card-text {
+    flex: 1;
+  }
+  .download-card-title {
+    font-size: 14px;
     font-weight: 600;
     color: var(--primary);
-    margin-bottom: 4px;
   }
-  .siret-card .company-info {
-    font-size: 13px;
-    color: var(--text-secondary);
-    line-height: 1.4;
-  }
-  .siret-card .check-icon {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    color: var(--success);
+  .download-card-sub {
     font-size: 12px;
-    font-weight: 600;
-    margin-top: 8px;
+    color: var(--text-secondary);
+  }
+
+  /* Desktop onboarding */
+  .desktop-onboarding {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg);
+  }
+  .desktop-onboarding-card {
+    width: 100%;
+    max-width: 520px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 40px;
+  }
+  .desktop-onboarding-card .step-indicator {
+    justify-content: center;
+    margin-bottom: 28px;
+  }
+  .desktop-onboarding-card .onboarding-title {
+    text-align: center;
+    margin-bottom: 8px;
+  }
+  .desktop-onboarding-header {
+    padding: 20px 40px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    flex-shrink: 0;
+  }
+  .desktop-onboarding-logo {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--primary);
+    letter-spacing: -0.5px;
+  }
+  /* Two-column form for desktop */
+  .desktop-form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px 16px;
+  }
+  .desktop-form-grid .form-field-full {
+    grid-column: 1 / -1;
   }
 
   /* Upload zone */
@@ -1523,11 +1685,6 @@
       <div class="status-bar"><span>9:41</span><span>●●●●</span></div>
       <div class="screen-content">
         <div class="onboarding">
-          <div class="step-indicator">
-            <div class="step-dot active"></div>
-            <div class="step-dot"></div>
-            <div class="step-dot"></div>
-          </div>
           <div class="onboarding-logo">Tuldio</div>
           <div class="onboarding-tagline">Tu lui dis, c'est fait.</div>
           <div class="onboarding-title">Connectez-vous</div>
@@ -1548,11 +1705,6 @@
       <div class="status-bar"><span>9:41</span><span>●●●●</span></div>
       <div class="screen-content">
         <div class="onboarding">
-          <div class="step-indicator">
-            <div class="step-dot active"></div>
-            <div class="step-dot"></div>
-            <div class="step-dot"></div>
-          </div>
           <div class="onboarding-logo">Tuldio</div>
           <div class="onboarding-tagline">Tu lui dis, c'est fait.</div>
           <div class="onboarding-title">Entrez le code</div>
@@ -1574,44 +1726,96 @@
     </div>
   </div>
 
-  <!-- SCREEN 2: SIRET -->
+  <!-- SCREEN 2: Collection Method -->
   <div class="screen-wrapper">
-    <div class="screen-label">SIRET</div>
+    <div class="screen-label">Methode de saisie</div>
     <div class="phone">
       <div class="status-bar"><span>9:41</span><span>●●●●</span></div>
       <div class="screen-content">
-        <div class="onboarding">
+        <div class="onboarding" style="justify-content: flex-start; padding-top: 24px;">
           <div class="step-indicator">
-            <div class="step-dot done"></div>
             <div class="step-dot active"></div>
             <div class="step-dot"></div>
+            <div class="step-dot"></div>
           </div>
-          <div class="onboarding-title">Votre entreprise</div>
-          <div style="font-size:14px; color:var(--text-secondary); margin-bottom:24px">
-            On récupère vos infos automatiquement
+          <div class="onboarding-title" style="margin-top: 16px">Vos informations</div>
+          <div style="font-size:14px; color:var(--text-secondary); margin-bottom:28px; line-height:1.5">
+            Comment voulez-vous renseigner les infos de votre entreprise ?
           </div>
-          <input class="input-field focused" type="text" value="823 456 789 00012" readonly>
-          <div class="siret-card">
-            <div class="company-name">Durand Plomberie</div>
-            <div class="company-info">
-              Pierre Durand<br>
-              12 rue des Lilas, 69003 Lyon<br>
-              SIRET : 823 456 789 00012
+          <div class="method-card" style="cursor:pointer">
+            <div class="method-card-icon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
             </div>
-            <div class="check-icon">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-              Entreprise vérifiée
+            <div class="method-card-text">
+              <div class="method-card-title">Envoyer un document</div>
+              <div class="method-card-desc">PDF d'un devis ou facture existant</div>
             </div>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-secondary);flex-shrink:0"><polyline points="9 18 15 12 9 6"/></svg>
           </div>
-          <button class="btn-primary">Continuer</button>
+          <div class="method-card" style="cursor:pointer">
+            <div class="method-card-icon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            </div>
+            <div class="method-card-text">
+              <div class="method-card-title">Saisir manuellement</div>
+              <div class="method-card-desc">Remplir les informations vous-meme</div>
+            </div>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-secondary);flex-shrink:0"><polyline points="9 18 15 12 9 6"/></svg>
+          </div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- SCREEN 3: Template Upload -->
+  <!-- SCREEN 3: Company Info Review -->
   <div class="screen-wrapper">
-    <div class="screen-label">Modèle de devis</div>
+    <div class="screen-label">Verification infos</div>
+    <div class="phone">
+      <div class="status-bar"><span>9:41</span><span>●●●●</span></div>
+      <div class="screen-content">
+        <div style="display:flex; flex-direction:column; flex:1; overflow:hidden;">
+          <!-- Fixed header -->
+          <div style="padding:20px 28px 0; text-align:center; flex-shrink:0;">
+            <div class="step-indicator" style="justify-content:center">
+              <div class="step-dot done"></div>
+              <div class="step-dot active"></div>
+              <div class="step-dot"></div>
+            </div>
+            <div class="onboarding-title" style="margin-top:12px; margin-bottom:4px">Verifiez vos informations</div>
+            <div style="font-size:13px; color:var(--text-secondary); margin-bottom:12px">
+              Elles apparaitront sur vos devis et factures.
+            </div>
+          </div>
+          <!-- Scrollable form -->
+          <div style="flex:1; overflow-y:auto; padding:0 28px 24px;">
+            <div class="form-section-label" style="margin-top:8px">Obligatoires</div>
+            <div class="input-label">Nom de l'entreprise</div>
+            <input class="input-field" type="text" value="Durand Plomberie" readonly style="font-weight:600; padding:12px 14px; margin-bottom:10px">
+            <div class="input-label">SIRET</div>
+            <input class="input-field" type="text" value="823 456 789 00012" readonly style="padding:12px 14px; margin-bottom:10px">
+            <div class="input-label">Adresse</div>
+            <input class="input-field" type="text" value="12 rue des Lilas, 69003 Lyon" readonly style="padding:12px 14px; margin-bottom:10px">
+
+            <div class="form-section-label">Complementaires</div>
+            <div class="input-label">Telephone fixe</div>
+            <input class="input-field" type="text" value="04 78 12 34 56" readonly style="padding:12px 14px; margin-bottom:10px">
+            <div class="input-label">Telephone mobile</div>
+            <input class="input-field" type="text" value="06 12 34 56 78" readonly style="padding:12px 14px; margin-bottom:10px">
+            <div class="input-label">Email</div>
+            <input class="input-field" type="text" value="contact@durand.fr" readonly style="padding:12px 14px; margin-bottom:10px">
+            <div class="input-label">N° TVA <span style="color:var(--text-secondary);font-weight:400;font-size:11px">(si assujetti)</span></div>
+            <input class="input-field" type="text" value="FR 32 823456789" readonly style="padding:12px 14px; margin-bottom:10px">
+
+            <button class="btn-primary" style="margin-top:12px">Continuer</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCREEN 4: Download Models + Accept Terms -->
+  <div class="screen-wrapper">
+    <div class="screen-label">Modeles + CGU</div>
     <div class="phone">
       <div class="status-bar"><span>9:41</span><span>●●●●</span></div>
       <div class="screen-content">
@@ -1620,66 +1824,46 @@
             <div class="step-dot done"></div>
             <div class="step-dot done"></div>
             <div class="step-dot active"></div>
-            <div class="step-dot"></div>
           </div>
-          <div class="onboarding-title" style="margin-top: 16px">Votre modèle de devis</div>
+          <div class="onboarding-title" style="margin-top: 16px">Vos modeles de documents</div>
           <div style="font-size:14px; color:var(--text-secondary); margin-bottom:24px; line-height:1.5">
-            Prenez en photo un devis que vous utilisez déjà. On s'en servira comme modèle.
+            Tuldio genere vos devis et factures avec votre identite. Voici un apercu.
           </div>
-          <div class="upload-zone">
-            <div class="upload-icons">
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
-            </div>
-            <div class="upload-text">Prendre une photo ou choisir un fichier</div>
-            <div class="upload-hint">PDF, JPG ou PNG</div>
-          </div>
-          <button class="btn-primary">Continuer</button>
-          <button class="btn-secondary">Passer cette étape</button>
-        </div>
-      </div>
-    </div>
-  </div>
 
-  <!-- SCREEN 3b: Invoice Template Upload -->
-  <div class="screen-wrapper">
-    <div class="screen-label">Modèle de facture</div>
-    <div class="phone">
-      <div class="status-bar"><span>9:41</span><span>●●●●</span></div>
-      <div class="screen-content">
-        <div class="onboarding" style="justify-content: flex-start; padding-top: 24px;">
-          <div class="step-indicator">
-            <div class="step-dot done"></div>
-            <div class="step-dot done"></div>
-            <div class="step-dot done"></div>
-            <div class="step-dot active"></div>
-          </div>
-          <div class="onboarding-title" style="margin-top: 16px">Votre modèle de facture</div>
-          <div style="font-size:14px; color:var(--text-secondary); margin-bottom:24px; line-height:1.5">
-            Même chose pour vos factures. Prenez en photo ou uploadez un PDF.
-          </div>
-          <div class="upload-zone" style="border-color:var(--primary);background:var(--primary-lightest)">
-            <div style="display:flex;align-items:center;gap:8px;color:var(--primary)">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-              <span style="font-size:15px;font-weight:600">facture-modele.pdf</span>
+          <div class="download-card">
+            <div class="download-card-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
             </div>
-            <div class="upload-hint">PDF · 245 Ko</div>
+            <div class="download-card-text">
+              <div class="download-card-title">Modele de devis</div>
+              <div class="download-card-sub">Telecharger l'apercu PDF</div>
+            </div>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--primary)"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
           </div>
-          <div style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:24px">
-            <div style="font-size:12px;color:var(--text-secondary);font-weight:500;margin-bottom:8px">APERÇU</div>
-            <div style="font-size:14px;color:var(--text);line-height:1.6">
-              <div style="font-weight:600;color:var(--primary);margin-bottom:4px">Durand Plomberie</div>
-              <div style="font-size:12px;color:var(--text-secondary)">12 rue des Lilas, 69003 Lyon</div>
-              <div style="border-top:1px solid var(--border);margin:8px 0;padding-top:8px;font-size:12px;color:var(--text-secondary)">
-                Logo détecté · Mentions légales détectées · TVA 20%
-              </div>
-              <div style="display:flex;align-items:center;gap:4px;color:var(--success);font-size:12px;font-weight:600">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-                Modèle analysé avec succès
-              </div>
+
+          <div class="download-card">
+            <div class="download-card-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
+            </div>
+            <div class="download-card-text">
+              <div class="download-card-title">Modele de facture</div>
+              <div class="download-card-sub">Telecharger l'apercu PDF</div>
+            </div>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--primary)"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          </div>
+
+          <div style="flex:1"></div>
+
+          <div class="terms-row">
+            <div class="checkbox checked">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+            </div>
+            <div class="terms-text">
+              J'accepte les <a href="#">conditions generales d'utilisation</a> et je certifie que les informations fournies sont exactes.
             </div>
           </div>
-          <button class="btn-primary">Commencer à utiliser Tuldio</button>
+
+          <button class="btn-primary">Commencer a utiliser Tuldio</button>
         </div>
       </div>
     </div>
@@ -2114,14 +2298,6 @@
                 </div>
                 <div class="settings-chevron">›</div>
               </div>
-              <div class="settings-row">
-                <div class="settings-icon green"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg></div>
-                <div class="settings-label">
-                  <div class="settings-label-text">Mes modèles</div>
-                  <div class="settings-label-sub">Devis et factures</div>
-                </div>
-                <div class="settings-chevron">›</div>
-              </div>
             </div>
           </div>
 
@@ -2173,6 +2349,215 @@
 
 <!-- ===== DESKTOP SCREEN MOCKUPS ===== -->
 <div class="desktop-screens-grid" id="desktop-screens" style="display:none">
+
+  <!-- DESKTOP: Onboarding — Connexion -->
+  <div class="desktop-wrapper">
+    <div class="screen-label">Connexion — Desktop</div>
+    <div class="desktop-with-chrome">
+      <div class="browser-chrome">
+        <div class="browser-dots"><span></span><span></span><span></span></div>
+        <div class="browser-url">app.tuldio.fr/login</div>
+      </div>
+      <div class="desktop-frame" style="border-radius:0 0 12px 12px; border-top:none; flex-direction:column;">
+        <div class="desktop-onboarding-header">
+          <div class="desktop-onboarding-logo">Tuldio</div>
+          <div style="font-size:13px; color:var(--text-secondary)">Tu lui dis, c'est fait.</div>
+        </div>
+        <div class="desktop-onboarding">
+          <div class="desktop-onboarding-card">
+            <div class="onboarding-title">Connectez-vous</div>
+            <div style="text-align:center; font-size:14px; color:var(--text-secondary); margin-bottom:28px">
+              Pas de mot de passe. On vous envoie un code par email.
+            </div>
+            <input class="input-field focused" type="text" value="pierre.durand@gmail.com" readonly>
+            <button class="btn-primary">Recevoir le code</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DESKTOP: Onboarding — Methode de saisie -->
+  <div class="desktop-wrapper">
+    <div class="screen-label">Methode de saisie — Desktop</div>
+    <div class="desktop-with-chrome">
+      <div class="browser-chrome">
+        <div class="browser-dots"><span></span><span></span><span></span></div>
+        <div class="browser-url">app.tuldio.fr/onboarding</div>
+      </div>
+      <div class="desktop-frame" style="border-radius:0 0 12px 12px; border-top:none; flex-direction:column;">
+        <div class="desktop-onboarding-header">
+          <div class="desktop-onboarding-logo">Tuldio</div>
+          <div style="font-size:13px; color:var(--text-secondary)">Tu lui dis, c'est fait.</div>
+        </div>
+        <div class="desktop-onboarding">
+          <div class="desktop-onboarding-card">
+            <div class="step-indicator">
+              <div class="step-dot active"></div>
+              <div class="step-dot"></div>
+              <div class="step-dot"></div>
+            </div>
+            <div class="onboarding-title">Vos informations</div>
+            <div style="text-align:center; font-size:14px; color:var(--text-secondary); margin-bottom:28px">
+              Comment voulez-vous renseigner les infos de votre entreprise ?
+            </div>
+            <div class="method-card" style="cursor:pointer">
+              <div class="method-card-icon">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
+              </div>
+              <div class="method-card-text">
+                <div class="method-card-title">Envoyer un document</div>
+                <div class="method-card-desc">PDF d'un devis ou facture existant</div>
+              </div>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-secondary);flex-shrink:0"><polyline points="9 18 15 12 9 6"/></svg>
+            </div>
+            <div class="method-card" style="cursor:pointer">
+              <div class="method-card-icon">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              </div>
+              <div class="method-card-text">
+                <div class="method-card-title">Saisir manuellement</div>
+                <div class="method-card-desc">Remplir les informations vous-meme</div>
+              </div>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-secondary);flex-shrink:0"><polyline points="9 18 15 12 9 6"/></svg>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DESKTOP: Onboarding — Verification infos -->
+  <div class="desktop-wrapper">
+    <div class="screen-label">Verification infos — Desktop</div>
+    <div class="desktop-with-chrome">
+      <div class="browser-chrome">
+        <div class="browser-dots"><span></span><span></span><span></span></div>
+        <div class="browser-url">app.tuldio.fr/onboarding</div>
+      </div>
+      <div class="desktop-frame" style="border-radius:0 0 12px 12px; border-top:none; flex-direction:column;">
+        <div class="desktop-onboarding-header">
+          <div class="desktop-onboarding-logo">Tuldio</div>
+          <div style="font-size:13px; color:var(--text-secondary)">Tu lui dis, c'est fait.</div>
+        </div>
+        <div class="desktop-onboarding">
+          <div class="desktop-onboarding-card" style="max-width:600px">
+            <div class="step-indicator">
+              <div class="step-dot done"></div>
+              <div class="step-dot active"></div>
+              <div class="step-dot"></div>
+            </div>
+            <div class="onboarding-title">Verifiez vos informations</div>
+            <div style="text-align:center; font-size:14px; color:var(--text-secondary); margin-bottom:24px">
+              Elles apparaitront sur vos devis et factures.
+            </div>
+
+            <div class="form-section-label" style="margin-top:0">Obligatoires</div>
+            <div class="desktop-form-grid">
+              <div class="form-field-full">
+                <div class="input-label">Nom de l'entreprise</div>
+                <input class="input-field" type="text" value="Durand Plomberie" readonly style="font-weight:600; margin-bottom:0">
+              </div>
+              <div>
+                <div class="input-label">SIRET</div>
+                <input class="input-field" type="text" value="823 456 789 00012" readonly style="margin-bottom:0">
+              </div>
+              <div>
+                <div class="input-label">Adresse</div>
+                <input class="input-field" type="text" value="12 rue des Lilas, 69003 Lyon" readonly style="margin-bottom:0">
+              </div>
+            </div>
+
+            <div class="form-section-label">Complementaires</div>
+            <div class="desktop-form-grid">
+              <div>
+                <div class="input-label">Telephone fixe</div>
+                <input class="input-field" type="text" value="04 78 12 34 56" readonly style="margin-bottom:0">
+              </div>
+              <div>
+                <div class="input-label">Telephone mobile</div>
+                <input class="input-field" type="text" value="06 12 34 56 78" readonly style="margin-bottom:0">
+              </div>
+              <div>
+                <div class="input-label">Email</div>
+                <input class="input-field" type="text" value="contact@durand.fr" readonly style="margin-bottom:0">
+              </div>
+              <div>
+                <div class="input-label">N° TVA <span style="color:var(--text-secondary);font-weight:400;font-size:11px">(si assujetti)</span></div>
+                <input class="input-field" type="text" value="FR 32 823456789" readonly style="margin-bottom:0">
+              </div>
+            </div>
+
+            <button class="btn-primary" style="margin-top:24px">Continuer</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DESKTOP: Onboarding — Modeles + CGU -->
+  <div class="desktop-wrapper">
+    <div class="screen-label">Modeles + CGU — Desktop</div>
+    <div class="desktop-with-chrome">
+      <div class="browser-chrome">
+        <div class="browser-dots"><span></span><span></span><span></span></div>
+        <div class="browser-url">app.tuldio.fr/onboarding</div>
+      </div>
+      <div class="desktop-frame" style="border-radius:0 0 12px 12px; border-top:none; flex-direction:column;">
+        <div class="desktop-onboarding-header">
+          <div class="desktop-onboarding-logo">Tuldio</div>
+          <div style="font-size:13px; color:var(--text-secondary)">Tu lui dis, c'est fait.</div>
+        </div>
+        <div class="desktop-onboarding">
+          <div class="desktop-onboarding-card">
+            <div class="step-indicator">
+              <div class="step-dot done"></div>
+              <div class="step-dot done"></div>
+              <div class="step-dot active"></div>
+            </div>
+            <div class="onboarding-title">Vos modeles de documents</div>
+            <div style="text-align:center; font-size:14px; color:var(--text-secondary); margin-bottom:28px">
+              Tuldio genere vos devis et factures avec votre identite.
+            </div>
+
+            <div style="display:flex; gap:16px; margin-bottom:28px">
+              <div class="download-card" style="flex:1; margin-bottom:0">
+                <div class="download-card-icon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
+                </div>
+                <div class="download-card-text">
+                  <div class="download-card-title">Modele de devis</div>
+                  <div class="download-card-sub">Telecharger l'apercu PDF</div>
+                </div>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--primary);flex-shrink:0"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              </div>
+              <div class="download-card" style="flex:1; margin-bottom:0">
+                <div class="download-card-icon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
+                </div>
+                <div class="download-card-text">
+                  <div class="download-card-title">Modele de facture</div>
+                  <div class="download-card-sub">Telecharger l'apercu PDF</div>
+                </div>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--primary);flex-shrink:0"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              </div>
+            </div>
+
+            <div class="terms-row">
+              <div class="checkbox checked">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+              </div>
+              <div class="terms-text">
+                J'accepte les <a href="#">conditions generales d'utilisation</a> et je certifie que les informations fournies sont exactes.
+              </div>
+            </div>
+
+            <button class="btn-primary">Commencer a utiliser Tuldio</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- DESKTOP: Chat -->
   <div class="desktop-wrapper">

@@ -15,7 +15,6 @@ export const invoiceSchema = z.object({
   created_by: z.string().uuid(),
   client_id: z.string().uuid(),
   quote_id: z.string().uuid().nullable(),
-  template_id: z.string().uuid(),
   number: z.string(),
   lines: z.array(invoiceLineSchema),
   total_ht: z.number().int(),

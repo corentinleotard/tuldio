@@ -1,10 +1,8 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import {
   User,
   CreditCard,
   Bell,
-  FileText,
   Download,
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
@@ -14,7 +12,6 @@ import { ToggleSwitch } from '@/components/ui/toggle-switch';
 import { SettingsRow } from '../components/settings-row';
 
 export function SettingsPage() {
-  const navigate = useNavigate();
   const { user, team, signOut } = useAuth();
   const [notifications, setNotifications] = useState(true);
 
@@ -55,7 +52,6 @@ export function SettingsPage() {
           Compte
         </p>
         <SettingsRow icon={User} label="Mon profil" subLabel={user?.email} iconClassName="bg-primary/10 text-primary" onClick={() => {}} />
-        <SettingsRow icon={FileText} label="Mes modeles" subLabel="Devis et factures" iconClassName="bg-primary/10 text-primary" onClick={() => navigate('/settings/templates')} />
       </div>
 
       {/* Subscription section */}

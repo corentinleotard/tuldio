@@ -44,7 +44,6 @@ export async function createInvoice(input: {
   teamId: string;
   userId: string;
   clientId: string;
-  templateId: string;
   lines: { description: string; quantity: number; unitPrice: number }[];
   tvaRate: number;
   dueDate?: Date;
@@ -58,7 +57,6 @@ export async function createInvoice(input: {
     teamId: input.teamId,
     createdBy: input.userId,
     clientId: input.clientId,
-    templateId: input.templateId,
     lines,
     totalHt,
     totalTtc,

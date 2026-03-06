@@ -19,7 +19,32 @@ export interface AuthUser {
 export interface TeamSummary {
   id: string;
   name: string;
-  siret: string;
+  siret: string | null;
+  address: string | null;
+  phone: string | null;
+  email: string | null;
+  mobile: string | null;
+  website: string | null;
+  logoUrl: string | null;
+  tvaNumber: string | null;
+  tvaExempt: boolean;
+  apeCode: string | null;
+  legalForm: string | null;
+  capitalSocial: number | null;
+  rcsCity: string | null;
+  rmCity: string | null;
+  activityDescription: string | null;
+  insuranceCompany: string | null;
+  insurancePolicyNumber: string | null;
+  insuranceCoverageZone: string | null;
+  paymentTerms: string | null;
+  depositPercent: number | null;
+  earlyPaymentDiscount: string | null;
+  latePenaltyRate: string | null;
+  recoveryFee: number | null;
+  customClauses: string[];
+  originalDocumentUrl: string | null;
+  termsAcceptedAt: string | null;
   subscriptionStatus: 'trial' | 'active' | 'cancelled' | 'expired';
   trialEndsAt: string | null;
 }
@@ -83,7 +108,6 @@ export interface QuoteView {
 
 export interface CreateQuoteRequest {
   clientId: string;
-  templateId: string;
   lines: { description: string; quantity: number; unitPrice: number }[];
   tvaRate: number;
 }
@@ -109,7 +133,6 @@ export interface InvoiceView {
 
 export interface CreateInvoiceRequest {
   clientId: string;
-  templateId: string;
   lines: { description: string; quantity: number; unitPrice: number }[];
   tvaRate: number;
   dueDate?: string;
@@ -162,15 +185,6 @@ export interface SendMessageRequest {
   attachments?: Attachment[];
 }
 
-// Templates
-export interface TemplateView {
-  id: string;
-  type: 'quote' | 'invoice';
-  layoutData: unknown;
-  originalUrl: string | null;
-  createdAt: string;
-}
-
 // Stats
 export interface MonthlyStatsView {
   revenue: { totalHt: number; totalTtc: number; count: number };
@@ -185,12 +199,27 @@ export interface UpdateTeamRequest {
   name?: string;
   siret?: string;
   address?: string;
-}
-
-export interface SiretLookupResponse {
-  siret: string;
-  name: string;
-  address: string;
+  phone?: string;
+  email?: string;
+  mobile?: string;
+  website?: string;
+  tvaNumber?: string;
+  tvaExempt?: boolean;
+  apeCode?: string;
+  legalForm?: string;
+  capitalSocial?: number;
+  rcsCity?: string;
+  rmCity?: string;
+  activityDescription?: string;
+  insuranceCompany?: string;
+  insurancePolicyNumber?: string;
+  insuranceCoverageZone?: string;
+  paymentTerms?: string;
+  depositPercent?: number;
+  earlyPaymentDiscount?: string;
+  latePenaltyRate?: string;
+  recoveryFee?: number;
+  customClauses?: string[];
 }
 
 // Pagination

@@ -8,7 +8,6 @@ const insertQuoteSchema = z.object({
   teamId: z.string().uuid(),
   createdBy: z.string().uuid(),
   clientId: z.string().uuid(),
-  templateId: z.string().uuid(),
   lines: z.array(quoteLineSchema),
   totalHt: z.number().int(),
   totalTtc: z.number().int(),
@@ -19,7 +18,6 @@ export async function insertQuote(input: {
   teamId: string;
   createdBy: string;
   clientId: string;
-  templateId: string;
   lines: { description: string; quantity: number; unitPrice: number; total: number }[];
   totalHt: number;
   totalTtc: number;
@@ -45,15 +43,14 @@ export async function insertQuote(input: {
     const number = `${prefix}${String(nextNum).padStart(4, '0')}`;
 
     const result = await query<QuoteRow>(
-      `INSERT INTO quotes (id, team_id, created_by, client_id, template_id, number, lines, total_ht, total_ttc, tva_rate)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      `INSERT INTO quotes (id, team_id, created_by, client_id, number, lines, total_ht, total_ttc, tva_rate)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
        RETURNING *`,
       [
         id,
         validated.teamId,
         validated.createdBy,
         validated.clientId,
-        validated.templateId,
         number,
         JSON.stringify(validated.lines),
         validated.totalHt,

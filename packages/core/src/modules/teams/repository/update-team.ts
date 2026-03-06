@@ -1,27 +1,47 @@
+import type { UpdateTeamRequest } from '@tuldio/types';
 import { query } from '../../../lib/database/db.js';
 import type { TeamRow } from '../domain/team.entity.js';
 
+const FIELD_MAP: Record<keyof UpdateTeamRequest, string> = {
+  name: 'name',
+  siret: 'siret',
+  address: 'address',
+  phone: 'phone',
+  email: 'email',
+  mobile: 'mobile',
+  website: 'website',
+  tvaNumber: 'tva_number',
+  tvaExempt: 'tva_exempt',
+  apeCode: 'ape_code',
+  legalForm: 'legal_form',
+  capitalSocial: 'capital_social',
+  rcsCity: 'rcs_city',
+  rmCity: 'rm_city',
+  activityDescription: 'activity_description',
+  insuranceCompany: 'insurance_company',
+  insurancePolicyNumber: 'insurance_policy_number',
+  insuranceCoverageZone: 'insurance_coverage_zone',
+  paymentTerms: 'payment_terms',
+  depositPercent: 'deposit_percent',
+  earlyPaymentDiscount: 'early_payment_discount',
+  latePenaltyRate: 'late_penalty_rate',
+  recoveryFee: 'recovery_fee',
+  customClauses: 'custom_clauses',
+};
+
 export async function updateTeam(input: {
   teamId: string;
-  name?: string;
-  siret?: string;
-  address?: string;
-}): Promise<TeamRow> {
+} & UpdateTeamRequest): Promise<TeamRow> {
   const fields: string[] = [];
   const params: unknown[] = [];
   let idx = 1;
 
-  if (input.name !== undefined) {
-    fields.push(`name = $${idx++}`);
-    params.push(input.name);
-  }
-  if (input.siret !== undefined) {
-    fields.push(`siret = $${idx++}`);
-    params.push(input.siret);
-  }
-  if (input.address !== undefined) {
-    fields.push(`address = $${idx++}`);
-    params.push(input.address);
+  for (const [camelKey, dbColumn] of Object.entries(FIELD_MAP)) {
+    const value = input[camelKey as keyof UpdateTeamRequest];
+    if (value !== undefined) {
+      fields.push(`${dbColumn} = $${idx++}`);
+      params.push(camelKey === 'customClauses' ? JSON.stringify(value) : value);
+    }
   }
 
   if (fields.length === 0) {

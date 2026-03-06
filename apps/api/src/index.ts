@@ -12,7 +12,6 @@ import teamsRoutes from './routes/teams.routes.js';
 import expensesRoutes from './routes/expenses.routes.js';
 import messagesRoutes from './routes/messages.routes.js';
 import statsRoutes from './routes/stats.routes.js';
-import templatesRoutes from './routes/templates.routes.js';
 import quotesRoutes from './routes/quotes.routes.js';
 import invoicesRoutes from './routes/invoices.routes.js';
 
@@ -41,7 +40,6 @@ app.use('/api/teams', teamsRoutes);
 app.use('/api/expenses', expensesRoutes);
 app.use('/api/messages', messagesRoutes);
 app.use('/api/stats', statsRoutes);
-app.use('/api/templates', templatesRoutes);
 app.use('/api/quotes', quotesRoutes);
 app.use('/api/invoices', invoicesRoutes);
 

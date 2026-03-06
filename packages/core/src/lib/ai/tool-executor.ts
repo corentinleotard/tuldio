@@ -3,7 +3,6 @@ import { createQuote } from '../../modules/quotes/index.js';
 import { createInvoice, markAsPaid } from '../../modules/invoices/index.js';
 import { createExpense } from '../../modules/expenses/index.js';
 import { getMonthlyStats } from '../../modules/stats/index.js';
-import { getTemplateForType } from '../../modules/templates/index.js';
 import { logger } from '../infra/logger.js';
 
 export async function executeTool(input: {
@@ -30,19 +29,10 @@ export async function executeTool(input: {
       return { result: client };
     }
     case 'generate_quote': {
-      let templateId: string;
-      try {
-        const template = await getTemplateForType({ teamId, type: 'quote' });
-        templateId = template.id;
-      } catch {
-        throw new Error("Aucun modèle de devis configuré. Veuillez d'abord uploader un modèle.");
-      }
-
       const quote = await createQuote({
         teamId,
         userId,
         clientId: toolInput.clientId as string,
-        templateId,
         lines: toolInput.lines as { description: string; quantity: number; unitPrice: number }[],
         tvaRate: toolInput.tvaRate as number,
       });
@@ -52,21 +42,10 @@ export async function executeTool(input: {
       };
     }
     case 'generate_invoice': {
-      let templateId: string;
-      try {
-        const template = await getTemplateForType({ teamId, type: 'invoice' });
-        templateId = template.id;
-      } catch {
-        throw new Error(
-          "Aucun modèle de facture configuré. Veuillez d'abord uploader un modèle.",
-        );
-      }
-
       const invoice = await createInvoice({
         teamId,
         userId,
         clientId: toolInput.clientId as string,
-        templateId,
         lines: toolInput.lines as { description: string; quantity: number; unitPrice: number }[],
         tvaRate: toolInput.tvaRate as number,
       });

@@ -9,7 +9,6 @@ const insertInvoiceSchema = z.object({
   createdBy: z.string().uuid(),
   clientId: z.string().uuid(),
   quoteId: z.string().uuid().optional(),
-  templateId: z.string().uuid(),
   lines: z.array(invoiceLineSchema),
   totalHt: z.number().int(),
   totalTtc: z.number().int(),
@@ -22,7 +21,6 @@ export async function insertInvoice(input: {
   createdBy: string;
   clientId: string;
   quoteId?: string;
-  templateId: string;
   lines: { description: string; quantity: number; unitPrice: number; total: number }[];
   totalHt: number;
   totalTtc: number;
@@ -49,8 +47,8 @@ export async function insertInvoice(input: {
     const number = `${prefix}${String(nextNum).padStart(4, '0')}`;
 
     const result = await query<InvoiceRow>(
-      `INSERT INTO invoices (id, team_id, created_by, client_id, quote_id, template_id, number, lines, total_ht, total_ttc, tva_rate, due_date)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+      `INSERT INTO invoices (id, team_id, created_by, client_id, quote_id, number, lines, total_ht, total_ttc, tva_rate, due_date)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
        RETURNING *`,
       [
         id,
@@ -58,7 +56,6 @@ export async function insertInvoice(input: {
         validated.createdBy,
         validated.clientId,
         validated.quoteId ?? null,
-        validated.templateId,
         number,
         JSON.stringify(validated.lines),
         validated.totalHt,

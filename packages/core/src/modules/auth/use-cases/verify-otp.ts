@@ -43,7 +43,6 @@ export async function verifyOtp(input: {
   } else {
     const team = await createTeam({
       name: 'Mon entreprise',
-      siret: '00000000000000',
     });
 
     user = await createUser({

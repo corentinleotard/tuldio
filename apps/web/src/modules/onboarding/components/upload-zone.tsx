@@ -40,18 +40,18 @@ export function UploadZone({
       onDrop={handleDrop}
       onClick={() => inputRef.current?.click()}
       className={cn(
-        'flex cursor-pointer flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed px-6 py-12 transition-colors',
+        'flex cursor-pointer flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed px-5 py-10 transition-colors',
         isDragging
-          ? 'border-primary bg-primary/5'
-          : 'border-border hover:border-primary/50',
+          ? 'border-primary bg-primary-lightest'
+          : 'border-border hover:border-primary hover:bg-primary-lightest',
       )}
     >
-      <div className="flex gap-2">
-        <Upload className="h-8 w-8 text-primary" />
-        <Camera className="h-8 w-8 text-primary" />
+      <div className="flex gap-4 text-primary">
+        <Upload className="h-6 w-6" />
+        <Camera className="h-6 w-6" />
       </div>
-      <p className="text-center text-sm font-medium text-foreground">{label}</p>
-      {hint && <p className="text-center text-xs text-muted-foreground">{hint}</p>}
+      <p className="text-center text-[15px] font-medium text-foreground">{label}</p>
+      {hint && <p className="text-center text-[13px] text-muted-foreground">{hint}</p>}
       <input
         ref={inputRef}
         type="file"

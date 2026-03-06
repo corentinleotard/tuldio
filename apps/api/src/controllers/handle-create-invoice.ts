@@ -5,13 +5,12 @@ import { getUserId, getTeamId } from '../middleware/auth.js';
 export async function handleCreateInvoice(req: Request, res: Response): Promise<void> {
   const teamId = getTeamId(res);
   const userId = getUserId(res);
-  const { clientId, templateId, lines, tvaRate, dueDate } = req.body;
+  const { clientId, lines, tvaRate, dueDate } = req.body;
 
   const invoice = await createInvoice({
     teamId,
     userId,
     clientId,
-    templateId,
     lines,
     tvaRate,
     dueDate: dueDate ? new Date(dueDate) : undefined,

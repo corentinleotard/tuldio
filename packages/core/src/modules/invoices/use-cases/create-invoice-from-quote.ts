@@ -46,7 +46,6 @@ export async function createInvoiceFromQuote(input: {
   teamId: string;
   userId: string;
   quoteId: string;
-  templateId: string;
 }): Promise<InvoiceView> {
   const quote = await findQuoteById({
     teamId: input.teamId,
@@ -62,7 +61,6 @@ export async function createInvoiceFromQuote(input: {
     createdBy: input.userId,
     clientId: quote.client_id,
     quoteId: quote.id,
-    templateId: input.templateId,
     lines: quote.lines,
     totalHt: quote.total_ht,
     totalTtc: quote.total_ttc,
