@@ -18,6 +18,7 @@ import adminRoutes from './routes/admin.routes.js';
 const PORT = process.env.PORT || 3003;
 
 const app = express();
+app.set('trust proxy', 1);
 
 app.use(
   cors({
