@@ -82,25 +82,19 @@ export function ClientsPage() {
 
           {!isLoading &&
             (() => {
-              let rowIndex = 0;
               return grouped.map((group) => (
                 <div key={group.letter}>
                   <p className="bg-secondary/50 px-5 py-1.5 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
                     {group.letter}
                   </p>
-                  {group.clients.map((client) => {
-                    const isEven = rowIndex % 2 === 1;
-                    rowIndex++;
-                    return (
+                  {group.clients.map((client) => (
                       <ClientListItem
                         key={client.id}
                         client={client}
                         isSelected={client.id === selectedId}
-                        isEven={isEven}
                         onClick={() => setSelectedId(client.id)}
                       />
-                    );
-                  })}
+                  ))}
                 </div>
               ));
             })()}

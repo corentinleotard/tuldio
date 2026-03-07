@@ -35,18 +35,14 @@ describe('demand state updates', () => {
     });
   });
 
-  describe('prepare_document stateUpdate', () => {
-    it('stores document lines in state', async () => {
-      const { toolResult, stateUpdate } = await executeTool({
-        toolName: 'prepare_document',
+  describe('init_document stateUpdate', () => {
+    it('creates empty document with type and metadata', async () => {
+      const { stateUpdate } = await executeTool({
+        toolName: 'init_document',
         toolInput: {
           type: 'quote',
           title: 'Rénovation salle de bain',
           tvaContext: 'réno',
-          lines: [
-            { description: 'Terrassement', quantity: 30, unit: 'm', unitPrice: 4500, tvaRate: 1000 },
-            { description: 'Polyane', quantity: 25, unit: 'm2', unitPrice: 5000, tvaRate: 550 },
-          ],
         },
         ...ctx,
         demandState: EMPTY_STATE,
@@ -60,36 +56,10 @@ describe('demand state updates', () => {
       expect(update.document!.type).toBe('quote');
       expect(update.document!.title).toBe('Rénovation salle de bain');
       expect(update.document!.tvaContext).toBe('réno');
-      expect(update.document!.lines).toHaveLength(2);
-      expect(update.document!.lines[0]!.description).toBe('Terrassement');
-      expect(update.document!.lines[0]!.unitPrice).toBe(4500);
-
-      // Handler result also contains the data
-      const result = toolResult.result as { lineCount: number; allPriced: boolean };
-      expect(result.lineCount).toBe(2);
-      expect(result.allPriced).toBe(true);
+      expect(update.document!.lines).toHaveLength(0);
     });
 
-    it('stores lines with missing prices', async () => {
-      const { stateUpdate } = await executeTool({
-        toolName: 'prepare_document',
-        toolInput: {
-          type: 'quote',
-          lines: [
-            { description: 'Terrassement', quantity: 30, unit: 'm' },
-            { description: 'Polyane', quantity: 25, unit: 'm2' },
-          ],
-        },
-        ...ctx,
-        demandState: EMPTY_STATE,
-      });
-
-      const update = stateUpdate as Partial<DemandState>;
-      expect(update.document!.lines[0]!.unitPrice).toBeUndefined();
-      expect(update.document!.lines[1]!.unitPrice).toBeUndefined();
-    });
-
-    it('replaces previous document state entirely', async () => {
+    it('replaces previous document state', async () => {
       const stateWithDoc: DemandState = {
         client: { id: 'c1', name: 'Martin Jean' },
         document: {
@@ -100,12 +70,8 @@ describe('demand state updates', () => {
       };
 
       const { stateUpdate } = await executeTool({
-        toolName: 'prepare_document',
-        toolInput: {
-          type: 'quote',
-          title: 'New title',
-          lines: [{ description: 'New line', quantity: 5, unit: 'm2', unitPrice: 3000 }],
-        },
+        toolName: 'init_document',
+        toolInput: { type: 'quote', title: 'New title' },
         ...ctx,
         demandState: stateWithDoc,
       });
@@ -113,9 +79,152 @@ describe('demand state updates', () => {
       const update = stateUpdate as Partial<DemandState>;
       expect(update.document!.type).toBe('quote');
       expect(update.document!.title).toBe('New title');
-      expect(update.document!.lines).toHaveLength(1);
-      // Client should NOT be affected by prepare_document
+      expect(update.document!.lines).toHaveLength(0);
       expect(update.client).toBeUndefined();
+    });
+  });
+
+  describe('add_lines stateUpdate', () => {
+    it('appends lines to document', async () => {
+      const stateWithDoc: DemandState = {
+        client: null,
+        document: { type: 'quote', tvaContext: 'réno', lines: [] },
+      };
+
+      const { toolResult, stateUpdate } = await executeTool({
+        toolName: 'add_lines',
+        toolInput: {
+          lines: [
+            { description: 'Terrassement', quantity: 30, unit: 'm', unitPrice: 4500, tvaRate: 1000 },
+            { description: 'Polyane', quantity: 25, unit: 'm2', unitPrice: 5000, tvaRate: 550 },
+          ],
+        },
+        ...ctx,
+        demandState: stateWithDoc,
+      });
+
+      const update = stateUpdate as Partial<DemandState>;
+      expect(update.document!.lines).toHaveLength(2);
+      expect(update.document!.lines[0]!.description).toBe('Terrassement');
+
+      const result = toolResult.result as { addedCount: number; totalLineCount: number; allPriced: boolean };
+      expect(result.addedCount).toBe(2);
+      expect(result.totalLineCount).toBe(2);
+      expect(result.allPriced).toBe(true);
+    });
+
+    it('appends to existing lines without replacing', async () => {
+      const stateWithLines: DemandState = {
+        client: null,
+        document: {
+          type: 'quote',
+          lines: [{ description: 'Terrassement', quantity: 30, unit: 'm' }],
+        },
+      };
+
+      const { stateUpdate } = await executeTool({
+        toolName: 'add_lines',
+        toolInput: {
+          lines: [{ description: 'Polyane', quantity: 25, unit: 'm2' }],
+        },
+        ...ctx,
+        demandState: stateWithLines,
+      });
+
+      const update = stateUpdate as Partial<DemandState>;
+      expect(update.document!.lines).toHaveLength(2);
+      expect(update.document!.lines[0]!.description).toBe('Terrassement');
+      expect(update.document!.lines[1]!.description).toBe('Polyane');
+    });
+
+    it('fails without init_document', async () => {
+      await expect(
+        executeTool({
+          toolName: 'add_lines',
+          toolInput: { lines: [{ description: 'Test', quantity: 1 }] },
+          ...ctx,
+          demandState: EMPTY_STATE,
+        }),
+      ).rejects.toThrow();
+    });
+  });
+
+  describe('update_line stateUpdate', () => {
+    it('updates line prices by index', async () => {
+      const stateWithLines: DemandState = {
+        client: null,
+        document: {
+          type: 'quote',
+          tvaContext: 'réno',
+          lines: [
+            { description: 'Terrassement', quantity: 30, unit: 'm' },
+            { description: 'Polyane', quantity: 25, unit: 'm2' },
+          ],
+        },
+      };
+
+      const { stateUpdate } = await executeTool({
+        toolName: 'update_line',
+        toolInput: {
+          updates: [
+            { index: 0, unitPrice: 4500, tvaRate: 1000 },
+            { index: 1, unitPrice: 5000, tvaRate: 550 },
+          ],
+        },
+        ...ctx,
+        demandState: stateWithLines,
+      });
+
+      const update = stateUpdate as Partial<DemandState>;
+      expect(update.document!.lines).toHaveLength(2);
+      expect(update.document!.lines[0]!.unitPrice).toBe(4500);
+      expect(update.document!.lines[0]!.description).toBe('Terrassement');
+      expect(update.document!.lines[1]!.unitPrice).toBe(5000);
+    });
+
+    it('fails on out-of-range index', async () => {
+      const stateWithLines: DemandState = {
+        client: null,
+        document: {
+          type: 'quote',
+          lines: [{ description: 'Test', quantity: 1, unit: 'u' }],
+        },
+      };
+
+      await expect(
+        executeTool({
+          toolName: 'update_line',
+          toolInput: { updates: [{ index: 5, unitPrice: 1000 }] },
+          ...ctx,
+          demandState: stateWithLines,
+        }),
+      ).rejects.toThrow();
+    });
+  });
+
+  describe('remove_line stateUpdate', () => {
+    it('removes line by index', async () => {
+      const stateWithLines: DemandState = {
+        client: null,
+        document: {
+          type: 'quote',
+          lines: [
+            { description: 'Terrassement', quantity: 30, unit: 'm' },
+            { description: 'Polyane', quantity: 25, unit: 'm2' },
+          ],
+        },
+      };
+
+      const { stateUpdate } = await executeTool({
+        toolName: 'remove_line',
+        toolInput: { index: 0 },
+        ...ctx,
+        demandState: stateWithLines,
+      });
+
+      const update = stateUpdate as Partial<DemandState>;
+      expect(update.document!.lines).toHaveLength(1);
+      expect(update.document!.lines[0]!.description).toBe('Polyane');
     });
   });
 
@@ -226,27 +335,35 @@ describe('demand state updates', () => {
       expect(merged.document!.lines[0]!.description).toBe('Terrassement');
     });
 
-    it('generate_quote clears all state', async () => {
-      // Simulate stateUpdate: () => 'clear'
-      // applyStateUpdate would return { client: null, document: null }
-      const clearedState: DemandState = { client: null, document: null };
+    it('generate_quote keeps state with generatedId', () => {
+      // After generation, state is preserved with generatedId for post-generation edits
+      // stateUpdate merges generatedId into the existing document
+      const stateAfterGeneration: DemandState = {
+        client: { id: 'c1', name: 'Martin Jean' },
+        document: {
+          type: 'quote',
+          title: 'Réno',
+          tvaContext: 'réno',
+          lines: [{ description: 'Carrelage', quantity: 10, unit: 'm2', unitPrice: 4500, tvaRate: 1000 }],
+          generatedId: 'quote-123',
+        },
+      };
 
-      expect(clearedState.client).toBeNull();
-      expect(clearedState.document).toBeNull();
+      expect(stateAfterGeneration.client).not.toBeNull();
+      expect(stateAfterGeneration.document).not.toBeNull();
+      expect(stateAfterGeneration.document!.generatedId).toBe('quote-123');
+      expect(stateAfterGeneration.document!.lines).toHaveLength(1);
     });
 
-    it('prepare_document preserves active client', async () => {
+    it('init_document preserves active client', async () => {
       const stateWithClient: DemandState = {
         client: { id: 'c1', name: 'Martin Jean' },
         document: null,
       };
 
       const { stateUpdate } = await executeTool({
-        toolName: 'prepare_document',
-        toolInput: {
-          type: 'quote',
-          lines: [{ description: 'Peinture', quantity: 20, unit: 'm2', unitPrice: 2500 }],
-        },
+        toolName: 'init_document',
+        toolInput: { type: 'quote' },
         ...ctx,
         demandState: stateWithClient,
       });
@@ -259,7 +376,7 @@ describe('demand state updates', () => {
       // After merge: client preserved
       const merged: DemandState = { ...stateWithClient, ...update };
       expect(merged.client!.id).toBe('c1');
-      expect(merged.document!.lines).toHaveLength(1);
+      expect(merged.document!.lines).toHaveLength(0);
     });
   });
 });

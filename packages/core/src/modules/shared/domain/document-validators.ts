@@ -1,4 +1,3 @@
-import { isValidUnit } from './document-format.js';
 import { isValidTvaRate, computeDocumentTotals, type DocumentTotals } from './document-math.js';
 
 export interface DocumentLineInput {
@@ -14,7 +13,6 @@ export function validateDocumentLine(line: DocumentLineInput): string[] {
   if (!line.description.trim()) errors.push('description is required');
   if (line.quantity <= 0) errors.push('quantity must be > 0');
   if (line.unitPrice < 0) errors.push('unitPrice must be >= 0');
-  if (!isValidUnit(line.unit)) errors.push(`invalid unit: ${line.unit}`);
   if (!isValidTvaRate(line.tvaRate)) errors.push(`invalid tvaRate: ${line.tvaRate}`);
   return errors;
 }

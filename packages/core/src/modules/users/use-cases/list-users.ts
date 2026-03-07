@@ -10,15 +10,15 @@ interface UserSummary {
   teamId: string;
 }
 
-export async function listUsers(input: { godUserId: string }): Promise<UserSummary[]> {
+export async function listUsers(input: { godUserId: string; limit?: number }): Promise<UserSummary[]> {
   const god = await getCurrentUser(input.godUserId);
   if (!god.god) {
     throw new HandledError(errorCodes.forbidden);
   }
 
   const result = await query<{ id: string; name: string; email: string; team_id: string }>(
-    `SELECT id, name, email, team_id FROM users ORDER BY created_at DESC LIMIT 200`,
-    [],
+    `SELECT id, name, email, team_id FROM users ORDER BY created_at DESC LIMIT $1`,
+    [input.limit ?? 1000],
   );
 
   return result.rows.map((r) => ({

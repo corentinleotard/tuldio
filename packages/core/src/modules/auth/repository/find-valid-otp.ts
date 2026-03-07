@@ -6,7 +6,7 @@ export async function findValidOtp(input: {
   code: string;
 }): Promise<OtpRow | null> {
   const result = await query<OtpRow>(
-    `SELECT * FROM otp_codes
+    `SELECT id, email, code, expires_at, used, created_at FROM otp_codes
      WHERE email = $1 AND code = $2 AND used = FALSE AND expires_at > NOW()
      ORDER BY created_at DESC
      LIMIT 1`,

@@ -65,11 +65,13 @@ describe('tool descriptions', () => {
     }
   });
 
-  it('generate tools reference prepare_document prerequisite', () => {
+  it('generate tools reference init_document and add_lines prerequisites', () => {
     const quoteDesc = chatTools.find((t) => t.name === 'generate_quote')!.description;
     const invoiceDesc = chatTools.find((t) => t.name === 'generate_invoice')!.description;
-    expect(quoteDesc).toContain('prepare_document');
-    expect(invoiceDesc).toContain('prepare_document');
+    expect(quoteDesc).toContain('init_document');
+    expect(quoteDesc).toContain('add_lines');
+    expect(invoiceDesc).toContain('init_document');
+    expect(invoiceDesc).toContain('add_lines');
   });
 
   it('no tool description duplicates system prompt content', () => {

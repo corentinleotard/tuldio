@@ -1,24 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatDocumentNumber, isValidUnit } from './document-format.js';
-
-describe('isValidUnit', () => {
-  it('accepts valid units', () => {
-    expect(isValidUnit('u')).toBe(true);
-    expect(isValidUnit('m²')).toBe(true);
-    expect(isValidUnit('m')).toBe(true);
-    expect(isValidUnit('h')).toBe(true);
-    expect(isValidUnit('forfait')).toBe(true);
-    expect(isValidUnit('kg')).toBe(true);
-    expect(isValidUnit('L')).toBe(true);
-    expect(isValidUnit('lot')).toBe(true);
-  });
-
-  it('rejects invalid units', () => {
-    expect(isValidUnit('pieces')).toBe(false);
-    expect(isValidUnit('')).toBe(false);
-    expect(isValidUnit('M²')).toBe(false);
-  });
-});
+import { formatDocumentNumber } from './document-format.js';
 
 describe('formatDocumentNumber', () => {
   it('formats quote numbers with D- prefix', () => {

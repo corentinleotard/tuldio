@@ -6,7 +6,7 @@ export async function findTeamFieldByKey(input: {
   key: string;
 }): Promise<TeamFieldRow | null> {
   const result = await query<TeamFieldRow>(
-    'SELECT * FROM team_fields WHERE team_id = $1 AND key = $2 LIMIT 1',
+    'SELECT id, team_id, key, label, value, zone, show_quote, show_invoice, sort_order, is_system FROM team_fields WHERE team_id = $1 AND key = $2 LIMIT 1',
     [input.teamId, input.key],
   );
 

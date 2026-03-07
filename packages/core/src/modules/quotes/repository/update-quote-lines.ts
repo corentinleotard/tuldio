@@ -27,7 +27,7 @@ export async function updateQuoteLines(input: {
       `UPDATE quotes
        SET ${setClauses.join(', ')}
        WHERE id = $3 AND team_id = $4 AND status IN ('draft', 'sent')
-       RETURNING *`,
+       RETURNING id, team_id, created_by, client_id, number, title, total_ht, total_ttc, status, pdf_url, valid_until, sent_at, created_at`,
       params,
     );
 

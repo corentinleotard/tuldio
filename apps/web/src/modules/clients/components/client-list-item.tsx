@@ -6,11 +6,10 @@ import { cn } from '@/lib/utils';
 interface ClientListItemProps {
   client: ClientView;
   isSelected?: boolean;
-  isEven?: boolean;
   onClick: () => void;
 }
 
-export function ClientListItem({ client, isSelected, isEven, onClick }: ClientListItemProps) {
+export function ClientListItem({ client, isSelected, onClick }: ClientListItemProps) {
   const fullName = `${client.lastName} ${client.firstName}`;
   const subtitle = client.email ?? client.phone ?? '';
 
@@ -21,7 +20,6 @@ export function ClientListItem({ client, isSelected, isEven, onClick }: ClientLi
       className={cn(
         'flex w-full items-center gap-3 border-b border-border px-5 py-3 text-left focus-visible:outline-none',
         isSelected ? 'bg-primary/10' : 'hover:bg-secondary',
-        !isSelected && isEven && 'bg-secondary/50',
       )}
     >
       <Avatar

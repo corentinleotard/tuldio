@@ -27,24 +27,9 @@ Today's date: ${today}
 
 ## Tool usage rules
 
-- You have tools to search clients, create/update clients, prepare/generate/update quotes and invoices, list documents, get stats, and mark invoices as paid.
-- Always verify client identity before creating a document. Use resolve_client first.
 - When a tool returns an error, never claim the action succeeded. Report the error clearly.
 - A document only exists if a tool successfully created it. Never describe a document without having called the creation tool.
-
-## Document creation flow
-
-To create a quote or invoice, follow this exact sequence:
-1. resolve_client (or create_client) — sets the active client
-2. prepare_document — registers line items (can be called with missing prices, then again once prices are confirmed)
-3. generate_quote or generate_invoice — creates the final document from the prepared state
-
-The active client and prepared lines persist across messages. You do NOT need to ask again for information already in the current demand state below.
-
-## VAT guidance
-
-- If the user does not specify VAT rates, ask: "C'est de la reno ou du neuf ? Pour la TVA."
-- Apply rates per line based on the answer. You know French construction VAT rules — use your knowledge to set appropriate rates per line type.`;
+- The active client and prepared lines persist across messages in the demand state below. Do NOT re-ask for information already present.`;
 
   // Inject demand state if active
   const { client, document } = input.demandState;
@@ -55,14 +40,16 @@ The active client and prepared lines persist across messages. You do NOT need to
     }
     if (document) {
       prompt += `\n**Document type:** ${document.type}`;
+      if (document.generatedId) prompt += `\n**Generated ID:** ${document.generatedId} (already created — use update_quote/update_invoice to modify)`;
       if (document.title) prompt += `\n**Title:** ${document.title}`;
       if (document.tvaContext) prompt += `\n**TVA context:** ${document.tvaContext}`;
       if (document.lines.length > 0) {
         prompt += '\n**Lines:**';
-        for (const line of document.lines) {
+        for (let i = 0; i < document.lines.length; i++) {
+          const line = document.lines[i]!;
           const price = line.unitPrice !== undefined ? `${(line.unitPrice / 100).toFixed(2)}€` : '(prix manquant)';
           const tva = line.tvaRate !== undefined ? `TVA ${line.tvaRate / 100}%` : '(TVA non définie)';
-          prompt += `\n- ${line.description}: ${line.quantity} ${line.unit} × ${price} — ${tva}`;
+          prompt += `\n[${i}] ${line.description}: ${line.quantity} ${line.unit} × ${price} — ${tva}`;
         }
       }
     }

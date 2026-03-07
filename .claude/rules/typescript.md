@@ -7,6 +7,11 @@
 - NOT: `function createQuote(userId: string, clientId: string, lines: Line[])`
 - Exception: single-parameter functions can use a plain value
 
+## Null convention
+
+- Use `null` for explicit "no value" — not `undefined`
+- If a value is optional, type it as `T | null`
+
 ## Dead parameter cleanup
 
 - After modifying a function, check if all parameters in its input object are still used in the body — remove any that aren't

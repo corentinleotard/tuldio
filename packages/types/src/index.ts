@@ -310,6 +310,7 @@ export interface DemandDocument {
   title?: string;
   tvaContext?: 'réno' | 'neuf';
   lines: DemandLine[];
+  generatedId?: string;
 }
 
 export interface DemandState {

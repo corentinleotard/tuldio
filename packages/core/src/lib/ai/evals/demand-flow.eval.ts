@@ -1,8 +1,8 @@
 /**
- * Eval: Demand state flow — the AI must use prepare_document and respect active state.
+ * Eval: Demand state flow — the AI must use init_document/add_lines and respect active state.
  *
  * Tests the full document creation flow:
- * - AI calls prepare_document when user gives line items
+ * - AI calls init_document + add_lines when user gives line items
  * - AI calls resolve_client when user switches client mid-flow
  * - AI calls generate_quote when demand state is complete
  *
@@ -17,9 +17,9 @@ import type { DemandState } from '@tuldio/types';
 const TIMEOUT = 30_000;
 
 describe('demand flow evals', () => {
-  it('calls search_past_pricing or prepare_document when user provides line items', async () => {
+  it('calls search_past_pricing or init_document when user provides line items', async () => {
     // Client already resolved, user gives lines
-    // AI may call search_past_pricing first (proactive pricing lookup) or prepare_document
+    // AI may call search_past_pricing first (proactive pricing lookup) or init_document + add_lines
     const resolveRounds: StoredToolRounds = [[{
       toolUseId: 'tu-resolve',
       name: 'resolve_client',
@@ -47,10 +47,10 @@ describe('demand flow evals', () => {
     };
 
     const result = await runEval(scenario);
-    // Accept either search_past_pricing or prepare_document
+    // Accept search_past_pricing or init_document (first step of cart pattern)
     if (!result.pass) {
       const firstTool = result.toolCalls[0]?.name;
-      expect(firstTool, result.error).toBe('prepare_document');
+      expect(firstTool, result.error).toBe('init_document');
     }
   }, TIMEOUT);
 
@@ -88,8 +88,8 @@ describe('demand flow evals', () => {
     expect(result.pass, result.error).toBe(true);
   }, TIMEOUT);
 
-  it('calls generate_quote or prepare_document when all info is ready and user confirms', async () => {
-    // AI may call prepare_document to finalize lines before generate_quote, or go straight to generate_quote
+  it('calls generate_quote when all info is ready and user confirms', async () => {
+    // All lines are priced in state — AI should go straight to generate_quote
     const scenario: EvalScenario = {
       name: 'generate_quote when state is complete',
       history: [
@@ -117,16 +117,11 @@ describe('demand flow evals', () => {
     };
 
     const result = await runEval(scenario);
-    // Accept generate_quote (ideal) or prepare_document (AI re-confirming lines before generating)
-    if (!result.pass) {
-      const firstTool = result.toolCalls[0]?.name;
-      expect(firstTool, result.error).toBe('prepare_document');
-    }
+    expect(result.pass, result.error).toBe(true);
   }, TIMEOUT);
 
-  it('calls prepare_document or search_past_pricing when user gives prices', async () => {
-    // Lines prepared without prices, user now gives prices
-    // AI may search past pricing first or go straight to prepare_document
+  it('calls update_line when user gives prices for existing lines', async () => {
+    // Lines in state without prices, user now gives prices — AI should use update_line
     const scenario: EvalScenario = {
       name: 'update lines with prices',
       history: [
@@ -146,12 +141,12 @@ describe('demand flow evals', () => {
       },
       userMessage: 'terrassement 45 euros et polyane 50 euros',
       expectToolCall: {
-        name: 'prepare_document',
+        name: 'update_line',
       },
     };
 
     const result = await runEval(scenario);
-    // Accept prepare_document (ideal) or search_past_pricing (AI being proactive)
+    // Accept update_line (ideal) or search_past_pricing (AI proactively checking past pricing)
     if (!result.pass) {
       const firstTool = result.toolCalls[0]?.name;
       expect(firstTool, result.error).toBe('search_past_pricing');

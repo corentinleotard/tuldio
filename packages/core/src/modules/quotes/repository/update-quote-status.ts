@@ -10,8 +10,8 @@ export async function updateQuoteStatus(input: {
 
   const result = await query<QuoteRow>(
     isSent
-      ? `UPDATE quotes SET status = $1, sent_at = NOW() WHERE id = $2 AND team_id = $3 RETURNING *`
-      : `UPDATE quotes SET status = $1 WHERE id = $2 AND team_id = $3 RETURNING *`,
+      ? `UPDATE quotes SET status = $1, sent_at = NOW() WHERE id = $2 AND team_id = $3 RETURNING id, team_id, created_by, client_id, number, title, total_ht, total_ttc, status, pdf_url, valid_until, sent_at, created_at`
+      : `UPDATE quotes SET status = $1 WHERE id = $2 AND team_id = $3 RETURNING id, team_id, created_by, client_id, number, title, total_ht, total_ttc, status, pdf_url, valid_until, sent_at, created_at`,
     [input.status, input.quoteId, input.teamId],
   );
 

@@ -22,7 +22,7 @@ export async function insertUser(input: {
   const result = await query<UserRow>(
     `INSERT INTO users (id, team_id, email, name, role)
      VALUES ($1, $2, $3, $4, $5)
-     RETURNING *`,
+     RETURNING id, team_id, email, phone, name, role, god, created_at`,
     [id, validated.teamId, validated.email, validated.name, validated.role],
   );
 

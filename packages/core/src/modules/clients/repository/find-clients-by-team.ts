@@ -1,10 +1,14 @@
 import { query } from '../../../lib/database/db.js';
 import type { ClientRow } from '../domain/client.entity.js';
 
-export async function findClientsByTeam(teamId: string): Promise<ClientRow[]> {
+export async function findClientsByTeam(input: {
+  teamId: string;
+  limit?: number;
+}): Promise<ClientRow[]> {
+  const limit = input.limit ?? 1000;
   const result = await query<ClientRow>(
-    'SELECT * FROM clients WHERE team_id = $1 ORDER BY last_name ASC, first_name ASC',
-    [teamId],
+    'SELECT id, team_id, first_name, last_name, email, phone, address, notes, created_at FROM clients WHERE team_id = $1 ORDER BY last_name ASC, first_name ASC LIMIT $2',
+    [input.teamId, limit],
   );
 
   return result.rows;

@@ -4,15 +4,21 @@ import type { ClientRow } from '../domain/client.entity.js';
 export async function searchClients(input: {
   teamId: string;
   search: string;
-}): Promise<(ClientRow & { score: number })[]> {
-  const result = await query<ClientRow & { score: number }>(
-    `SELECT *,
+  limit?: number;
+}): Promise<(ClientRow & { score: number; full_name_score: number })[]> {
+  const limit = input.limit ?? 1000;
+  const result = await query<ClientRow & { score: number; full_name_score: number }>(
+    `SELECT id, team_id, first_name, last_name, email, phone, address, notes, created_at,
        GREATEST(
          similarity(first_name || ' ' || last_name, $1),
          similarity(last_name || ' ' || first_name, $1),
          similarity(last_name, $1),
          similarity(first_name, $1)
-       ) as score
+       ) as score,
+       GREATEST(
+         similarity(first_name || ' ' || last_name, $1),
+         similarity(last_name || ' ' || first_name, $1)
+       ) as full_name_score
      FROM clients
      WHERE team_id = $2
        AND (
@@ -23,8 +29,8 @@ export async function searchClients(input: {
          OR last_name ILIKE '%' || $1 || '%'
        )
      ORDER BY score DESC
-     LIMIT 5`,
-    [input.search, input.teamId],
+     LIMIT $3`,
+    [input.search, input.teamId, limit],
   );
 
   return result.rows;

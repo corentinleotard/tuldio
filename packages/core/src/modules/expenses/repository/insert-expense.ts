@@ -28,7 +28,7 @@ export async function insertExpense(input: {
   const result = await query<ExpenseRow>(
     `INSERT INTO expenses (id, team_id, created_by, amount, category, vendor, receipt_url, date)
      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-     RETURNING *`,
+     RETURNING id, team_id, created_by, amount, category, vendor, receipt_url, date, created_at`,
     [
       id,
       validated.teamId,

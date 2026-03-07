@@ -39,6 +39,7 @@ Coding conventions are in `.claude/rules/` — auto-loaded per path.
 - **All IDs are `crypto.randomUUID()` strings** — no auto-increment, no ObjectId
 - **ESM only** — `.js` extensions in all local imports
 - **French-first i18n** — all user-facing strings use i18n keys, French translation only for now
+- **No null/undefined branching** — never write logic that behaves differently for `null` vs `undefined`
 
 ## Data Model
 

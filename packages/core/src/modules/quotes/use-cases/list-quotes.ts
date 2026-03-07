@@ -2,7 +2,7 @@ import type { QuoteView } from '@tuldio/types';
 import { findQuotesByTeam } from '../repository/find-quotes-by-team.js';
 
 export async function listQuotes(teamId: string): Promise<QuoteView[]> {
-  const rows = await findQuotesByTeam(teamId);
+  const rows = await findQuotesByTeam({ teamId });
 
   return rows.map((row) => ({
     id: row.id,

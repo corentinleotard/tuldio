@@ -27,7 +27,8 @@
 
 - Always use parameterized queries: `db.query('SELECT ... WHERE id = $1', [id])`
 - NEVER interpolate values into SQL strings
-- Use `RETURNING *` on inserts/updates when you need the result
+- **Never use `SELECT *`** — always list explicit columns. `SELECT *` exposes internal/sensitive columns, breaks when schema changes, and makes the query contract unclear. Same applies to `RETURNING *` — list the columns you need.
+- **Limits are caller-controlled** — repository functions that return lists accept an optional `limit` parameter with a default of `1000`. Never hardcode arbitrary limits (like 5, 200) inside a repository. The caller decides how many rows it needs. Exception: `LIMIT 1` for single-row lookups (find-by-id, find-by-email) is fine.
 - Prefer batch operations: `INSERT INTO ... VALUES ($1), ($2)` over loops
 - Use `WHERE id = ANY($1::uuid[])` for batch lookups
 - Amounts stored as integers (cents) — never floats
@@ -44,6 +45,6 @@
 ## Safety
 
 - Never use string interpolation for SQL — always parameterized
-- Add `LIMIT` to potentially large result sets
+- Limit enforcement: see "Limits are caller-controlled" in Query patterns above
 - Use transactions for multi-table writes: `db.query('BEGIN')` ... `db.query('COMMIT')`
 - AI-generated queries run with a read-only connection pool (SELECT only)

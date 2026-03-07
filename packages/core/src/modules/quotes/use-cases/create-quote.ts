@@ -37,7 +37,7 @@ export async function createQuote(input: {
   for (const line of linesWithDefaults) {
     const errors = validateQuoteLine(line);
     if (errors.length > 0) {
-      throw new HandledError(errorCodes.invalidInput);
+      throw new HandledError(errorCodes.invalidInput, errors.join(', '));
     }
   }
 

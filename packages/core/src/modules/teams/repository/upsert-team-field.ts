@@ -27,7 +27,7 @@ export async function upsertTeamField(input: {
 
   if (sets.length === 0) {
     const result = await query<TeamFieldRow>(
-      'SELECT * FROM team_fields WHERE id = $1 AND team_id = $2',
+      'SELECT id, team_id, key, label, value, zone, show_quote, show_invoice, sort_order, is_system FROM team_fields WHERE id = $1 AND team_id = $2',
       [input.fieldId, input.teamId],
     );
     return result.rows[0]!;
@@ -36,7 +36,7 @@ export async function upsertTeamField(input: {
   params.push(input.fieldId, input.teamId);
 
   const result = await query<TeamFieldRow>(
-    `UPDATE team_fields SET ${sets.join(', ')} WHERE id = $${idx} AND team_id = $${idx + 1} RETURNING *`,
+    `UPDATE team_fields SET ${sets.join(', ')} WHERE id = $${idx} AND team_id = $${idx + 1} RETURNING id, team_id, key, label, value, zone, show_quote, show_invoice, sort_order, is_system`,
     params,
   );
 

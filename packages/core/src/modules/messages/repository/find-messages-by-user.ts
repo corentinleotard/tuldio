@@ -9,7 +9,7 @@ export async function findMessagesByUser(input: {
   const limit = input.limit ?? 30;
   const params: unknown[] = [input.userId, limit];
 
-  let sql = 'SELECT * FROM messages WHERE user_id = $1';
+  let sql = 'SELECT id, user_id, team_id, role, content, attachments, tool_calls, rich_card, quick_replies, debug_trace, created_at FROM messages WHERE user_id = $1';
 
   if (input.cursor) {
     params.push(input.cursor);

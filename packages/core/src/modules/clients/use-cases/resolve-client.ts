@@ -8,6 +8,21 @@ type ClientResolution =
   | { status: 'ambiguous'; candidates: ClientView[] }
   | { status: 'no_match' };
 
+// Threshold for full-name trigram similarity (pg_trgm) to auto-select a single match.
+// Uses GREATEST(similarity(first+last, search), similarity(last+first, search)) — both
+// name orders checked, but individual component scores (last name alone) are excluded
+// to avoid false positives when only the last name matches.
+//
+// Measured scores (pg_trgm):
+//   Accent removed  "Corentin Leotard"   vs "Corentin Léotard"   → 0.70  ✓ auto-select
+//   Minor typo      "Corentin Léotart"   vs "Corentin Léotard"   → 0.79  ✓ auto-select
+//   Swapped letter  "Corentni Léotard"   vs "Corentin Léotard"   → 0.70  ✓ auto-select
+//   Missing letter  "Jean Matin"         vs "Jean Martin"        → 0.64  ✓ auto-select
+//   Different first "Maurice Léotard"    vs "Corentin Léotard"   → 0.32  ✗ ambiguous
+//   Similar first   "Constantin Léotard" vs "Corentin Léotard"   → 0.57  ✗ ambiguous
+//   Partial first   "Pierre Dupont"      vs "Jean-Pierre Dupont" → 0.74  ✓ auto-select
+const FULL_NAME_EXACT_MATCH_THRESHOLD = 0.6;
+
 export async function resolveClient(input: {
   teamId: string;
   search: string;
@@ -39,8 +54,8 @@ export async function resolveClient(input: {
     return { status: 'no_match' };
   }
 
-  // Single high-confidence match — auto-select, no confirmation needed
-  if (matches.length === 1 && matches[0]!.score > 0.8) {
+  // Single high-confidence match on full name — auto-select
+  if (matches.length === 1 && matches[0]!.full_name_score > FULL_NAME_EXACT_MATCH_THRESHOLD) {
     return { status: 'exact_match', client: toClientView(matches[0]!) };
   }
 

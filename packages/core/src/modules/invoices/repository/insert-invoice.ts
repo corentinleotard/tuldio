@@ -38,7 +38,7 @@ export async function insertInvoice(input: {
     const result = await query<InvoiceRow>(
       `INSERT INTO invoices (id, team_id, created_by, client_id, quote_id, number, title, total_ht, total_ttc, due_date)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-       RETURNING *`,
+       RETURNING id, team_id, created_by, client_id, quote_id, number, title, total_ht, total_ttc, status, pdf_url, sent_at, paid_at, due_date, created_at`,
       [id, input.teamId, input.createdBy, input.clientId, input.quoteId ?? null, number, input.title ?? null, input.totalHt, input.totalTtc, input.dueDate ?? null],
     );
 

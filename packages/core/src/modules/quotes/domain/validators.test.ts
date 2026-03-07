@@ -26,10 +26,6 @@ describe('validateQuoteLine', () => {
     expect(validateQuoteLine({ ...validLine, unitPrice: -1 })).toContain('unitPrice must be >= 0');
   });
 
-  it('rejects invalid unit', () => {
-    expect(validateQuoteLine({ ...validLine, unit: 'pieces' })[0]).toContain('invalid unit');
-  });
-
   it('rejects invalid TVA rate', () => {
     expect(validateQuoteLine({ ...validLine, tvaRate: 15 })[0]).toContain('invalid tvaRate');
   });

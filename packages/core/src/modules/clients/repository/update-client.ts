@@ -22,7 +22,7 @@ export async function updateClient(input: {
     input.address === undefined
   ) {
     const result = await query<ClientRow>(
-      `SELECT * FROM clients WHERE id = $1 AND team_id = $2`,
+      `SELECT id, team_id, first_name, last_name, email, phone, address, notes, created_at FROM clients WHERE id = $1 AND team_id = $2`,
       [input.clientId, input.teamId],
     );
     return result.rows[0]!;
@@ -57,7 +57,7 @@ export async function updateClient(input: {
   const result = await query<ClientRow>(
     `UPDATE clients SET ${fields.join(', ')}
      WHERE id = $${clientIdIdx} AND team_id = $${teamIdIdx}
-     RETURNING *`,
+     RETURNING id, team_id, first_name, last_name, email, phone, address, notes, created_at`,
     params,
   );
 

@@ -28,16 +28,16 @@ describe('buildClaudeMessages', () => {
     expect(result[0]!.content).toBe('msg 0');
   });
 
-  it('returns only last 4 when more than 4', () => {
-    const messages = Array.from({ length: 10 }, (_, i) =>
+  it('returns only last 8 when more than 8', () => {
+    const messages = Array.from({ length: 14 }, (_, i) =>
       makeMessage({ id: `msg-${i}`, role: i % 2 === 0 ? 'user' : 'assistant', content: `msg ${i}` }),
     );
 
     const result = buildClaudeMessages(messages);
-    // Last 4 stored messages, all plain text
-    expect(result).toHaveLength(4);
+    // Last 8 stored messages, all plain text
+    expect(result).toHaveLength(8);
     expect(result[0]!.content).toBe('msg 6');
-    expect(result[3]!.content).toBe('msg 9');
+    expect(result[7]!.content).toBe('msg 13');
   });
 
   it('reconstructs tool_use and tool_result blocks from stored tool rounds', () => {

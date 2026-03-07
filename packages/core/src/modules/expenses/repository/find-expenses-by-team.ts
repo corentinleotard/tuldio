@@ -5,9 +5,10 @@ export async function findExpensesByTeam(input: {
   teamId: string;
   startDate?: Date;
   endDate?: Date;
+  limit?: number;
 }): Promise<ExpenseRow[]> {
   const params: unknown[] = [input.teamId];
-  let sql = 'SELECT * FROM expenses WHERE team_id = $1';
+  let sql = 'SELECT id, team_id, created_by, amount, category, vendor, receipt_url, date, created_at FROM expenses WHERE team_id = $1';
 
   if (input.startDate) {
     params.push(input.startDate);
@@ -19,7 +20,9 @@ export async function findExpensesByTeam(input: {
     sql += ` AND date <= $${params.length}`;
   }
 
-  sql += ' ORDER BY date DESC';
+  const limit = input.limit ?? 1000;
+  params.push(limit);
+  sql += ` ORDER BY date DESC LIMIT $${params.length}`;
 
   const result = await query<ExpenseRow>(sql, params);
 

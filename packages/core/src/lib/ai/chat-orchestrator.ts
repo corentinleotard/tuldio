@@ -17,7 +17,11 @@ const MAX_TOOL_ROUNDS = 10;
 function applyStateUpdate(current: DemandState, update: StateUpdate): DemandState | null {
   if (update === null) return null; // no change
   if (update === 'clear') return { client: null, document: null };
-  return { ...current, ...update };
+
+  return {
+    client: update.client !== undefined ? update.client : current.client,
+    document: update.document !== undefined ? update.document : current.document,
+  };
 }
 
 export async function processMessage(input: {
@@ -44,7 +48,7 @@ export async function processMessage(input: {
   if (metadata?.selectedClientId) {
     const client = await findClientById({ teamId, clientId: metadata.selectedClientId });
     const clientName = client ? `${client.first_name} ${client.last_name}` : '';
-    currentState = { ...currentState, client: { id: metadata.selectedClientId, name: clientName } };
+    currentState = { ...currentState, client: { id: metadata.selectedClientId, name: clientName }, document: null };
     await upsertDemandState({ userId, teamId, state: currentState });
   }
 
@@ -135,8 +139,16 @@ export async function processMessage(input: {
           content: JSON.stringify(result.result),
         });
       } catch (err) {
-        logger.error(`Tool execution failed: ${toolUse.name}`, { error: err });
-        const errorPayload = { error: err instanceof Error ? err.message : 'Erreur interne' };
+        const isHandled = err instanceof Error && err.name === 'HandledError';
+        const code = isHandled ? (err as unknown as { code: string }).code : undefined;
+        logger.error(`Tool execution failed: ${toolUse.name}`, {
+          error: err,
+          input: toolUse.input,
+          ...(code ? { code } : {}),
+        });
+        const errorPayload = code
+          ? { error: code, message: (err as Error).message }
+          : { error: err instanceof Error ? err.message : 'Erreur interne' };
 
         roundToolCalls.push({
           name: toolUse.name,

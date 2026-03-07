@@ -10,7 +10,7 @@ export async function findInvoiceById(input: {
   invoiceId: string;
 }): Promise<InvoiceWithLines | null> {
   const result = await query<InvoiceRow>(
-    'SELECT * FROM invoices WHERE id = $1 AND team_id = $2 LIMIT 1',
+    'SELECT id, team_id, created_by, client_id, quote_id, number, title, total_ht, total_ttc, status, pdf_url, sent_at, paid_at, due_date, created_at FROM invoices WHERE id = $1 AND team_id = $2 LIMIT 1',
     [input.invoiceId, input.teamId],
   );
 
@@ -18,7 +18,7 @@ export async function findInvoiceById(input: {
   if (!row) return null;
 
   const linesResult = await query<InvoiceLineRow>(
-    'SELECT * FROM invoice_lines WHERE invoice_id = $1 ORDER BY sort_order ASC',
+    'SELECT id, invoice_id, prestation_id, sort_order, description, quantity, unit, unit_price, tva_rate, total_ht FROM invoice_lines WHERE invoice_id = $1 ORDER BY sort_order ASC',
     [input.invoiceId],
   );
 

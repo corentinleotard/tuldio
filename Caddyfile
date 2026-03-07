@@ -1,0 +1,18 @@
+{$DOMAIN:localhost} {
+	# API — proxy to Express (routes already prefixed with /api/)
+	handle /api/* {
+		reverse_proxy api:3003
+	}
+
+	# Static files (PDFs, receipts)
+	handle /files/* {
+		reverse_proxy api:3003
+	}
+
+	# Web — serve static SPA
+	handle {
+		root * /srv/web
+		try_files {path} /index.html
+		file_server
+	}
+}

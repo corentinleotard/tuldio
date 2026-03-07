@@ -29,7 +29,7 @@ export async function insertClient(input: {
     const result = await query<ClientRow>(
       `INSERT INTO clients (id, team_id, first_name, last_name, email, phone, address)
        VALUES ($1, $2, $3, $4, $5, $6, $7)
-       RETURNING *`,
+       RETURNING id, team_id, first_name, last_name, email, phone, address, notes, created_at`,
       [
         id,
         validated.teamId,

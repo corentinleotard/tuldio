@@ -18,7 +18,7 @@ export async function insertTeamField(input: {
   const result = await query<TeamFieldRow>(
     `INSERT INTO team_fields (id, team_id, key, label, value, zone, show_quote, show_invoice, sort_order, is_system)
      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-     RETURNING *`,
+     RETURNING id, team_id, key, label, value, zone, show_quote, show_invoice, sort_order, is_system`,
     [id, input.teamId, input.key, input.label, input.value, input.zone, input.showQuote, input.showInvoice, input.sortOrder, input.isSystem],
   );
 

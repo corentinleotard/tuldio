@@ -8,7 +8,7 @@ export async function findDuplicateExpense(input: {
   date: Date;
 }): Promise<ExpenseRow | null> {
   const result = await query<ExpenseRow>(
-    `SELECT * FROM expenses
+    `SELECT id, team_id, created_by, amount, category, vendor, receipt_url, date, created_at FROM expenses
      WHERE team_id = $1
        AND LOWER(vendor) = LOWER($2)
        AND amount = $3

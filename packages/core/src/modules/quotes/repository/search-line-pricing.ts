@@ -16,6 +16,7 @@ export interface PastPricingRow {
 export async function searchLinePricing(input: {
   teamId: string;
   search: string;
+  limit?: number;
 }): Promise<PastPricingRow[]> {
   const result = await query<PastPricingRow>(
     `(
@@ -58,8 +59,8 @@ export async function searchLinePricing(input: {
         AND (il.description ILIKE '%' || $2 || '%' OR similarity(il.description, $2) > 0.3)
     )
     ORDER BY score DESC, created_at DESC
-    LIMIT 10`,
-    [input.teamId, input.search],
+    LIMIT $3`,
+    [input.teamId, input.search, input.limit ?? 1000],
   );
 
   return result.rows;

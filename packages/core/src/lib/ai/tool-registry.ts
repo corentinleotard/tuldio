@@ -8,6 +8,7 @@ import { createInvoice, updateInvoice, createInvoiceFromQuote, markAsPaid, listI
 import { getMonthlyStats } from '../../modules/stats/index.js';
 import { HandledError } from '../errors/handled-error.js';
 import { errorCodes } from '../errors/error-codes.js';
+import { resolveUnit } from '../../modules/units/index.js';
 
 export type ToolResult = { result: unknown; richCard?: { type: string; data: unknown }; quickReplies?: string[] };
 
@@ -20,7 +21,7 @@ interface ToolDefinition<T extends z.ZodType> {
   description: string;
   schema: T;
   handler: (args: z.infer<T>, ctx: ToolContext) => Promise<ToolResult>;
-  stateUpdate?: (result: unknown) => StateUpdate;
+  stateUpdate?: (result: unknown, ctx: ToolContext) => StateUpdate;
 }
 
 function defineTool<T extends z.ZodType>(def: ToolDefinition<T>): ToolDefinition<T> {
@@ -32,7 +33,7 @@ function defineTool<T extends z.ZodType>(def: ToolDefinition<T>): ToolDefinition
 const lineSchema = z.object({
   description: z.string().min(1).max(500).describe('Line item description'),
   quantity: z.number().positive().max(100_000).describe('Quantity'),
-  unit: z.string().max(20).default('u').describe('Unit: u, m2, m, h, forfait, kg, L, lot'),
+  unit: z.string().max(50).default('u').describe('Unit of measure (e.g. u, m2, m, h, forfait, kg, L, lot, t, sac, palette, rouleau, etc.)'),
   unitPrice: z.number().int().min(0).max(100_000_000).describe('Unit price excl. tax in cents'),
   tvaRate: z.number().int().default(2000).describe('VAT rate in basis points'),
 });
@@ -80,7 +81,7 @@ Strip civilities (M., Mme, Monsieur, Madame) from the search text.`,
   stateUpdate: (result) => {
     const r = result as { status: string; client?: { id: string; firstName: string; lastName: string } };
     if (r.status === 'exact_match' && r.client) {
-      return { client: { id: r.client.id, name: `${r.client.firstName} ${r.client.lastName}` } };
+      return { client: { id: r.client.id, name: `${r.client.firstName} ${r.client.lastName}` }, document: null };
     }
     return null;
   },
@@ -112,7 +113,7 @@ After creation, encourage the user to provide email/phone if missing: "Tu as son
   },
   stateUpdate: (result) => {
     const r = result as { id: string; firstName: string; lastName: string };
-    return { client: { id: r.id, name: `${r.firstName} ${r.lastName}` } };
+    return { client: { id: r.id, name: `${r.firstName} ${r.lastName}` }, document: null };
   },
 });
 
@@ -135,60 +136,179 @@ Returns matching lines with unit price, quantity, document type/number, client, 
   },
 });
 
-const prepareDocumentTool = defineTool({
-  name: 'prepare_document',
+const initDocumentTool = defineTool({
+  name: 'init_document',
   description:
-    `Register the document being built (quote or invoice). Call this as soon as you understand the line items from the user's message — even if prices are missing.
-Call it again with updated lines when prices are confirmed. Each call REPLACES the previous state — include ALL lines every time.
-The stored lines will be used by generate_quote / generate_invoice.
-Do NOT call generate_quote or generate_invoice without calling this first with all prices set.`,
+    `Initialize a new document (quote or invoice). Call this ONCE at the start of a document creation flow.
+Sets the document type, optional title, and TVA context. Lines are added separately with add_lines.
+If a document is already in progress, this REPLACES it (clears existing lines).
+If the user does not specify TVA context, ask: "C'est de la réno ou du neuf ? Pour la TVA." Then apply French construction VAT rules per line type.
+Do NOT call this if a generatedId already exists in state — use update_quote/update_invoice instead.`,
   schema: z.object({
     type: z.enum(['quote', 'invoice']).describe('Document type'),
     title: z.string().max(255).optional().describe('Document title'),
     tvaContext: z.enum(['réno', 'neuf']).optional().describe('TVA context — réno or neuf'),
-    lines: z.array(z.object({
-      description: z.string().min(1).max(500).describe('Line item description'),
-      quantity: z.number().positive().max(100_000).describe('Quantity'),
-      unit: z.string().max(20).default('u').describe('Unit: u, m2, m, h, forfait, kg, L, lot'),
-      unitPrice: z.number().int().min(0).max(100_000_000).optional().describe('Unit price excl. tax in cents — omit if not yet known'),
-      tvaRate: z.number().int().optional().describe('VAT rate in basis points (2000=20%, 1000=10%, 550=5.5%) — omit if not yet determined'),
-    })).min(1).max(50).describe('Document line items'),
   }),
   handler: async (args) => {
-    const allPriced = args.lines.every((l) => l.unitPrice !== undefined);
     return {
       result: {
         type: args.type,
         title: args.title,
         tvaContext: args.tvaContext,
-        lineCount: args.lines.length,
-        allPriced,
-        lines: args.lines,
+        lineCount: 0,
       },
     };
   },
   stateUpdate: (result) => {
-    const r = result as { type: string; title?: string; tvaContext?: string; lines: unknown[] };
+    const r = result as { type: string; title?: string; tvaContext?: string };
     return {
       document: {
         type: r.type,
         title: r.title,
         tvaContext: r.tvaContext,
-        lines: r.lines,
+        lines: [],
       } as DemandDocument,
     };
+  },
+});
+
+const addLinesTool = defineTool({
+  name: 'add_lines',
+  description:
+    `Add one or more lines to the current document. Call init_document first.
+Lines are appended to the existing list — never replaces. Prices and TVA can be omitted and set later with update_line.
+Call this once with all lines the user mentioned, or multiple times as the user adds more.`,
+  schema: z.object({
+    lines: z.array(z.object({
+      description: z.string().min(1).max(500).describe('Line item description'),
+      quantity: z.number().positive().max(100_000).describe('Quantity'),
+      unit: z.string().max(50).default('u').describe('Unit of measure (e.g. u, m2, m, h, forfait, kg, L, lot, t, sac, palette, etc.)'),
+      unitPrice: z.number().int().min(0).max(100_000_000).optional().describe('Unit price excl. tax in cents — omit if not yet known'),
+      tvaRate: z.number().int().optional().describe('VAT rate in basis points (2000=20%, 1000=10%, 550=5.5%) — omit if not yet determined'),
+    })).min(1).max(50).describe('Lines to add'),
+  }),
+  handler: async (args, ctx) => {
+    if (!ctx.demandState.document) {
+      throw new HandledError(errorCodes.noDocumentPrepared);
+    }
+    const doc = ctx.demandState.document;
+    const resolvedLines = await Promise.all(
+      args.lines.map(async (l) => {
+        const resolved = await resolveUnit({ teamId: ctx.teamId, raw: l.unit });
+        return { ...l, unit: resolved.label };
+      }),
+    );
+    const newLines = [...doc.lines, ...resolvedLines];
+    const allPriced = newLines.every((l) => l.unitPrice !== undefined);
+    return {
+      result: {
+        addedCount: resolvedLines.length,
+        totalLineCount: newLines.length,
+        allPriced,
+        document: { ...doc, lines: newLines },
+      },
+    };
+  },
+  stateUpdate: (result) => {
+    const r = result as { document: DemandDocument };
+    return { document: r.document };
+  },
+});
+
+const updateLineTool = defineTool({
+  name: 'update_line',
+  description:
+    `Update one or more existing lines in the current document by their index (0-based, visible in the current demand state).
+Use IMMEDIATELY when the user provides prices, quantities, or corrections for existing lines — do not ask for confirmation, just update.
+Only include fields you want to change.`,
+  schema: z.object({
+    updates: z.array(z.object({
+      index: z.number().int().min(0).describe('Line index (0-based, from current demand state)'),
+      description: z.string().min(1).max(500).optional().describe('New description'),
+      quantity: z.number().positive().max(100_000).optional().describe('New quantity'),
+      unit: z.string().max(50).optional().describe('New unit of measure'),
+      unitPrice: z.number().int().min(0).max(100_000_000).optional().describe('New unit price in cents'),
+      tvaRate: z.number().int().optional().describe('New VAT rate in basis points'),
+    })).min(1).max(50).describe('Line updates'),
+  }),
+  handler: async (args, ctx) => {
+    if (!ctx.demandState.document) {
+      throw new HandledError(errorCodes.noDocumentPrepared);
+    }
+    const doc = ctx.demandState.document;
+    const lines = [...doc.lines];
+    for (const update of args.updates) {
+      if (update.index >= lines.length) {
+        throw new HandledError(errorCodes.invalidInput);
+      }
+      const line = { ...lines[update.index]! };
+      if (update.description !== undefined) line.description = update.description;
+      if (update.quantity !== undefined) line.quantity = update.quantity;
+      if (update.unit !== undefined) {
+        const resolved = await resolveUnit({ teamId: ctx.teamId, raw: update.unit });
+        line.unit = resolved.label;
+      }
+      if (update.unitPrice !== undefined) line.unitPrice = update.unitPrice;
+      if (update.tvaRate !== undefined) line.tvaRate = update.tvaRate;
+      lines[update.index] = line;
+    }
+    const allPriced = lines.every((l) => l.unitPrice !== undefined);
+    return {
+      result: {
+        updatedCount: args.updates.length,
+        totalLineCount: lines.length,
+        allPriced,
+        document: { ...doc, lines },
+      },
+    };
+  },
+  stateUpdate: (result) => {
+    const r = result as { document: DemandDocument };
+    return { document: r.document };
+  },
+});
+
+const removeLineTool = defineTool({
+  name: 'remove_line',
+  description:
+    `Remove a line from the current document by its index (0-based, visible in the current demand state).`,
+  schema: z.object({
+    index: z.number().int().min(0).describe('Line index to remove (0-based)'),
+  }),
+  handler: async (args, ctx) => {
+    if (!ctx.demandState.document) {
+      throw new HandledError(errorCodes.noDocumentPrepared);
+    }
+    const doc = ctx.demandState.document;
+    if (args.index >= doc.lines.length) {
+      throw new HandledError(errorCodes.invalidInput);
+    }
+    const lines = doc.lines.filter((_, i) => i !== args.index);
+    const allPriced = lines.every((l) => l.unitPrice !== undefined);
+    return {
+      result: {
+        removedIndex: args.index,
+        totalLineCount: lines.length,
+        allPriced,
+        document: { ...doc, lines },
+      },
+    };
+  },
+  stateUpdate: (result) => {
+    const r = result as { document: DemandDocument };
+    return { document: r.document };
   },
 });
 
 const generateQuoteTool = defineTool({
   name: 'generate_quote',
   description:
-    `Generate a quote from the prepared document and active client.
-PREREQUISITES: resolve_client and prepare_document (with all prices set) must have been called first.
+    `Generate a quote from the current document and active client.
+PREREQUISITES: resolve_client, init_document, and add_lines must have been called. All lines must have unitPrice set (use update_line if needed).
 The client and lines are read from the current demand state — do not pass them.
-Optionally override the title.`,
+Only for NEW quotes. If a generatedId already exists in state, the quote was already created — use update_quote instead.`,
   schema: z.object({
-    title: z.string().max(255).optional().describe('Override title (uses prepare_document title if omitted)'),
+    title: z.string().max(255).optional().describe('Override title (uses init_document title if omitted)'),
   }),
   handler: async (args, ctx) => {
     const { demandState } = ctx;
@@ -213,39 +333,68 @@ Optionally override the title.`,
     });
     return { result: quote, richCard: { type: 'quote', data: quote } };
   },
-  stateUpdate: () => 'clear',
+  stateUpdate: (result, ctx) => {
+    const r = result as { id: string };
+    return { document: ctx.demandState.document ? { ...ctx.demandState.document, generatedId: r.id } : null };
+  },
 });
 
 const updateQuoteTool = defineTool({
   name: 'update_quote',
   description:
     `Update an existing quote (draft or sent, with no linked invoice). Replaces ALL lines — include unchanged lines too with the user's modifications applied.
-Use this instead of generating a new quote when the user asks to modify an existing one.`,
+WHEN TO USE: when a generatedId exists in state or the user wants to modify a quote from conversation history.
+Call this DIRECTLY with all lines (old + new/modified). Do NOT call add_lines/update_line first — this tool replaces everything in one step.`,
   schema: z.object({
     quoteId: z.string().uuid().describe('Quote ID (from current conversation tool results only)'),
     title: z.string().max(255).optional().describe('New title (optional)'),
     lines: z.array(lineSchema).min(1).max(50).describe('New line items (replaces all existing lines)'),
   }),
   handler: async (args, ctx) => {
+    const resolvedLines = await Promise.all(
+      args.lines.map(async (l) => {
+        const resolved = await resolveUnit({ teamId: ctx.teamId, raw: l.unit });
+        return { ...l, unit: resolved.label };
+      }),
+    );
     const quote = await updateQuote({
       teamId: ctx.teamId,
       quoteId: args.quoteId,
       title: args.title,
-      lines: args.lines,
+      lines: resolvedLines,
     });
     return { result: quote, richCard: { type: 'quote', data: quote } };
+  },
+  stateUpdate: (result, ctx) => {
+    const r = result as { id: string; lines: Array<{ description: string; quantity: number; unit: string; unitPrice: number; tvaRate: number }> };
+    const doc = ctx.demandState.document;
+    if (!doc) return null;
+    return {
+      document: {
+        ...doc,
+        generatedId: r.id,
+        lines: r.lines.map((l) => ({
+          description: l.description,
+          quantity: l.quantity,
+          unit: l.unit,
+          unitPrice: l.unitPrice,
+          tvaRate: l.tvaRate,
+        })),
+      },
+    };
   },
 });
 
 const generateInvoiceTool = defineTool({
   name: 'generate_invoice',
   description:
-    `Generate an invoice from the prepared document and active client.
-PREREQUISITES: resolve_client and prepare_document (with all prices set) must have been called first.
+    `Generate an invoice from the current document and active client.
+PREREQUISITES: resolve_client, init_document, and add_lines must have been called. All lines must have unitPrice set (use update_line if needed).
 The client and lines are read from the current demand state — do not pass them.
-Use this for standalone invoices. To invoice from an existing quote, use invoice_from_quote instead.`,
+Use this for standalone invoices. To invoice from an existing quote, use invoice_from_quote instead.
+Only for NEW invoices. If a generatedId already exists in state, the invoice was already created — use update_invoice instead.`,
   schema: z.object({
-    title: z.string().max(255).optional().describe('Override title (uses prepare_document title if omitted)'),
+    title: z.string().max(255).optional().describe('Override title (uses init_document title if omitted)'),
   }),
   handler: async (args, ctx) => {
     const { demandState } = ctx;
@@ -270,27 +419,56 @@ Use this for standalone invoices. To invoice from an existing quote, use invoice
     });
     return { result: invoice, richCard: { type: 'invoice', data: invoice } };
   },
-  stateUpdate: () => 'clear',
+  stateUpdate: (result, ctx) => {
+    const r = result as { id: string };
+    return { document: ctx.demandState.document ? { ...ctx.demandState.document, generatedId: r.id } : null };
+  },
 });
 
 const updateInvoiceTool = defineTool({
   name: 'update_invoice',
   description:
-    `Update an existing invoice (draft only). Replaces ALL lines.
-Once sent, paid, or cancelled, an invoice cannot be modified — propose to cancel and recreate if needed.`,
+    `Update an existing invoice (draft only). Replaces ALL lines — include unchanged lines too with the user's modifications applied.
+Once sent, paid, or cancelled, an invoice cannot be modified — propose to cancel and recreate if needed.
+WHEN TO USE: when a generatedId exists in state or the user wants to modify an invoice from conversation history.
+Call this DIRECTLY with all lines (old + new/modified). Do NOT call add_lines/update_line first — this tool replaces everything in one step.`,
   schema: z.object({
     invoiceId: z.string().uuid().describe('Invoice ID (from current conversation tool results only)'),
     title: z.string().max(255).optional().describe('New title (optional)'),
     lines: z.array(lineSchema).min(1).max(50).describe('New line items (replaces all existing lines)'),
   }),
   handler: async (args, ctx) => {
+    const resolvedLines = await Promise.all(
+      args.lines.map(async (l) => {
+        const resolved = await resolveUnit({ teamId: ctx.teamId, raw: l.unit });
+        return { ...l, unit: resolved.label };
+      }),
+    );
     const invoice = await updateInvoice({
       teamId: ctx.teamId,
       invoiceId: args.invoiceId,
       title: args.title,
-      lines: args.lines,
+      lines: resolvedLines,
     });
     return { result: invoice, richCard: { type: 'invoice', data: invoice } };
+  },
+  stateUpdate: (result, ctx) => {
+    const r = result as { id: string; lines: Array<{ description: string; quantity: number; unit: string; unitPrice: number; tvaRate: number }> };
+    const doc = ctx.demandState.document;
+    if (!doc) return null;
+    return {
+      document: {
+        ...doc,
+        generatedId: r.id,
+        lines: r.lines.map((l) => ({
+          description: l.description,
+          quantity: l.quantity,
+          unit: l.unit,
+          unitPrice: l.unitPrice,
+          tvaRate: l.tvaRate,
+        })),
+      },
+    };
   },
 });
 
@@ -313,7 +491,6 @@ Use the list tool to find the quote if needed.`,
     });
     return { result: invoice, richCard: { type: 'invoice', data: invoice } };
   },
-  stateUpdate: () => 'clear',
 });
 
 const listQuotesTool = defineTool({
@@ -433,7 +610,10 @@ const allTools: ToolDefinition<any>[] = [
   createClientTool,
   updateClientTool,
   searchPastPricingTool,
-  prepareDocumentTool,
+  initDocumentTool,
+  addLinesTool,
+  updateLineTool,
+  removeLineTool,
   generateQuoteTool,
   updateQuoteTool,
   listQuotesTool,
@@ -476,13 +656,9 @@ export async function executeTool(input: {
   }
 
   const args = tool.schema.parse(input.toolInput);
-  const toolResult = await tool.handler(args, {
-    teamId: input.teamId,
-    userId: input.userId,
-    demandState: input.demandState,
-  });
-
-  const stateUpdate = tool.stateUpdate ? tool.stateUpdate(toolResult.result) : null;
+  const ctx = { teamId: input.teamId, userId: input.userId, demandState: input.demandState };
+  const toolResult = await tool.handler(args, ctx);
+  const stateUpdate = tool.stateUpdate ? tool.stateUpdate(toolResult.result, ctx) : null;
 
   return { toolResult, stateUpdate };
 }
