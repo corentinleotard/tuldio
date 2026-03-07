@@ -6,7 +6,7 @@ services:
     environment:
       POSTGRES_DB: tuldio
       POSTGRES_USER: tuldio
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env.production}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -24,7 +24,7 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    env_file: .env.production
+    env_file: .env
     environment:
       DATABASE_URL: postgresql://tuldio:${POSTGRES_PASSWORD}@postgres:5432/tuldio
       PORT: 3003
@@ -41,7 +41,7 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    env_file: .env.production
+    env_file: .env
     environment:
       DATABASE_URL: postgresql://tuldio:${POSTGRES_PASSWORD}@postgres:5432/tuldio
       FILES_DIR: /var/tuldio/files
@@ -62,7 +62,7 @@ services:
       - "80:80"
       - "443:443"
     environment:
-      DOMAIN: ${DOMAIN:?Set DOMAIN in .env.production}
+      DOMAIN: ${DOMAIN:?Set DOMAIN in .env}
     volumes:
       - caddy-data:/data
       - caddy-config:/config
