@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Users } from 'lucide-react';
+import { Users, ChevronLeft } from 'lucide-react';
 import { SearchInput } from '@/components/ui/search-input';
 import { EmptyState } from '@/components/ui/empty-state';
 import { fetchClients, searchClients } from '../api/clients.api.js';
@@ -41,7 +41,7 @@ export function ClientsPage() {
   return (
     <div className="flex h-full">
       {/* List panel */}
-      <div className="flex w-full flex-shrink-0 flex-col border-r border-border md:w-[380px]">
+      <div className={`flex w-full flex-shrink-0 flex-col border-r border-border md:w-[380px] ${selectedId ? 'hidden md:flex' : ''}`}>
         {/* Header */}
         <div className="border-b border-border px-5 pb-4 pt-5">
           <div className="flex items-center justify-between">
@@ -107,10 +107,23 @@ export function ClientsPage() {
         </div>
       </div>
 
-      {/* Detail panel — desktop only */}
-      <div className="hidden flex-1 overflow-y-auto md:block">
+      {/* Detail panel */}
+      <div className={`flex-1 overflow-y-auto ${selectedId ? '' : 'hidden md:block'}`}>
         {selectedClient ? (
-          <ClientDetail client={selectedClient} />
+          <div>
+            {/* Mobile back header */}
+            <div className="flex items-center gap-2.5 border-b border-border px-4 py-3 md:hidden">
+              <button
+                type="button"
+                onClick={() => setSelectedId(null)}
+                className="flex items-center gap-1 text-sm font-medium text-primary"
+              >
+                <ChevronLeft className="h-5 w-5" />
+                Clients
+              </button>
+            </div>
+            <ClientDetail client={selectedClient} />
+          </div>
         ) : (
           <div className="flex h-full flex-col items-center justify-center px-12 text-center">
             <div className="mb-6 flex h-[88px] w-[88px] items-center justify-center rounded-3xl bg-primary/10">

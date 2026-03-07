@@ -68,7 +68,7 @@ pnpm db:migrate       # Apply pending SQL migrations
 - Run `pnpm lint` to check lint rules
 - Prettier runs automatically via hook on every file edit
 - **Clean up dead code**: after modifying or deleting a function/component/export, check for orphaned imports, unused variables, and unreferenced files — remove them
-- **Refactor over duplication**: before writing a block of logic, check if the same pattern already exists in the module — extract a shared helper instead of copying. When two functions/components/handlers share 70%+ logic, refactor into a single reusable piece with parameters — applies to both frontend and backend. **Never copy-paste code. If it exists, reuse it. If it almost exists, generalize it.**
+- **Refactor when duplication creates bug risk**: if the same logic must stay in sync in multiple places, extract a shared helper — divergent duplicates cause silent bugs. Don't refactor just because two things look alike; only when they **must** behave identically. When extracting shared code, **add a test**: unit test for pure logic helpers, integration test for orchestration. No refactor without a test proving it works.
 
 ## Error Handling
 
