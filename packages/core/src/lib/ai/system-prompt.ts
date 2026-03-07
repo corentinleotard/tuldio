@@ -40,7 +40,7 @@ Today's date: ${today}
     }
     if (document) {
       prompt += `\n**Document type:** ${document.type}`;
-      if (document.generatedId) prompt += `\n**Generated ID:** ${document.generatedId} (already created — use update_quote/update_invoice to modify)`;
+      if (document.generatedId) prompt += `\n**Generated ID:** ${document.generatedId} (already created)`;
       if (document.title) prompt += `\n**Title:** ${document.title}`;
       if (document.tvaContext) prompt += `\n**TVA context:** ${document.tvaContext}`;
       if (document.lines.length > 0) {

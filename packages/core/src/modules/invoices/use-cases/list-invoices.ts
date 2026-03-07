@@ -1,8 +1,12 @@
 import type { InvoiceView } from '@tuldio/types';
 import { findInvoicesByTeam } from '../repository/find-invoices-by-team.js';
 
-export async function listInvoices(teamId: string): Promise<InvoiceView[]> {
-  const invoices = await findInvoicesByTeam({ teamId });
+export async function listInvoices(input: {
+  teamId: string;
+  clientId?: string | null;
+  limit?: number;
+}): Promise<InvoiceView[]> {
+  const invoices = await findInvoicesByTeam({ teamId: input.teamId, clientId: input.clientId, limit: input.limit });
 
   return invoices.map((row) => ({
     id: row.id,

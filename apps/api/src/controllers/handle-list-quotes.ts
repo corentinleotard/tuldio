@@ -4,7 +4,7 @@ import { getTeamId } from '../middleware/auth.js';
 
 export async function handleListQuotes(_req: Request, res: Response): Promise<void> {
   const teamId = getTeamId(res);
-  const quotes = await listQuotes(teamId);
+  const quotes = await listQuotes({ teamId });
 
   res.json({ data: quotes });
 }

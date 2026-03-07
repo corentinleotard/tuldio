@@ -52,7 +52,7 @@ export async function processMessage(input: {
     await upsertDemandState({ userId, teamId, state: currentState });
   }
 
-  const systemPrompt = buildSystemPrompt({
+  let systemPrompt = buildSystemPrompt({
     teamName: team.name,
     userName: user.name,
     demandState: currentState,
@@ -186,6 +186,13 @@ export async function processMessage(input: {
     // Continue conversation with tool results
     claudeMessages.push({ role: 'assistant', content: response.content });
     claudeMessages.push({ role: 'user', content: toolResults });
+
+    // Rebuild system prompt so Claude sees updated demand state
+    systemPrompt = buildSystemPrompt({
+      teamName: team.name,
+      userName: user.name,
+      demandState: currentState,
+    });
 
     ({ message: response, meta } = await callClaude({
       systemPrompt,

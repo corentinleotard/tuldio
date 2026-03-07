@@ -3,7 +3,7 @@ import { findClientByPhone } from '../repository/find-client-by-phone.js';
 import { searchClients } from '../repository/search-clients.js';
 import { toClientView, type ClientView } from '../domain/client.view.js';
 
-type ClientResolution =
+export type ClientResolution =
   | { status: 'exact_match'; client: ClientView }
   | { status: 'ambiguous'; candidates: ClientView[] }
   | { status: 'no_match' };

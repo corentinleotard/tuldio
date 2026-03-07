@@ -2,7 +2,7 @@ import { z } from 'zod';
 import type Anthropic from '@anthropic-ai/sdk';
 import { zodToJsonSchema } from 'zod-to-json-schema';
 import type { DemandState, DemandDocument } from '@tuldio/types';
-import { resolveClient, createClient, addClientNote, updateClientUc } from '../../modules/clients/index.js';
+import { resolveClient, createClient, addClientNote, updateClientUc, type ClientResolution } from '../../modules/clients/index.js';
 import { createQuote, updateQuote, listQuotes, searchPastPricing } from '../../modules/quotes/index.js';
 import { createInvoice, updateInvoice, createInvoiceFromQuote, markAsPaid, listInvoices } from '../../modules/invoices/index.js';
 import { getMonthlyStats } from '../../modules/stats/index.js';
@@ -16,16 +16,26 @@ export type StateUpdate = Partial<DemandState> | 'clear' | null;
 
 type ToolContext = { teamId: string; userId: string; demandState: DemandState };
 
-interface ToolDefinition<T extends z.ZodType> {
+/** Type-erased tool definition used in the registry array/map */
+interface AnyToolDefinition {
   name: string;
   description: string;
-  schema: T;
-  handler: (args: z.infer<T>, ctx: ToolContext) => Promise<ToolResult>;
+  schema: z.ZodType;
+  handler: (args: unknown, ctx: ToolContext) => Promise<ToolResult>;
   stateUpdate?: (result: unknown, ctx: ToolContext) => StateUpdate;
 }
 
-function defineTool<T extends z.ZodType>(def: ToolDefinition<T>): ToolDefinition<T> {
-  return def;
+/** Typed tool definition — R is inferred from the handler's result field */
+interface ToolDefinition<T extends z.ZodType, R> {
+  name: string;
+  description: string;
+  schema: T;
+  handler: (args: z.infer<T>, ctx: ToolContext) => Promise<{ result: R; richCard?: { type: string; data: unknown }; quickReplies?: string[] }>;
+  stateUpdate?: (result: R, ctx: ToolContext) => StateUpdate;
+}
+
+function defineTool<T extends z.ZodType, R>(def: ToolDefinition<T, R>): AnyToolDefinition {
+  return def as AnyToolDefinition;
 }
 
 // --- Shared schemas ---
@@ -57,7 +67,7 @@ Strip civilities (M., Mme, Monsieur, Madame) from the search text.`,
     email: z.string().email().optional().describe('Client email if mentioned'),
     phone: z.string().max(30).optional().describe('Client phone if mentioned'),
   }),
-  handler: async (args, ctx) => {
+  handler: async (args, ctx): Promise<{ result: ClientResolution; richCard?: { type: string; data: unknown } }> => {
     const resolution = await resolveClient({
       teamId: ctx.teamId,
       search: args.search,
@@ -79,9 +89,8 @@ Strip civilities (M., Mme, Monsieur, Madame) from the search text.`,
     return { result: resolution };
   },
   stateUpdate: (result) => {
-    const r = result as { status: string; client?: { id: string; firstName: string; lastName: string } };
-    if (r.status === 'exact_match' && r.client) {
-      return { client: { id: r.client.id, name: `${r.client.firstName} ${r.client.lastName}` }, document: null };
+    if (result.status === 'exact_match' && result.client) {
+      return { client: { id: result.client.id, name: `${result.client.firstName} ${result.client.lastName}` }, document: null };
     }
     return null;
   },
@@ -112,8 +121,7 @@ After creation, encourage the user to provide email/phone if missing: "Tu as son
     return { result: client };
   },
   stateUpdate: (result) => {
-    const r = result as { id: string; firstName: string; lastName: string };
-    return { client: { id: r.id, name: `${r.firstName} ${r.lastName}` }, document: null };
+    return { client: { id: result.id, name: `${result.firstName} ${result.lastName}` }, document: null };
   },
 });
 
@@ -160,12 +168,11 @@ Do NOT call this if a generatedId already exists in state — use update_quote/u
     };
   },
   stateUpdate: (result) => {
-    const r = result as { type: string; title?: string; tvaContext?: string };
     return {
       document: {
-        type: r.type,
-        title: r.title,
-        tvaContext: r.tvaContext,
+        type: result.type,
+        title: result.title,
+        tvaContext: result.tvaContext,
         lines: [],
       } as DemandDocument,
     };
@@ -210,8 +217,7 @@ Call this once with all lines the user mentioned, or multiple times as the user 
     };
   },
   stateUpdate: (result) => {
-    const r = result as { document: DemandDocument };
-    return { document: r.document };
+    return { document: result.document };
   },
 });
 
@@ -263,8 +269,7 @@ Only include fields you want to change.`,
     };
   },
   stateUpdate: (result) => {
-    const r = result as { document: DemandDocument };
-    return { document: r.document };
+    return { document: result.document };
   },
 });
 
@@ -295,8 +300,7 @@ const removeLineTool = defineTool({
     };
   },
   stateUpdate: (result) => {
-    const r = result as { document: DemandDocument };
-    return { document: r.document };
+    return { document: result.document };
   },
 });
 
@@ -334,8 +338,7 @@ Only for NEW quotes. If a generatedId already exists in state, the quote was alr
     return { result: quote, richCard: { type: 'quote', data: quote } };
   },
   stateUpdate: (result, ctx) => {
-    const r = result as { id: string };
-    return { document: ctx.demandState.document ? { ...ctx.demandState.document, generatedId: r.id } : null };
+    return { document: ctx.demandState.document ? { ...ctx.demandState.document, generatedId: result.id } : null };
   },
 });
 
@@ -366,14 +369,13 @@ Call this DIRECTLY with all lines (old + new/modified). Do NOT call add_lines/up
     return { result: quote, richCard: { type: 'quote', data: quote } };
   },
   stateUpdate: (result, ctx) => {
-    const r = result as { id: string; lines: Array<{ description: string; quantity: number; unit: string; unitPrice: number; tvaRate: number }> };
     const doc = ctx.demandState.document;
     if (!doc) return null;
     return {
       document: {
         ...doc,
-        generatedId: r.id,
-        lines: r.lines.map((l) => ({
+        generatedId: result.id,
+        lines: result.lines.map((l) => ({
           description: l.description,
           quantity: l.quantity,
           unit: l.unit,
@@ -420,8 +422,7 @@ Only for NEW invoices. If a generatedId already exists in state, the invoice was
     return { result: invoice, richCard: { type: 'invoice', data: invoice } };
   },
   stateUpdate: (result, ctx) => {
-    const r = result as { id: string };
-    return { document: ctx.demandState.document ? { ...ctx.demandState.document, generatedId: r.id } : null };
+    return { document: ctx.demandState.document ? { ...ctx.demandState.document, generatedId: result.id } : null };
   },
 });
 
@@ -453,14 +454,13 @@ Call this DIRECTLY with all lines (old + new/modified). Do NOT call add_lines/up
     return { result: invoice, richCard: { type: 'invoice', data: invoice } };
   },
   stateUpdate: (result, ctx) => {
-    const r = result as { id: string; lines: Array<{ description: string; quantity: number; unit: string; unitPrice: number; tvaRate: number }> };
     const doc = ctx.demandState.document;
     if (!doc) return null;
     return {
       document: {
         ...doc,
-        generatedId: r.id,
-        lines: r.lines.map((l) => ({
+        generatedId: result.id,
+        lines: result.lines.map((l) => ({
           description: l.description,
           quantity: l.quantity,
           unit: l.unit,
@@ -500,11 +500,8 @@ const listQuotesTool = defineTool({
     clientId: z.string().uuid().optional().describe('Filter by client ID (from current conversation, optional)'),
   }),
   handler: async (args, ctx) => {
-    const quotes = await listQuotes(ctx.teamId);
-    const filtered = args.clientId
-      ? quotes.filter((q) => q.clientId === args.clientId)
-      : quotes;
-    return { result: filtered.slice(0, 10) };
+    const quotes = await listQuotes({ teamId: ctx.teamId, clientId: args.clientId, limit: 10 });
+    return { result: quotes };
   },
 });
 
@@ -515,11 +512,8 @@ const listInvoicesTool = defineTool({
     clientId: z.string().uuid().optional().describe('Filter by client ID (from current conversation, optional)'),
   }),
   handler: async (args, ctx) => {
-    const invoices = await listInvoices(ctx.teamId);
-    const filtered = args.clientId
-      ? invoices.filter((inv) => inv.clientId === args.clientId)
-      : invoices;
-    return { result: filtered.slice(0, 10) };
+    const invoices = await listInvoices({ teamId: ctx.teamId, clientId: args.clientId, limit: 10 });
+    return { result: invoices };
   },
 });
 
@@ -604,8 +598,7 @@ const addClientNoteTool = defineTool({
 
 // --- Registry ---
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const allTools: ToolDefinition<any>[] = [
+const allTools: AnyToolDefinition[] = [
   resolveClientTool,
   createClientTool,
   updateClientTool,
@@ -626,8 +619,7 @@ const allTools: ToolDefinition<any>[] = [
   addClientNoteTool,
 ];
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const toolMap = new Map<string, ToolDefinition<any>>(
+const toolMap = new Map<string, AnyToolDefinition>(
   allTools.map((t) => [t.name, t]),
 );
 

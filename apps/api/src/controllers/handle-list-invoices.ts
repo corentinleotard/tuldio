@@ -4,7 +4,7 @@ import { getTeamId } from '../middleware/auth.js';
 
 export async function handleListInvoices(_req: Request, res: Response): Promise<void> {
   const teamId = getTeamId(res);
-  const invoices = await listInvoices(teamId);
+  const invoices = await listInvoices({ teamId });
 
   res.json({ data: invoices });
 }
