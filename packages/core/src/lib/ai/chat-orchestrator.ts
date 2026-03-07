@@ -50,6 +50,7 @@ export async function processMessage(input: {
   });
 
   let richCard: { type: string; data: unknown } | null = null;
+  let quickReplies: string[] | null = null;
   const toolRounds: StoredToolCall[][] = [];
   const traceRounds: DebugTraceRound[] = [];
 
@@ -78,6 +79,9 @@ export async function processMessage(input: {
 
         if (result.richCard) {
           richCard = result.richCard;
+        }
+        if (result.quickReplies) {
+          quickReplies = result.quickReplies;
         }
 
         roundToolCalls.push({
@@ -185,6 +189,7 @@ export async function processMessage(input: {
     content: textContent,
     toolCalls: toolRounds.length > 0 ? toolRounds : null,
     richCard: richCard,
+    quickReplies: quickReplies ?? undefined,
     debugTrace,
   });
 

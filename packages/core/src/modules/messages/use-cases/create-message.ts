@@ -9,6 +9,7 @@ export async function createMessage(input: {
   attachments?: { type: string; url: string; name: string }[];
   toolCalls?: unknown;
   richCard?: unknown;
+  quickReplies?: string[];
   debugTrace?: unknown;
 }): Promise<MessageView> {
   const message = await insertMessage(input);

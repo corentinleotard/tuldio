@@ -4,3 +4,4 @@ export { listQuotes } from './use-cases/list-quotes.js';
 export { getQuote } from './use-cases/get-quote.js';
 export { updateQuoteStatusUc } from './use-cases/update-quote-status-uc.js';
 export { downloadQuotePdf } from './use-cases/download-quote-pdf.js';
+export { searchPastPricing } from './use-cases/search-past-pricing.js';

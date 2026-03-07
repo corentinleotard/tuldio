@@ -10,6 +10,7 @@ function makeMessage(overrides: Partial<Message> & { role: 'user' | 'assistant' 
     attachments: [],
     toolCalls: null,
     richCard: null,
+    quickReplies: null,
     debugTrace: null,
     createdAt: '2026-01-01T00:00:00Z',
     ...overrides,

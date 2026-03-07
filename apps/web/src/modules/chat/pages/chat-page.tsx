@@ -5,6 +5,7 @@ import { Settings } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import { ChatMessageList } from '../components/chat-message-list';
 import { ChatInputBar } from '../components/chat-input-bar';
+import { QuickReplyBar } from '../components/quick-reply-bar';
 import { DesktopContextPanel } from '../components/desktop-context-panel';
 import { sendMessage, fetchMessages } from '../api/chat.api';
 import type { Message, MessageMetadata } from '@tuldio/types';
@@ -13,6 +14,7 @@ export function ChatPage() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [isSending, setIsSending] = useState(false);
+  const [isTyping, setIsTyping] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   const {
@@ -31,6 +33,10 @@ export function ChatPage() {
   });
 
   const messages = data?.pages ? [...data.pages].reverse().flat() : [];
+
+  // Quick replies from the latest assistant message only
+  const lastAssistantMsg = [...messages].reverse().find((m) => m.role === 'assistant');
+  const lastQuickReplies = lastAssistantMsg?.quickReplies ?? null;
 
   const handleLoadOlder = useCallback(() => {
     if (hasNextPage && !isFetchingNextPage) {
@@ -51,6 +57,7 @@ export function ChatPage() {
       attachments: [],
       toolCalls: null,
       richCard: null,
+      quickReplies: null,
       debugTrace: null,
       createdAt: new Date().toISOString(),
     };
@@ -87,6 +94,7 @@ export function ChatPage() {
         attachments: [],
         toolCalls: null,
         richCard: null,
+        quickReplies: null,
         debugTrace: null,
         createdAt: new Date().toISOString(),
       };
@@ -141,9 +149,16 @@ export function ChatPage() {
             bottomRef={bottomRef}
           />
 
+          {/* Quick reply pills */}
+          {!isSending && !isTyping && lastQuickReplies && (
+            <div className="border-t bg-background">
+              <QuickReplyBar options={lastQuickReplies} onSelect={(text) => handleSend(text)} />
+            </div>
+          )}
+
           {/* Input bar */}
           <div className="border-t bg-background">
-            <ChatInputBar onSend={handleSend} disabled={isSending} />
+            <ChatInputBar onSend={handleSend} disabled={isSending} onTypingChange={setIsTyping} />
           </div>
         </div>
 

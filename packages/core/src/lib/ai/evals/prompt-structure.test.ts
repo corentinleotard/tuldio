@@ -72,6 +72,13 @@ describe('tool descriptions', () => {
     }
   });
 
+  it('quote and invoice tools reference search_past_pricing', () => {
+    const quoteDesc = chatTools.find((t) => t.name === 'generate_quote')!.description;
+    const invoiceDesc = chatTools.find((t) => t.name === 'generate_invoice')!.description;
+    expect(quoteDesc).toContain('search_past_pricing');
+    expect(invoiceDesc).toContain('search_past_pricing');
+  });
+
   it('no tool description duplicates system prompt content', () => {
     // Tool descriptions should not repeat the prompt's identity/tone rules
     for (const tool of chatTools) {

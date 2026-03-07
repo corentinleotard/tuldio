@@ -1,7 +1,7 @@
 import type Anthropic from '@anthropic-ai/sdk';
 import type { Message } from '@tuldio/types';
 
-const RECENT_MESSAGES_COUNT = 4;
+const RECENT_MESSAGES_COUNT = 8;
 
 export type StoredToolCall = {
   toolUseId: string;

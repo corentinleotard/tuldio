@@ -5,14 +5,16 @@ import { Button } from '@/components/ui/button';
 interface ChatInputBarProps {
   onSend: (content: string) => void;
   disabled?: boolean;
+  onTypingChange?: (isTyping: boolean) => void;
 }
 
-export function ChatInputBar({ onSend, disabled }: ChatInputBarProps) {
+export function ChatInputBar({ onSend, disabled, onTypingChange }: ChatInputBarProps) {
   const [value, setValue] = useState(() => sessionStorage.getItem('chat-draft') ?? '');
 
   function updateValue(v: string) {
     setValue(v);
     sessionStorage.setItem('chat-draft', v);
+    onTypingChange?.(v.trim().length > 0);
   }
 
   function handleSend() {
@@ -20,6 +22,7 @@ export function ChatInputBar({ onSend, disabled }: ChatInputBarProps) {
     if (!trimmed) return;
     onSend(trimmed);
     updateValue('');
+    onTypingChange?.(false);
   }
 
   function handleKeyDown(e: React.KeyboardEvent) {

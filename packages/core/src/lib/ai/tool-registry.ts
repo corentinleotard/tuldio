@@ -2,11 +2,11 @@ import { z } from 'zod';
 import type Anthropic from '@anthropic-ai/sdk';
 import { zodToJsonSchema } from 'zod-to-json-schema';
 import { resolveClient, createClient, addClientNote, updateClientUc } from '../../modules/clients/index.js';
-import { createQuote, updateQuote, listQuotes } from '../../modules/quotes/index.js';
+import { createQuote, updateQuote, listQuotes, searchPastPricing } from '../../modules/quotes/index.js';
 import { createInvoice, updateInvoice, createInvoiceFromQuote, markAsPaid, listInvoices } from '../../modules/invoices/index.js';
 import { getMonthlyStats } from '../../modules/stats/index.js';
 
-export type ToolResult = { result: unknown; richCard?: { type: string; data: unknown } };
+export type ToolResult = { result: unknown; richCard?: { type: string; data: unknown }; quickReplies?: string[] };
 
 type ToolContext = { teamId: string; userId: string };
 
@@ -97,13 +97,33 @@ const lineSchema = z.object({
   tvaRate: z.number().int().default(2000).describe('VAT rate in basis points (2000=20%, 1000=10%, 550=5.5%, 0=exempt)'),
 });
 
+const searchPastPricingTool = defineTool({
+  name: 'search_past_pricing',
+  description:
+    `Search past quotes and invoices for similar line items to find previously used pricing.
+Use PROACTIVELY: when the user provides line descriptions for a new document, search each description BEFORE asking for unit prices. If matches are found, suggest the most recent price: "La derniere fois tu as facture [description] a X€/[unit]. Je pars la-dessus ?"
+Also use when the user explicitly asks about past pricing, rates, or what they charged before.
+Returns matching lines with unit price, quantity, document type/number, client, and date.`,
+  schema: z.object({
+    search: z.string().min(1).max(200).describe('Line description to search for (e.g. "terrassement", "polyane", "carrelage")'),
+  }),
+  handler: async (args, ctx) => {
+    const results = await searchPastPricing({
+      teamId: ctx.teamId,
+      search: args.search,
+    });
+    return { result: results };
+  },
+});
+
 const generateQuoteTool = defineTool({
   name: 'generate_quote',
   description:
     `Generate a new quote for a client. Amounts in cents, VAT per line in basis points (2000=20%, 1000=10%, 550=5.5%, 0=exempt).
 Always confirm line items and amounts with the user before calling this tool.
 Add a descriptive title (e.g. "Renovation salle de bain").
-Use the appropriate unit per line: m2, m, h, forfait, u, kg, L, lot.`,
+Use the appropriate unit per line: m2, m, h, forfait, u, kg, L, lot.
+IMPORTANT: before asking the user for unit prices, FIRST call search_past_pricing for each line description. If past pricing exists, suggest it instead of asking blindly.`,
   schema: z.object({
     clientId: z.string().uuid().describe('Client ID (from current conversation tool results only)'),
     title: z.string().max(255).optional().describe('Quote title/subject'),
@@ -146,7 +166,8 @@ const generateInvoiceTool = defineTool({
   name: 'generate_invoice',
   description:
     `Generate a direct invoice (without a quote). Amounts in cents, VAT per line in basis points.
-Use this for standalone invoices. To invoice from an existing quote, use the dedicated tool instead.`,
+Use this for standalone invoices. To invoice from an existing quote, use the dedicated tool instead.
+IMPORTANT: before asking the user for unit prices, FIRST call search_past_pricing for each line description. If past pricing exists, suggest it instead of asking blindly.`,
   schema: z.object({
     clientId: z.string().uuid().describe('Client ID (from current conversation tool results only)'),
     title: z.string().max(255).optional().describe('Invoice title/subject'),
@@ -322,6 +343,7 @@ const allTools: ToolDefinition<any>[] = [
   resolveClientTool,
   createClientTool,
   updateClientTool,
+  searchPastPricingTool,
   generateQuoteTool,
   updateQuoteTool,
   listQuotesTool,

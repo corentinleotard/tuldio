@@ -12,6 +12,7 @@ interface DebugMessageRow {
   attachments: unknown;
   tool_calls: unknown;
   rich_card: unknown;
+  quick_replies: unknown;
   debug_trace: unknown;
   created_at: Date;
 }
@@ -29,7 +30,7 @@ export async function listDebugMessages(input: {
   const limit = input.limit ?? 50;
 
   const result = await query<DebugMessageRow>(
-    `SELECT id, user_id, role, content, attachments, tool_calls, rich_card, debug_trace, created_at
+    `SELECT id, user_id, role, content, attachments, tool_calls, rich_card, quick_replies, debug_trace, created_at
      FROM messages WHERE user_id = $1
      ORDER BY created_at DESC LIMIT $2`,
     [input.targetUserId, limit],
@@ -43,6 +44,7 @@ export async function listDebugMessages(input: {
     attachments: row.attachments as Message['attachments'],
     toolCalls: row.tool_calls,
     richCard: row.rich_card as Message['richCard'],
+    quickReplies: (row.quick_replies as string[]) ?? null,
     debugTrace: row.debug_trace as Message['debugTrace'],
     createdAt: row.created_at.toISOString(),
   }));

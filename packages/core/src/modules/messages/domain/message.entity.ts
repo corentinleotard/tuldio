@@ -15,6 +15,7 @@ export const messageSchema = z.object({
   attachments: z.array(attachmentSchema),
   tool_calls: z.unknown().nullable(),
   rich_card: z.unknown().nullable(),
+  quick_replies: z.array(z.string()).nullable(),
   debug_trace: z.unknown().nullable(),
   created_at: z.date(),
 });

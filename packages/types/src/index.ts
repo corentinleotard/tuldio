@@ -180,6 +180,20 @@ export interface CreateInvoiceRequest {
   dueDate?: string;
 }
 
+// Past Pricing
+export interface PastPricingView {
+  description: string;
+  quantity: number;
+  unit: string;
+  unitPrice: number;
+  tvaRate: number;
+  totalHt: number;
+  documentType: 'quote' | 'invoice';
+  documentNumber: string;
+  clientName: string;
+  createdAt: string;
+}
+
 // Prestations
 export interface PrestationView {
   id: string;
@@ -234,6 +248,7 @@ export interface Message {
   attachments: Attachment[];
   toolCalls: unknown;
   richCard: RichCard | null;
+  quickReplies: string[] | null;
   debugTrace: DebugTrace | null;
   createdAt: string;
 }

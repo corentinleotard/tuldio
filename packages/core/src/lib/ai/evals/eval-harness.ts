@@ -42,6 +42,7 @@ function makeMessage(overrides: Partial<Message> & { role: 'user' | 'assistant';
     attachments: [],
     toolCalls: null,
     richCard: null,
+    quickReplies: null,
     debugTrace: null,
     createdAt: new Date().toISOString(),
     ...overrides,

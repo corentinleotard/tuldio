@@ -15,7 +15,8 @@ export async function acceptTerms(): Promise<TeamSummary> {
 }
 
 export async function downloadPreviewPdf(type: 'quote' | 'invoice'): Promise<void> {
-  const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3003';
+  const { API_URL } = await import('@/lib/api-fetch');
+  const baseUrl = API_URL;
   const response = await fetch(`${baseUrl}/api/teams/me/preview-pdf?type=${type}`, {
     credentials: 'include',
   });
