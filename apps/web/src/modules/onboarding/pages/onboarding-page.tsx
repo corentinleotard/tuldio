@@ -59,7 +59,7 @@ export function OnboardingPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const fields = team?.fields ?? [];
   const siretVal = getFieldValue(fields, 'siret');
-  const hasInfo = Boolean(team?.name || siretVal || getFieldValue(fields, 'address'));
+  const hasInfo = Boolean(siretVal || getFieldValue(fields, 'address'));
   const [step, setStep] = useState<Step>(hasInfo ? 2 : 1);
   const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(false);

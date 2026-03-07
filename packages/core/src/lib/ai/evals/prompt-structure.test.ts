@@ -65,12 +65,10 @@ describe('tool descriptions', () => {
     }
   });
 
-  it('generate tools reference init_document and add_lines prerequisites', () => {
+  it('generate tools reference add_lines prerequisites', () => {
     const quoteDesc = chatTools.find((t) => t.name === 'generate_quote')!.description;
     const invoiceDesc = chatTools.find((t) => t.name === 'generate_invoice')!.description;
-    expect(quoteDesc).toContain('init_document');
     expect(quoteDesc).toContain('add_lines');
-    expect(invoiceDesc).toContain('init_document');
     expect(invoiceDesc).toContain('add_lines');
   });
 

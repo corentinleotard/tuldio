@@ -1,6 +1,7 @@
 import type { AuthResponse } from '@tuldio/types';
 import { HandledError } from '../../../lib/errors/handled-error.js';
 import { errorCodes } from '../../../lib/errors/error-codes.js';
+import { logger } from '../../../lib/infra/logger.js';
 import { normalizeEmail, generateRefreshToken } from '../domain/validators.js';
 import { findValidOtp } from '../repository/find-valid-otp.js';
 import { markOtpUsed } from '../repository/mark-otp-used.js';
@@ -15,11 +16,10 @@ export async function verifyOtp(input: {
 }): Promise<{ auth: AuthResponse; refreshToken: string }> {
   const email = normalizeEmail(input.email);
 
-  // Dev bypass: skip OTP check for dev email
-  const isDevBypass =
-    process.env.NODE_ENV !== 'production' && email === 'corentin@lempire.co';
-
-  if (!isDevBypass) {
+  // Dev bypass: accept any code
+  if (process.env.NODE_ENV !== 'production') {
+    logger.info(`[OTP] Dev bypass for ${email} — skipping verification`);
+  } else {
     const otp = await findValidOtp({ email, code: input.code });
     if (!otp) {
       throw new HandledError(errorCodes.invalidOtp);

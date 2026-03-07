@@ -11,9 +11,11 @@ export async function sendOtp(input: { email: string }): Promise<void> {
     throw new HandledError(errorCodes.emailRequired);
   }
 
-  // Dev bypass: skip DB insert for dev email
-  if (process.env.NODE_ENV !== 'production' && email === 'corentin@lempire.co') {
-    logger.info(`[OTP] Dev bypass for ${email} — use any code`);
+  // Dev bypass: skip email sending, just log the code
+  if (process.env.NODE_ENV !== 'production') {
+    const code = generateOtpCode();
+    await insertOtp({ email, code });
+    logger.info(`[OTP] Dev bypass for ${email} — code: ${code}`);
     return;
   }
 

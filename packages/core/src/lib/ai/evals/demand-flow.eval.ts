@@ -1,8 +1,8 @@
 /**
- * Eval: Demand state flow — the AI must use init_document/add_lines and respect active state.
+ * Eval: Demand state flow — the AI must use add_lines and respect active state.
  *
  * Tests the full document creation flow:
- * - AI calls init_document + add_lines when user gives line items
+ * - AI calls add_lines (with type) when user gives line items
  * - AI calls resolve_client when user switches client mid-flow
  * - AI calls generate_quote when demand state is complete
  *
@@ -17,9 +17,9 @@ import type { DemandState } from '@tuldio/types';
 const TIMEOUT = 30_000;
 
 describe('demand flow evals', () => {
-  it('calls search_past_pricing or init_document when user provides line items', async () => {
+  it('calls search_past_pricing or add_lines when user provides line items', async () => {
     // Client already resolved, user gives lines
-    // AI may call search_past_pricing first (proactive pricing lookup) or init_document + add_lines
+    // AI may call search_past_pricing first (proactive pricing lookup) or add_lines directly
     const resolveRounds: StoredToolRounds = [[{
       toolUseId: 'tu-resolve',
       name: 'resolve_client',
@@ -47,10 +47,10 @@ describe('demand flow evals', () => {
     };
 
     const result = await runEval(scenario);
-    // Accept search_past_pricing or init_document (first step of cart pattern)
+    // Accept search_past_pricing or add_lines (creates document + adds lines in one call)
     if (!result.pass) {
       const firstTool = result.toolCalls[0]?.name;
-      expect(firstTool, result.error).toBe('init_document');
+      expect(firstTool, result.error).toBe('add_lines');
     }
   }, TIMEOUT);
 

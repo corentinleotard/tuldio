@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import type Anthropic from '@anthropic-ai/sdk';
 import { zodToJsonSchema } from 'zod-to-json-schema';
-import type { DemandState, DemandDocument } from '@tuldio/types';
+import type { DemandState } from '@tuldio/types';
 import { resolveClient, createClient, addClientNote, updateClientUc, type ClientResolution } from '../../modules/clients/index.js';
 import { createQuote, updateQuote, listQuotes, searchPastPricing } from '../../modules/quotes/index.js';
 import { createInvoice, updateInvoice, createInvoiceFromQuote, markAsPaid, listInvoices } from '../../modules/invoices/index.js';
@@ -144,48 +144,18 @@ Returns matching lines with unit price, quantity, document type/number, client, 
   },
 });
 
-const initDocumentTool = defineTool({
-  name: 'init_document',
-  description:
-    `Initialize a new document (quote or invoice). Call this ONCE at the start of a document creation flow.
-Sets the document type, optional title, and TVA context. Lines are added separately with add_lines.
-If a document is already in progress, this REPLACES it (clears existing lines).
-If the user does not specify TVA context, ask: "C'est de la réno ou du neuf ? Pour la TVA." Then apply French construction VAT rules per line type.
-Do NOT call this if a generatedId already exists in state — use update_quote/update_invoice instead.`,
-  schema: z.object({
-    type: z.enum(['quote', 'invoice']).describe('Document type'),
-    title: z.string().max(255).optional().describe('Document title'),
-    tvaContext: z.enum(['réno', 'neuf']).optional().describe('TVA context — réno or neuf'),
-  }),
-  handler: async (args) => {
-    return {
-      result: {
-        type: args.type,
-        title: args.title,
-        tvaContext: args.tvaContext,
-        lineCount: 0,
-      },
-    };
-  },
-  stateUpdate: (result) => {
-    return {
-      document: {
-        type: result.type,
-        title: result.title,
-        tvaContext: result.tvaContext,
-        lines: [],
-      } as DemandDocument,
-    };
-  },
-});
-
 const addLinesTool = defineTool({
   name: 'add_lines',
   description:
-    `Add one or more lines to the current document. Call init_document first.
+    `Add one or more lines to a document. If no document exists yet, provide type (and optionally title/tvaContext) to create one.
 Lines are appended to the existing list — never replaces. Prices and TVA can be omitted and set later with update_line.
-Call this once with all lines the user mentioned, or multiple times as the user adds more.`,
+Call this once with all lines the user mentioned, or multiple times as the user adds more.
+If the user does not specify TVA context, ask: "C'est de la réno ou du neuf ? Pour la TVA." Then apply French construction VAT rules per line type.
+Do NOT call this if a generatedId already exists in state — use update_quote/update_invoice instead.`,
   schema: z.object({
+    type: z.enum(['quote', 'invoice']).optional().describe('Document type — required if no document exists yet'),
+    title: z.string().max(255).optional().describe('Document title (only used when creating a new document)'),
+    tvaContext: z.enum(['réno', 'neuf']).optional().describe('TVA context — réno or neuf (only used when creating a new document)'),
     lines: z.array(z.object({
       description: z.string().min(1).max(500).describe('Line item description'),
       quantity: z.number().positive().max(100_000).describe('Quantity'),
@@ -195,10 +165,13 @@ Call this once with all lines the user mentioned, or multiple times as the user 
     })).min(1).max(50).describe('Lines to add'),
   }),
   handler: async (args, ctx) => {
-    if (!ctx.demandState.document) {
-      throw new HandledError(errorCodes.noDocumentPrepared);
+    let doc = ctx.demandState.document;
+    if (!doc) {
+      if (!args.type) {
+        throw new HandledError(errorCodes.noDocumentPrepared);
+      }
+      doc = { type: args.type, title: args.title, tvaContext: args.tvaContext, lines: [] };
     }
-    const doc = ctx.demandState.document;
     const resolvedLines = await Promise.all(
       args.lines.map(async (l) => {
         const resolved = await resolveUnit({ teamId: ctx.teamId, raw: l.unit });
@@ -308,11 +281,11 @@ const generateQuoteTool = defineTool({
   name: 'generate_quote',
   description:
     `Generate a quote from the current document and active client.
-PREREQUISITES: resolve_client, init_document, and add_lines must have been called. All lines must have unitPrice set (use update_line if needed).
+PREREQUISITES: resolve_client and add_lines must have been called. All lines must have unitPrice set (use update_line if needed).
 The client and lines are read from the current demand state — do not pass them.
 Only for NEW quotes. If a generatedId already exists in state, the quote was already created — use update_quote instead.`,
   schema: z.object({
-    title: z.string().max(255).optional().describe('Override title (uses init_document title if omitted)'),
+    title: z.string().max(255).optional().describe('Override title (uses add_lines title if omitted)'),
   }),
   handler: async (args, ctx) => {
     const { demandState } = ctx;
@@ -391,12 +364,12 @@ const generateInvoiceTool = defineTool({
   name: 'generate_invoice',
   description:
     `Generate an invoice from the current document and active client.
-PREREQUISITES: resolve_client, init_document, and add_lines must have been called. All lines must have unitPrice set (use update_line if needed).
+PREREQUISITES: resolve_client and add_lines must have been called. All lines must have unitPrice set (use update_line if needed).
 The client and lines are read from the current demand state — do not pass them.
 Use this for standalone invoices. To invoice from an existing quote, use invoice_from_quote instead.
 Only for NEW invoices. If a generatedId already exists in state, the invoice was already created — use update_invoice instead.`,
   schema: z.object({
-    title: z.string().max(255).optional().describe('Override title (uses init_document title if omitted)'),
+    title: z.string().max(255).optional().describe('Override title (uses add_lines title if omitted)'),
   }),
   handler: async (args, ctx) => {
     const { demandState } = ctx;
@@ -603,7 +576,6 @@ const allTools: AnyToolDefinition[] = [
   createClientTool,
   updateClientTool,
   searchPastPricingTool,
-  initDocumentTool,
   addLinesTool,
   updateLineTool,
   removeLineTool,

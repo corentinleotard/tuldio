@@ -26,16 +26,9 @@ describe('post-generation edit evals', () => {
   it('calls update_quote (not generate_quote) when user wants to add a line after generation', async () => {
     const generateRounds: StoredToolRounds = [[
       {
-        toolUseId: 'tu-init',
-        name: 'init_document',
-        input: { type: 'quote', tvaContext: 'réno' },
-        result: { type: 'quote', tvaContext: 'réno', lineCount: 0 },
-      },
-    ], [
-      {
         toolUseId: 'tu-add',
         name: 'add_lines',
-        input: { lines: [{ description: 'Terrassement', quantity: 30, unit: 'm', unitPrice: 4500, tvaRate: 1000 }] },
+        input: { type: 'quote', tvaContext: 'réno', lines: [{ description: 'Terrassement', quantity: 30, unit: 'm', unitPrice: 4500, tvaRate: 1000 }] },
         result: { addedCount: 1, totalLineCount: 1, allPriced: true },
       },
     ], [
