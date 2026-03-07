@@ -66,6 +66,7 @@ pnpm db:migrate       # Apply pending SQL migrations
 
 ## After Code Changes
 
+- **Tests are the source of truth for functional behavior.** Before modifying or deleting a test, you must be 100% certain the expected behavior is wrong, or the change must come from an explicit user request. Never "fix" a failing test by changing the assertion to match new code — fix the code instead.
 - Run `pnpm typecheck` to verify no type errors
 - Run `pnpm lint` to check lint rules
 - Prettier runs automatically via hook on every file edit
