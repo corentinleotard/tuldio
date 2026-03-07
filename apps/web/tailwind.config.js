@@ -56,6 +56,7 @@ export default {
       },
       padding: {
         safe: 'env(safe-area-inset-bottom)',
+        'safe-top': 'env(safe-area-inset-top)',
       },
     },
   },

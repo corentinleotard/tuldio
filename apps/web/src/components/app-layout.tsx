@@ -64,8 +64,8 @@ export function AppLayout() {
       </aside>
 
       {/* Main content */}
-      <main className="flex min-w-0 flex-1 flex-col">
-        <div className={cn('flex-1 overflow-auto md:pb-0', pwaBannerVisible ? 'pb-[104px]' : 'pb-16')}>
+      <main className="flex min-w-0 flex-1 flex-col pt-safe-top md:pt-0">
+        <div className={cn('flex-1 overflow-auto md:pb-0', pwaBannerVisible ? 'pb-[calc(104px+env(safe-area-inset-bottom))]' : 'pb-[calc(4rem+env(safe-area-inset-bottom))]')}>
           <Outlet />
         </div>
       </main>
