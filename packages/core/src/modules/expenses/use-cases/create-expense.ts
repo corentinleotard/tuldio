@@ -1,5 +1,6 @@
 import { HandledError } from '../../../lib/errors/handled-error.js';
 import { errorCodes } from '../../../lib/errors/error-codes.js';
+import { logger } from '../../../lib/infra/logger.js';
 import { insertExpense } from '../repository/insert-expense.js';
 import { findDuplicateExpense } from '../repository/find-duplicate-expense.js';
 import { toExpenseView, type ExpenseView } from '../domain/expense.view.js';
@@ -33,6 +34,8 @@ export async function createExpense(input: {
     receiptUrl: input.receiptUrl,
     date: input.date,
   });
+
+  logger.info('expense.created', { teamId: input.teamId, expenseId: expense.id, amount: input.amount, vendor: input.vendor });
 
   return toExpenseView(expense);
 }

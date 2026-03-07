@@ -36,7 +36,7 @@ describe('post-generation edit evals', () => {
         toolUseId: 'tu-gen',
         name: 'generate_quote',
         input: {},
-        result: { id: 'q-abc-123', number: 'D-001', totalHt: 135000, totalTtc: 148500 },
+        result: { id: 'aaaaaaaa-0001-4000-8000-000000000001', number: 'D-001', totalHt: 135000, totalTtc: 148500 },
       },
     ]];
 
@@ -54,13 +54,13 @@ describe('post-generation edit evals', () => {
           lines: [
             { description: 'Terrassement', quantity: 30, unit: 'm', unitPrice: 4500, tvaRate: 1000 },
           ],
-          generatedId: 'q-abc-123',
+          generatedId: 'aaaaaaaa-0001-4000-8000-000000000001',
         },
       },
       userMessage: 'Attends j\'ai oublié, ajoute 25m2 de polyane à 8€/m2',
       expectToolCall: {
         name: 'update_quote',
-        inputContains: { quoteId: 'q-abc-123' },
+        inputContains: { quoteId: 'aaaaaaaa-0001-4000-8000-000000000001' },
       },
     };
 
@@ -81,7 +81,7 @@ describe('post-generation edit evals', () => {
         toolUseId: 'tu-gen',
         name: 'generate_quote',
         input: {},
-        result: { id: 'q-def-456', number: 'D-002', totalHt: 270000, totalTtc: 297000 },
+        result: { id: 'aaaaaaaa-0002-4000-8000-000000000002', number: 'D-002', totalHt: 270000, totalTtc: 297000 },
       },
     ]];
 
@@ -100,13 +100,13 @@ describe('post-generation edit evals', () => {
             { description: 'Terrassement', quantity: 30, unit: 'm', unitPrice: 4500, tvaRate: 1000 },
             { description: 'Polyane', quantity: 25, unit: 'm2', unitPrice: 5000, tvaRate: 550 },
           ],
-          generatedId: 'q-def-456',
+          generatedId: 'aaaaaaaa-0002-4000-8000-000000000002',
         },
       },
       userMessage: 'Finalement mets le polyane à 8€/m2',
       expectToolCall: {
         name: 'update_quote',
-        inputContains: { quoteId: 'q-def-456' },
+        inputContains: { quoteId: 'aaaaaaaa-0002-4000-8000-000000000002' },
       },
     };
 
@@ -120,7 +120,7 @@ describe('post-generation edit evals', () => {
         toolUseId: 'tu-gen',
         name: 'generate_quote',
         input: {},
-        result: { id: 'q-ghi-789', number: 'D-003', totalHt: 93000, totalTtc: 102300 },
+        result: { id: 'aaaaaaaa-0003-4000-8000-000000000003', number: 'D-003', totalHt: 93000, totalTtc: 102300 },
       },
     ]];
 
@@ -138,13 +138,13 @@ describe('post-generation edit evals', () => {
           lines: [
             { description: 'Pose carrelage', quantity: 15, unit: 'm2', unitPrice: 6200, tvaRate: 1000 },
           ],
-          generatedId: 'q-ghi-789',
+          generatedId: 'aaaaaaaa-0003-4000-8000-000000000003',
         },
       },
       userMessage: 'Ajoute aussi la fourniture carrelage 15m2 à 35€/m2',
       expectToolCall: {
         name: 'update_quote',
-        inputContains: { quoteId: 'q-ghi-789' },
+        inputContains: { quoteId: 'aaaaaaaa-0003-4000-8000-000000000003' },
       },
     };
 

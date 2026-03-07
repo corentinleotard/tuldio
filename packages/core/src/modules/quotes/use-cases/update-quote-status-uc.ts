@@ -1,12 +1,14 @@
 import type { QuoteView } from '@tuldio/types';
 import { HandledError } from '../../../lib/errors/handled-error.js';
 import { errorCodes } from '../../../lib/errors/error-codes.js';
+import { logger } from '../../../lib/infra/logger.js';
 import { validateQuoteStatusTransition } from '../domain/validators.js';
 import { findQuoteById } from '../repository/find-quote-by-id.js';
 import { updateQuoteStatus } from '../repository/update-quote-status.js';
 import { updateQuotePdfUrl } from '../repository/update-quote-pdf-url.js';
 import { generatePdf } from '../../../lib/pdf/generate-pdf.js';
 import { buildDocumentPdfInput } from '../../../lib/pdf/build-document-pdf-input.js';
+import { findClientById } from '../../clients/repository/find-client-by-id.js';
 import { toLineViews, toTvaGroups } from '../../shared/domain/to-line-views.js';
 
 export async function updateQuoteStatusUc(input: {
@@ -53,11 +55,16 @@ export async function updateQuoteStatusUc(input: {
   }
 
   const row = await updateQuoteStatus(input);
+  const client = await findClientById({ teamId: input.teamId, clientId: row.client_id });
+
+  logger.info('quote.status_changed', { teamId: input.teamId, quoteId: input.quoteId, from: current.status, to: input.status });
 
   return {
     id: row.id,
     number: row.number,
     clientId: row.client_id,
+    clientName: client ? `${client.first_name} ${client.last_name}` : undefined,
+    clientEmail: client?.email ?? undefined,
     title: row.title,
     lines: toLineViews(current.lines),
     totalHt: row.total_ht,

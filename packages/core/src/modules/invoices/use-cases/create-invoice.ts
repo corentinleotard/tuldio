@@ -7,6 +7,7 @@ import { computeLineTotal } from '../../shared/domain/document-math.js';
 import { toLineViews, toTvaGroups } from '../../shared/domain/to-line-views.js';
 import { HandledError } from '../../../lib/errors/handled-error.js';
 import { errorCodes } from '../../../lib/errors/error-codes.js';
+import { logger } from '../../../lib/infra/logger.js';
 import type { InvoiceRow } from '../domain/invoice.entity.js';
 import type { InvoiceLineRow } from '../domain/invoice.entity.js';
 
@@ -89,6 +90,8 @@ export async function createInvoice(input: {
     totalTtc,
     dueDate: input.dueDate,
   });
+
+  logger.info('invoice.created', { teamId: input.teamId, invoiceId: invoice.id, number: invoice.number, totalTtc });
 
   const client = await findClientById({ teamId: input.teamId, clientId: input.clientId });
   const full = await findInvoiceById({ teamId: input.teamId, invoiceId: invoice.id });

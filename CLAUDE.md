@@ -30,6 +30,7 @@ Coding conventions are in `.claude/rules/` — auto-loaded per path.
 - **Challenge me** — if I suggest something that smells like a hack, a shortcut, or a non-standard approach, push back. Explain the industry-standard way and let me decide. Don't just execute blindly.
 - **Production-first** — every solution must be what you'd ship to real users. No "good enough for now", no "we'll fix later". If it's not production-ready, say so and propose what is.
 - **Flag wrong directions early** — if I'm heading toward a pattern that will cause pain later (tight coupling, implicit state, over-engineering, missing edge cases), stop me before writing code. A 2-sentence warning saves hours of refactoring.
+- **Root-cause first** — when fixing a bug, diagnose the root cause before proposing a fix. Don't patch symptoms. If the cause isn't clear, ask questions first — don't guess.
 
 ## Global Rules
 

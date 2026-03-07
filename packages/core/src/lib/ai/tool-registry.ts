@@ -8,6 +8,7 @@ import { createInvoice, updateInvoice, createInvoiceFromQuote, markAsPaid, listI
 import { getMonthlyStats } from '../../modules/stats/index.js';
 import { HandledError } from '../errors/handled-error.js';
 import { errorCodes } from '../errors/error-codes.js';
+import { logger } from '../infra/logger.js';
 import { resolveUnit } from '../../modules/units/index.js';
 
 export type ToolResult = { result: unknown; richCard?: { type: string; data: unknown }; quickReplies?: string[] };
@@ -55,7 +56,7 @@ const resolveClientTool = defineTool({
   description:
     `Search for an existing client by name, email, or phone. MUST be called before creating any quote or invoice.
 Returns one of:
-- exact_match: one client found — confirm with the user before proceeding ("Je pars sur [name] ?")
+- exact_match: high-confidence match — proceed immediately with this client, no confirmation needed
 - ambiguous (< 3 results): a client picker card will appear — ask "J'ai trouvé plusieurs clients, lequel est-ce ?"
 - ambiguous (>= 3 results): list names with details (phone, email, address) and ask the user to clarify
 - no_match: no client found — propose to create one ("Je ne connais pas ce client. Je le crée ?")
@@ -67,7 +68,7 @@ Strip civilities (M., Mme, Monsieur, Madame) from the search text.`,
     email: z.string().email().optional().describe('Client email if mentioned'),
     phone: z.string().max(30).optional().describe('Client phone if mentioned'),
   }),
-  handler: async (args, ctx): Promise<{ result: ClientResolution; richCard?: { type: string; data: unknown } }> => {
+  handler: async (args, ctx): Promise<{ result: ClientResolution; richCard?: { type: string; data: unknown }; quickReplies?: string[] }> => {
     const resolution = await resolveClient({
       teamId: ctx.teamId,
       search: args.search,
@@ -84,6 +85,10 @@ Strip civilities (M., Mme, Monsieur, Madame) from the search text.`,
         result: resolution,
         richCard: { type: 'client_picker', data: resolution.candidates },
       };
+    }
+
+    if (resolution.status === 'no_match') {
+      return { result: resolution, quickReplies: ['Oui, crée-le'] };
     }
 
     return { result: resolution };
@@ -140,7 +145,8 @@ Returns matching lines with unit price, quantity, document type/number, client, 
       teamId: ctx.teamId,
       search: args.search,
     });
-    return { result: results };
+    const hasMatches = Array.isArray(results) && results.length > 0;
+    return { result: results, ...(hasMatches ? { quickReplies: ['Oui, même prix'] } : {}) };
   },
 });
 
@@ -180,6 +186,7 @@ Do NOT call this if a generatedId already exists in state — use update_quote/u
     );
     const newLines = [...doc.lines, ...resolvedLines];
     const allPriced = newLines.every((l) => l.unitPrice !== undefined);
+    const needsTvaContext = !doc.tvaContext && newLines.some((l) => l.tvaRate === undefined);
     return {
       result: {
         addedCount: resolvedLines.length,
@@ -187,6 +194,7 @@ Do NOT call this if a generatedId already exists in state — use update_quote/u
         allPriced,
         document: { ...doc, lines: newLines },
       },
+      ...(needsTvaContext ? { quickReplies: ['Réno', 'Neuf'] } : {}),
     };
   },
   stateUpdate: (result) => {
@@ -621,8 +629,15 @@ export async function executeTool(input: {
 
   const args = tool.schema.parse(input.toolInput);
   const ctx = { teamId: input.teamId, userId: input.userId, demandState: input.demandState };
+
+  const start = Date.now();
+  logger.info(`tool.start ${input.toolName}`, { teamId: input.teamId, userId: input.userId, demandState: input.demandState });
+
   const toolResult = await tool.handler(args, ctx);
   const stateUpdate = tool.stateUpdate ? tool.stateUpdate(toolResult.result, ctx) : null;
+
+  const duration = Date.now() - start;
+  logger.info(`tool.end ${input.toolName} ${duration}ms`, { teamId: input.teamId });
 
   return { toolResult, stateUpdate };
 }

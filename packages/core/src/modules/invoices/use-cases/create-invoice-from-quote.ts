@@ -1,6 +1,7 @@
 import type { InvoiceView } from '@tuldio/types';
 import { HandledError } from '../../../lib/errors/handled-error.js';
 import { errorCodes } from '../../../lib/errors/error-codes.js';
+import { logger } from '../../../lib/infra/logger.js';
 import { findQuoteById } from '../../quotes/repository/find-quote-by-id.js';
 import { findClientById } from '../../clients/repository/find-client-by-id.js';
 import { insertInvoice } from '../repository/insert-invoice.js';
@@ -48,6 +49,8 @@ export async function createInvoiceFromQuote(input: {
     totalHt: quote.total_ht,
     totalTtc: quote.total_ttc,
   });
+
+  logger.info('invoice.created_from_quote', { teamId: input.teamId, invoiceId: invoice.id, quoteId: input.quoteId, number: invoice.number });
 
   const client = await findClientById({ teamId: input.teamId, clientId: quote.client_id });
   const full = await findInvoiceById({ teamId: input.teamId, invoiceId: invoice.id });

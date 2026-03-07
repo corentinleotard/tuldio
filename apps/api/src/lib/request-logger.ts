@@ -6,7 +6,8 @@ export function requestLogger(req: Request, res: Response, next: NextFunction) {
 
   res.on('finish', () => {
     const duration = Date.now() - start;
-    logger.info(`${req.method} ${req.path} ${res.statusCode} ${duration}ms`);
+    const route = req.route?.path ? `${req.baseUrl}${req.route.path}` : req.path;
+    logger.info(`${req.method} ${route} ${res.statusCode} ${duration}ms`);
   });
 
   next();

@@ -4,6 +4,7 @@ import { findInvoiceById } from '../repository/find-invoice-by-id.js';
 import { updateInvoiceLines } from '../repository/update-invoice-lines.js';
 import { HandledError } from '../../../lib/errors/handled-error.js';
 import { errorCodes } from '../../../lib/errors/error-codes.js';
+import { logger } from '../../../lib/infra/logger.js';
 import { computeLineTotal } from '../../shared/domain/document-math.js';
 import { toInvoiceView } from './create-invoice.js';
 
@@ -64,6 +65,8 @@ export async function updateInvoice(input: {
   });
 
   if (!row) throw new HandledError(errorCodes.invoiceNotFound);
+
+  logger.info('invoice.updated', { teamId: input.teamId, invoiceId: input.invoiceId, number: row.number, totalTtc });
 
   const full = await findInvoiceById({ teamId: input.teamId, invoiceId: input.invoiceId });
   if (!full) throw new HandledError(errorCodes.invoiceNotFound);

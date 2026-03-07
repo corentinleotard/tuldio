@@ -5,6 +5,7 @@ import { findQuoteById } from '../repository/find-quote-by-id.js';
 import { updateQuoteLines } from '../repository/update-quote-lines.js';
 import { HandledError } from '../../../lib/errors/handled-error.js';
 import { errorCodes } from '../../../lib/errors/error-codes.js';
+import { logger } from '../../../lib/infra/logger.js';
 import { computeLineTotal } from '../../shared/domain/document-math.js';
 import { toLineViews, toTvaGroups } from '../../shared/domain/to-line-views.js';
 import { query } from '../../../lib/database/db.js';
@@ -74,6 +75,8 @@ export async function updateQuote(input: {
   });
 
   if (!row) throw new HandledError(errorCodes.quoteNotFound);
+
+  logger.info('quote.updated', { teamId: input.teamId, quoteId: input.quoteId, number: row.number, totalTtc });
 
   const full = await findQuoteById({ teamId: input.teamId, quoteId: input.quoteId });
 

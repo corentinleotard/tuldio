@@ -33,9 +33,9 @@ export function RichCardQuote({ data, onSendMessage }: RichCardQuoteProps) {
   }, [data.id]);
 
   const fileName = `devis-${data.number}.pdf`;
+  const pdfUrl = `/api/quotes/${data.id}/pdf`;
 
   async function handleSend() {
-    if (!data.pdfUrl) return;
     setSending(true);
     try {
       const client = await apiFetch<ClientView>(`/api/clients/${data.clientId}`);
@@ -44,7 +44,7 @@ export function RichCardQuote({ data, onSendMessage }: RichCardQuoteProps) {
         return;
       }
       await shareDocument({
-        pdfUrl: data.pdfUrl,
+        pdfUrl,
         fileName,
         clientEmail: client.email,
         subject: `Devis ${data.number}`,
@@ -73,8 +73,7 @@ export function RichCardQuote({ data, onSendMessage }: RichCardQuoteProps) {
   }
 
   function handleView() {
-    if (!data.pdfUrl) return;
-    viewDocument({ pdfUrl: data.pdfUrl });
+    viewDocument({ pdfUrl });
   }
 
   async function handleStatusUpdate(newStatus: 'accepted' | 'refused') {
@@ -91,8 +90,6 @@ export function RichCardQuote({ data, onSendMessage }: RichCardQuoteProps) {
   }
 
   function renderActions() {
-    if (!data.pdfUrl) return null;
-
     if (confirming) {
       return (
         <div className="mt-3 flex gap-2">

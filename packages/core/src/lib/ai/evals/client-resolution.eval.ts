@@ -5,14 +5,23 @@
  * mentioned in the CURRENT message, not one from previous context.
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { runEval, userMsg, assistantMsg, type EvalScenario } from './eval-harness.js';
 import type { StoredToolRounds } from '../build-context.js';
 
 // Increase timeout — these hit the real API
 const TIMEOUT = 30_000;
+const RATE_LIMIT_DELAY = 3_000;
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 describe('client resolution evals', () => {
+  beforeEach(async () => {
+    await sleep(RATE_LIMIT_DELAY);
+  });
+
   it('searches for the client mentioned in the message', async () => {
     const scenario: EvalScenario = {
       name: 'basic client search',

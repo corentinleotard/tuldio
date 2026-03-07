@@ -1,5 +1,6 @@
 import { HandledError } from '../../../lib/errors/handled-error.js';
 import { errorCodes } from '../../../lib/errors/error-codes.js';
+import { logger } from '../../../lib/infra/logger.js';
 import { findClientById } from '../repository/find-client-by-id.js';
 import { updateClient } from '../repository/update-client.js';
 import { toClientView, type ClientView } from '../domain/client.view.js';
@@ -22,6 +23,8 @@ export async function updateClientUc(input: {
   }
 
   const updated = await updateClient(input);
+
+  logger.info('client.updated', { teamId: input.teamId, clientId: input.clientId });
 
   return toClientView(updated);
 }

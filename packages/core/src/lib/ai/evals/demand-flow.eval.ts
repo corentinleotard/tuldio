@@ -9,14 +9,22 @@
  * Run with: pnpm eval
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { runEval, userMsg, assistantMsg, type EvalScenario } from './eval-harness.js';
 import type { StoredToolRounds } from '../build-context.js';
-import type { DemandState } from '@tuldio/types';
 
 const TIMEOUT = 30_000;
+const RATE_LIMIT_DELAY = 3_000;
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 describe('demand flow evals', () => {
+  beforeEach(async () => {
+    await sleep(RATE_LIMIT_DELAY);
+  });
+
   it('calls search_past_pricing or add_lines when user provides line items', async () => {
     // Client already resolved, user gives lines
     // AI may call search_past_pricing first (proactive pricing lookup) or add_lines directly
@@ -146,11 +154,7 @@ describe('demand flow evals', () => {
     };
 
     const result = await runEval(scenario);
-    // Accept update_line (ideal) or search_past_pricing (AI proactively checking past pricing)
-    if (!result.pass) {
-      const firstTool = result.toolCalls[0]?.name;
-      expect(firstTool, result.error).toBe('search_past_pricing');
-    }
+    expect(result.pass, result.error).toBe(true);
   }, TIMEOUT);
 
   it('does NOT call generate_quote without resolving client first', async () => {

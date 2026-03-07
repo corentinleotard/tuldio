@@ -1,6 +1,7 @@
 import type { TeamSummary } from '@tuldio/types';
 import { HandledError } from '../../../lib/errors/handled-error.js';
 import { errorCodes } from '../../../lib/errors/error-codes.js';
+import { logger } from '../../../lib/infra/logger.js';
 import { extractDocumentInfo } from '../../../lib/ai/extract-document.js';
 import { extractLogoFromPdf } from '../../../lib/ai/extract-logo.js';
 import { findTeamById } from '../repository/find-team-by-id.js';
@@ -127,6 +128,8 @@ export async function processTeamDocument(input: {
       originalDocumentUrl: input.documentUrl,
     });
   }
+
+  logger.info('team.document_processed', { teamId: input.teamId, mimeType: input.mimeType, logoExtracted: !!logoUrl });
 
   // Return updated team
   const updatedTeam = await findTeamById(input.teamId);

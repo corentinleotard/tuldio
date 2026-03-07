@@ -9,6 +9,7 @@ import { computeLineTotal } from '../../shared/domain/document-math.js';
 import { toLineViews, toTvaGroups } from '../../shared/domain/to-line-views.js';
 import { HandledError } from '../../../lib/errors/handled-error.js';
 import { errorCodes } from '../../../lib/errors/error-codes.js';
+import { logger } from '../../../lib/infra/logger.js';
 
 interface CreateQuoteLineInput {
   description: string;
@@ -84,6 +85,8 @@ export async function createQuote(input: {
 
   // Re-fetch lines for view (we need the generated IDs)
   const full = await findQuoteById({ teamId: input.teamId, quoteId: row.id });
+
+  logger.info('quote.created', { teamId: input.teamId, quoteId: row.id, number: row.number, totalTtc });
 
   return {
     id: row.id,
