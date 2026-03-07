@@ -14,6 +14,7 @@ import { AiCostsPage } from '@/modules/settings/pages/ai-costs-page';
 import { DebugChatPage } from '@/modules/settings/pages/debug-chat-page';
 import { CompanyPage } from '@/modules/settings/pages/company-page';
 import { OnboardingPage } from '@/modules/onboarding/pages/onboarding-page';
+import { PwaProvider } from '@/components/pwa-install-prompt';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -27,6 +28,7 @@ const queryClient = new QueryClient({
 export function App() {
   return (
     <QueryClientProvider client={queryClient}>
+      <PwaProvider>
       <BrowserRouter>
         <AuthProvider>
           <Routes>
@@ -76,6 +78,7 @@ export function App() {
           </Routes>
         </AuthProvider>
       </BrowserRouter>
+      </PwaProvider>
     </QueryClientProvider>
   );
 }

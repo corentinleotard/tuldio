@@ -14,6 +14,7 @@
     "format:check": "prettier --check .",
     "typecheck": "tsc -p packages/types --noEmit && tsc -p packages/core --noEmit && tsc -p apps/api --noEmit && tsc -p apps/web --noEmit && tsc -p apps/crons --noEmit",
     "test": "vitest",
+    "eval": "vitest run --reporter=verbose packages/core/src/lib/ai/evals/",
     "db:migrate": "pnpm --filter @tuldio/api exec tsx --env-file=.env ../../packages/core/src/lib/database/migrate.ts",
     "db:test:setup": "pnpm --filter @tuldio/api exec tsx ../../packages/core/src/lib/database/setup-test-db.ts"
   },

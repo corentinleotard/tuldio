@@ -26,13 +26,19 @@ function defineTool<T extends z.ZodType>(def: ToolDefinition<T>): ToolDefinition
 const resolveClientTool = defineTool({
   name: 'resolve_client',
   description:
-    "Rechercher un client par nom, email ou téléphone. TOUJOURS utiliser cet outil avant de créer un devis ou une facture pour identifier le bon client. Retourne les correspondances trouvées.",
+    `Search for an existing client by name, email, or phone. MUST be called before creating any quote or invoice.
+Returns one of:
+- exact_match: one client found — confirm with the user before proceeding ("Je pars sur [name] ?")
+- ambiguous (< 3 results): a client picker card will appear — ask "J'ai trouvé plusieurs clients, lequel est-ce ?"
+- ambiguous (>= 3 results): list names with details (phone, email, address) and ask the user to clarify
+- no_match: no client found — propose to create one ("Je ne connais pas ce client. Je le crée ?")
+Strip civilities (M., Mme, Monsieur, Madame) from the search text.`,
   schema: z.object({
     search: z.string().min(1).max(200).describe(
-      "Texte de recherche libre (nom, prénom, ou les deux). Ignorer les civilités (M., Mme, Monsieur, Madame).",
+      "Free text search (first name, last name, or both). Strip civilities (M., Mme, Monsieur, Madame).",
     ),
-    email: z.string().email().optional().describe('Email du client si mentionné'),
-    phone: z.string().max(30).optional().describe('Téléphone du client si mentionné'),
+    email: z.string().email().optional().describe('Client email if mentioned'),
+    phone: z.string().max(30).optional().describe('Client phone if mentioned'),
   }),
   handler: async (args, ctx) => {
     const resolution = await resolveClient({
@@ -60,13 +66,15 @@ const resolveClientTool = defineTool({
 const createClientTool = defineTool({
   name: 'create_client',
   description:
-    "Créer un nouveau client. OBLIGATOIRE: prénom et nom. Ne JAMAIS créer sans avoir d'abord utilisé resolve_client pour vérifier les doublons.",
+    `Create a new client. Requires first name and last name.
+NEVER create a client without first searching for duplicates.
+After creation, encourage the user to provide email/phone if missing: "Tu as son email ou telephone ? C'est utile pour le retrouver facilement."`,
   schema: z.object({
-    firstName: z.string().min(1).max(100).describe('Prénom du client'),
-    lastName: z.string().min(1).max(100).describe('Nom de famille du client'),
-    email: z.string().email().optional().describe('Email du client'),
-    phone: z.string().max(30).optional().describe('Téléphone du client'),
-    address: z.string().max(500).optional().describe('Adresse complète du client'),
+    firstName: z.string().min(1).max(100).describe('Client first name'),
+    lastName: z.string().min(1).max(100).describe('Client last name'),
+    email: z.string().email().optional().describe('Client email'),
+    phone: z.string().max(30).optional().describe('Client phone'),
+    address: z.string().max(500).optional().describe('Client full address'),
   }),
   handler: async (args, ctx) => {
     const client = await createClient({
@@ -82,21 +90,24 @@ const createClientTool = defineTool({
 });
 
 const lineSchema = z.object({
-  description: z.string().min(1).max(500).describe('Description de la prestation'),
-  quantity: z.number().positive().max(100_000).describe('Quantité'),
-  unit: z.string().max(20).default('u').describe("Unité: u, m², m, h, forfait, kg, L, lot"),
-  unitPrice: z.number().int().min(0).max(100_000_000).describe('Prix unitaire HT en centimes'),
-  tvaRate: z.number().int().default(2000).describe('Taux TVA en points de base (2000=20%, 1000=10%, 550=5.5%, 0=exonéré)'),
+  description: z.string().min(1).max(500).describe('Line item description'),
+  quantity: z.number().positive().max(100_000).describe('Quantity'),
+  unit: z.string().max(20).default('u').describe('Unit: u, m2, m, h, forfait, kg, L, lot'),
+  unitPrice: z.number().int().min(0).max(100_000_000).describe('Unit price excl. tax in cents'),
+  tvaRate: z.number().int().default(2000).describe('VAT rate in basis points (2000=20%, 1000=10%, 550=5.5%, 0=exempt)'),
 });
 
 const generateQuoteTool = defineTool({
   name: 'generate_quote',
   description:
-    "Générer un devis pour un client. Montants en centimes. TVA par ligne en points de base (2000=20%, 1000=10%, 550=5.5%). IMPORTANT: utilise uniquement un clientId obtenu dans le contexte actuel de cette conversation.",
+    `Generate a new quote for a client. Amounts in cents, VAT per line in basis points (2000=20%, 1000=10%, 550=5.5%, 0=exempt).
+Always confirm line items and amounts with the user before calling this tool.
+Add a descriptive title (e.g. "Renovation salle de bain").
+Use the appropriate unit per line: m2, m, h, forfait, u, kg, L, lot.`,
   schema: z.object({
-    clientId: z.string().uuid().describe('ID du client (du contexte actuel uniquement)'),
-    title: z.string().max(255).optional().describe('Titre/objet du devis (ex: Rénovation salle de bain)'),
-    lines: z.array(lineSchema).min(1).max(50).describe('Lignes du devis'),
+    clientId: z.string().uuid().describe('Client ID (from current conversation tool results only)'),
+    title: z.string().max(255).optional().describe('Quote title/subject'),
+    lines: z.array(lineSchema).min(1).max(50).describe('Quote line items'),
   }),
   handler: async (args, ctx) => {
     const quote = await createQuote({
@@ -113,11 +124,12 @@ const generateQuoteTool = defineTool({
 const updateQuoteTool = defineTool({
   name: 'update_quote',
   description:
-    "Modifier les lignes d'un devis existant (brouillon ou envoyé, sans facture liée). Remplace toutes les lignes.",
+    `Update an existing quote (draft or sent, with no linked invoice). Replaces ALL lines — include unchanged lines too with the user's modifications applied.
+Use this instead of generating a new quote when the user asks to modify an existing one.`,
   schema: z.object({
-    quoteId: z.string().uuid().describe('ID du devis (du contexte actuel uniquement)'),
-    title: z.string().max(255).optional().describe('Nouveau titre (optionnel)'),
-    lines: z.array(lineSchema).min(1).max(50).describe('Nouvelles lignes du devis (remplace les anciennes)'),
+    quoteId: z.string().uuid().describe('Quote ID (from current conversation tool results only)'),
+    title: z.string().max(255).optional().describe('New title (optional)'),
+    lines: z.array(lineSchema).min(1).max(50).describe('New line items (replaces all existing lines)'),
   }),
   handler: async (args, ctx) => {
     const quote = await updateQuote({
@@ -133,11 +145,12 @@ const updateQuoteTool = defineTool({
 const generateInvoiceTool = defineTool({
   name: 'generate_invoice',
   description:
-    "Générer une facture directe (sans devis). Montants en centimes. TVA par ligne. IMPORTANT: utilise uniquement un clientId obtenu dans le contexte actuel de cette conversation.",
+    `Generate a direct invoice (without a quote). Amounts in cents, VAT per line in basis points.
+Use this for standalone invoices. To invoice from an existing quote, use the dedicated tool instead.`,
   schema: z.object({
-    clientId: z.string().uuid().describe('ID du client (du contexte actuel uniquement)'),
-    title: z.string().max(255).optional().describe("Titre/objet de la facture"),
-    lines: z.array(lineSchema).min(1).max(50).describe('Lignes de la facture'),
+    clientId: z.string().uuid().describe('Client ID (from current conversation tool results only)'),
+    title: z.string().max(255).optional().describe('Invoice title/subject'),
+    lines: z.array(lineSchema).min(1).max(50).describe('Invoice line items'),
   }),
   handler: async (args, ctx) => {
     const invoice = await createInvoice({
@@ -154,11 +167,12 @@ const generateInvoiceTool = defineTool({
 const updateInvoiceTool = defineTool({
   name: 'update_invoice',
   description:
-    "Modifier les lignes d'une facture existante (brouillon uniquement). Remplace toutes les lignes.",
+    `Update an existing invoice (draft only). Replaces ALL lines.
+Once sent, paid, or cancelled, an invoice cannot be modified — propose to cancel and recreate if needed.`,
   schema: z.object({
-    invoiceId: z.string().uuid().describe('ID de la facture (du contexte actuel uniquement)'),
-    title: z.string().max(255).optional().describe('Nouveau titre (optionnel)'),
-    lines: z.array(lineSchema).min(1).max(50).describe('Nouvelles lignes de la facture (remplace les anciennes)'),
+    invoiceId: z.string().uuid().describe('Invoice ID (from current conversation tool results only)'),
+    title: z.string().max(255).optional().describe('New title (optional)'),
+    lines: z.array(lineSchema).min(1).max(50).describe('New line items (replaces all existing lines)'),
   }),
   handler: async (args, ctx) => {
     const invoice = await updateInvoice({
@@ -174,10 +188,12 @@ const updateInvoiceTool = defineTool({
 const invoiceFromQuoteTool = defineTool({
   name: 'invoice_from_quote',
   description:
-    "Facturer un devis existant. Copie les lignes du devis dans une facture liée. Utiliser quand l'utilisateur dit 'facture le devis X'.",
+    `Create an invoice from an existing quote. Copies all lines from the quote into a linked invoice.
+Use when the user says "facture le devis X". Confirm before invoicing: "Je facture la totalite du devis #X ?"
+Use the list tool to find the quote if needed.`,
   schema: z.object({
-    quoteId: z.string().uuid().describe('ID du devis (du contexte actuel uniquement)'),
-    title: z.string().max(255).optional().describe("Titre de la facture (par défaut: reprend le titre du devis)"),
+    quoteId: z.string().uuid().describe('Quote ID (from current conversation tool results only)'),
+    title: z.string().max(255).optional().describe('Invoice title (defaults to quote title)'),
   }),
   handler: async (args, ctx) => {
     const invoice = await createInvoiceFromQuote({
@@ -192,10 +208,9 @@ const invoiceFromQuoteTool = defineTool({
 
 const listQuotesTool = defineTool({
   name: 'list_quotes',
-  description:
-    "Lister les devis. Optionnel: filtrer par clientId du contexte actuel.",
+  description: 'List recent quotes. Optionally filter by client.',
   schema: z.object({
-    clientId: z.string().uuid().optional().describe('Filtrer par client (du contexte actuel, optionnel)'),
+    clientId: z.string().uuid().optional().describe('Filter by client ID (from current conversation, optional)'),
   }),
   handler: async (args, ctx) => {
     const quotes = await listQuotes(ctx.teamId);
@@ -208,10 +223,9 @@ const listQuotesTool = defineTool({
 
 const listInvoicesTool = defineTool({
   name: 'list_invoices',
-  description:
-    "Lister les factures. Optionnel: filtrer par clientId du contexte actuel.",
+  description: 'List recent invoices. Optionally filter by client.',
   schema: z.object({
-    clientId: z.string().uuid().optional().describe('Filtrer par client (du contexte actuel, optionnel)'),
+    clientId: z.string().uuid().optional().describe('Filter by client ID (from current conversation, optional)'),
   }),
   handler: async (args, ctx) => {
     const invoices = await listInvoices(ctx.teamId);
@@ -224,10 +238,10 @@ const listInvoicesTool = defineTool({
 
 const getStatsTool = defineTool({
   name: 'get_stats',
-  description: 'Obtenir les statistiques du mois (CA, factures impayées, conversion devis).',
+  description: 'Get monthly business statistics (revenue, unpaid invoices, quote conversion rate).',
   schema: z.object({
-    month: z.number().int().min(1).max(12).describe('Mois (1-12)'),
-    year: z.number().int().min(2020).max(2100).describe('Année'),
+    month: z.number().int().min(1).max(12).describe('Month (1-12)'),
+    year: z.number().int().min(2020).max(2100).describe('Year'),
   }),
   handler: async (args, ctx) => {
     const stats = await getMonthlyStats({
@@ -241,9 +255,9 @@ const getStatsTool = defineTool({
 
 const markAsPaidTool = defineTool({
   name: 'mark_as_paid',
-  description: 'Marquer une facture comme payée.',
+  description: 'Mark an invoice as paid.',
   schema: z.object({
-    invoiceId: z.string().uuid().describe('ID de la facture (du contexte actuel uniquement)'),
+    invoiceId: z.string().uuid().describe('Invoice ID (from current conversation tool results only)'),
   }),
   handler: async (args, ctx) => {
     const invoice = await markAsPaid({
@@ -257,14 +271,15 @@ const markAsPaidTool = defineTool({
 const updateClientTool = defineTool({
   name: 'update_client',
   description:
-    "Mettre à jour les informations d'un client existant (email, téléphone, adresse, nom). IMPORTANT: utilise uniquement un clientId obtenu dans le contexte actuel.",
+    `Update an existing client's information (email, phone, address, name).
+Use when the user provides missing contact info (e.g. after a document email flow fails because the client has no email).`,
   schema: z.object({
-    clientId: z.string().uuid().describe('ID du client (du contexte actuel uniquement)'),
-    firstName: z.string().min(1).max(100).optional().describe('Nouveau prénom'),
-    lastName: z.string().min(1).max(100).optional().describe('Nouveau nom'),
-    email: z.string().email().optional().describe('Nouvel email'),
-    phone: z.string().max(30).optional().describe('Nouveau téléphone'),
-    address: z.string().max(500).optional().describe('Nouvelle adresse'),
+    clientId: z.string().uuid().describe('Client ID (from current conversation tool results only)'),
+    firstName: z.string().min(1).max(100).optional().describe('New first name'),
+    lastName: z.string().min(1).max(100).optional().describe('New last name'),
+    email: z.string().email().optional().describe('New email'),
+    phone: z.string().max(30).optional().describe('New phone'),
+    address: z.string().max(500).optional().describe('New address'),
   }),
   handler: async (args, ctx) => {
     const client = await updateClientUc({
@@ -282,11 +297,12 @@ const updateClientTool = defineTool({
 
 const addClientNoteTool = defineTool({
   name: 'add_client_note',
-  description: "Ajouter une note à un client. IMPORTANT: utilise uniquement un clientId obtenu dans le contexte actuel. Utilise type 'warning' pour les informations de sécurité ou d'accès importantes (animal dangereux, code portail, accès difficile, précautions chantier…). Sinon 'note' par défaut.",
+  description:
+    `Add a note to a client. Use type 'warning' for safety/access info (dangerous animal, gate code, difficult access, site precautions). Default is 'note'.`,
   schema: z.object({
-    clientId: z.string().uuid().describe('ID du client (du contexte actuel uniquement)'),
-    content: z.string().min(1).max(2000).describe('Contenu de la note'),
-    type: z.enum(['note', 'warning']).default('note').describe("'warning' pour sécurité/accès, 'note' sinon"),
+    clientId: z.string().uuid().describe('Client ID (from current conversation tool results only)'),
+    content: z.string().min(1).max(2000).describe('Note content'),
+    type: z.enum(['note', 'warning']).default('note').describe("'warning' for safety/access, 'note' otherwise"),
   }),
   handler: async (args, ctx) => {
     await addClientNote({

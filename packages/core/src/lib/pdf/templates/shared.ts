@@ -158,6 +158,12 @@ export const CSS = `
   @page {
     size: A4;
     margin: 15mm 15mm 20mm 15mm;
+    @bottom-left {
+      content: "Créé avec Tuldio · tuldio.fr";
+      font-size: 7pt;
+      color: #bbb;
+      font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    }
     @bottom-right {
       content: counter(page) " / " counter(pages);
       font-size: 7pt;

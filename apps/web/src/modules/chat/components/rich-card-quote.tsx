@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { formatCurrency } from '@/lib/utils';
 import { apiFetch } from '@/lib/api-fetch';
-import { shareDocument, downloadDocument } from '@/lib/share-document';
+import { shareDocument, viewDocument } from '@/lib/share-document';
 import { statusConfig, defaultStatus } from '@/modules/documents/components/status-config';
 import { RichCardSkeleton } from './rich-card-skeleton';
 
@@ -22,7 +22,7 @@ export function RichCardQuote({ data, onSendMessage }: RichCardQuoteProps) {
   const [loading, setLoading] = useState(true);
   const status = statusConfig[currentStatus] ?? defaultStatus;
   const [sending, setSending] = useState(false);
-  const [downloading, setDownloading] = useState(false);
+
   const [confirming, setConfirming] = useState(false);
 
   useEffect(() => {
@@ -72,16 +72,9 @@ export function RichCardQuote({ data, onSendMessage }: RichCardQuoteProps) {
     setConfirming(false);
   }
 
-  async function handleDownload() {
+  function handleView() {
     if (!data.pdfUrl) return;
-    setDownloading(true);
-    try {
-      await downloadDocument({ pdfUrl: data.pdfUrl, fileName });
-    } catch {
-      // ignore
-    } finally {
-      setDownloading(false);
-    }
+    viewDocument({ pdfUrl: data.pdfUrl });
   }
 
   async function handleStatusUpdate(newStatus: 'accepted' | 'refused') {
@@ -121,8 +114,7 @@ export function RichCardQuote({ data, onSendMessage }: RichCardQuoteProps) {
             {sending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
             Envoyer par email
           </Button>
-          <Button size="sm" variant="outline" className="flex-1" disabled={downloading} onClick={handleDownload}>
-            {downloading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+          <Button size="sm" variant="outline" className="flex-1" onClick={handleView}>
             Consulter
           </Button>
         </div>

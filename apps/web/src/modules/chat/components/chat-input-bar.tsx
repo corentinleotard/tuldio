@@ -8,13 +8,18 @@ interface ChatInputBarProps {
 }
 
 export function ChatInputBar({ onSend, disabled }: ChatInputBarProps) {
-  const [value, setValue] = useState('');
+  const [value, setValue] = useState(() => sessionStorage.getItem('chat-draft') ?? '');
+
+  function updateValue(v: string) {
+    setValue(v);
+    sessionStorage.setItem('chat-draft', v);
+  }
 
   function handleSend() {
     const trimmed = value.trim();
     if (!trimmed) return;
     onSend(trimmed);
-    setValue('');
+    updateValue('');
   }
 
   function handleKeyDown(e: React.KeyboardEvent) {
@@ -31,7 +36,7 @@ export function ChatInputBar({ onSend, disabled }: ChatInputBarProps) {
       </Button>
       <textarea
         value={value}
-        onChange={(e) => setValue(e.target.value)}
+        onChange={(e) => updateValue(e.target.value)}
         onKeyDown={handleKeyDown}
         placeholder="Ecrivez un message..."
         rows={1}

@@ -3,6 +3,7 @@ import { MessageSquare, FileText, Users, BarChart3, Settings } from 'lucide-reac
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/lib/auth-context';
 import { Avatar } from '@/components/ui/avatar';
+import { PwaInstallPrompt, usePwaBanner } from '@/components/pwa-install-prompt';
 
 const navItems = [
   { to: '/chat', label: 'Chat', desktopLabel: 'Chat', icon: MessageSquare, badge: 0 },
@@ -13,6 +14,7 @@ const navItems = [
 
 export function AppLayout() {
   const { user } = useAuth();
+  const pwaBannerVisible = usePwaBanner();
 
   return (
     <div className="flex h-dvh">
@@ -63,38 +65,41 @@ export function AppLayout() {
 
       {/* Main content */}
       <main className="flex min-w-0 flex-1 flex-col">
-        <div className="flex-1 overflow-auto pb-16 md:pb-0">
+        <div className={cn('flex-1 overflow-auto md:pb-0', pwaBannerVisible ? 'pb-[104px]' : 'pb-16')}>
           <Outlet />
         </div>
       </main>
 
-      {/* Mobile bottom tabs */}
-      <nav className="fixed inset-x-0 bottom-0 z-50 flex border-t border-border bg-card pb-safe md:hidden">
-        {navItems.map((item) => (
-          <NavLink
-            key={item.to}
-            to={item.to}
-            className={({ isActive }) =>
-              cn(
-                'flex flex-1 flex-col items-center gap-[3px] pt-2 pb-1 text-[10px] font-medium transition-colors',
-                isActive
-                  ? 'font-semibold text-primary'
-                  : 'text-muted-foreground',
-              )
-            }
-          >
-            <div className="relative">
-              <item.icon className="h-6 w-6" />
-              {item.badge > 0 && (
-                <span className="absolute -right-2 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-accent text-[9px] font-bold text-white">
-                  {item.badge}
-                </span>
-              )}
-            </div>
-            {item.label}
-          </NavLink>
-        ))}
-      </nav>
+      {/* Mobile bottom: install prompt + tabs */}
+      <div className="fixed inset-x-0 bottom-0 z-50 md:hidden">
+        <PwaInstallPrompt />
+        <nav className="flex border-t border-border bg-card pb-safe">
+          {navItems.map((item) => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              className={({ isActive }) =>
+                cn(
+                  'flex flex-1 flex-col items-center gap-[3px] pt-2 pb-1 text-[10px] font-medium transition-colors',
+                  isActive
+                    ? 'font-semibold text-primary'
+                    : 'text-muted-foreground',
+                )
+              }
+            >
+              <div className="relative">
+                <item.icon className="h-6 w-6" />
+                {item.badge > 0 && (
+                  <span className="absolute -right-2 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-accent text-[9px] font-bold text-white">
+                    {item.badge}
+                  </span>
+                )}
+              </div>
+              {item.label}
+            </NavLink>
+          ))}
+        </nav>
+      </div>
     </div>
   );
 }

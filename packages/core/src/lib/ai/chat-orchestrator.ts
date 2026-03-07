@@ -1,7 +1,7 @@
 import type Anthropic from '@anthropic-ai/sdk';
 import { callClaude } from './claude-client.js';
 import { buildSystemPrompt } from './system-prompt.js';
-import { buildClaudeMessages, buildContextSummary } from './build-context.js';
+import { buildClaudeMessages, type StoredToolCall } from './build-context.js';
 import { chatTools, executeTool } from './tool-registry.js';
 import { createMessage, listMessages } from '../../modules/messages/index.js';
 import { getCurrentUser } from '../../modules/users/index.js';
@@ -29,14 +29,13 @@ export async function processMessage(input: {
     listMessages({ userId, limit: 50 }),
   ]);
 
-  const contextSummary = buildContextSummary(recentMessages);
   const metadataContext = metadata?.selectedClientId
-    ? `\n\nL'utilisateur vient de sélectionner un client via la carte interactive. Le clientId sélectionné est: ${metadata.selectedClientId}. Utilise ce clientId directement, pas besoin de resolve_client.`
+    ? `\n\nThe user just selected a client via the interactive card. The selected clientId is: ${metadata.selectedClientId}. Use this clientId directly — no need to search for the client.`
     : '';
   const systemPrompt = buildSystemPrompt({
     teamName: team.name,
     userName: user.name,
-  }) + (contextSummary ? `\n\n${contextSummary}` : '') + metadataContext;
+  }) + metadataContext;
 
   const claudeMessages: Anthropic.MessageParam[] = buildClaudeMessages(recentMessages);
 
@@ -51,7 +50,7 @@ export async function processMessage(input: {
   });
 
   let richCard: { type: string; data: unknown } | null = null;
-  const allToolCalls: { name: string; input: unknown }[] = [];
+  const toolRounds: StoredToolCall[][] = [];
   const traceRounds: DebugTraceRound[] = [];
 
   // Handle tool use loop
@@ -65,6 +64,7 @@ export async function processMessage(input: {
 
     const toolResults: Anthropic.ToolResultBlockParam[] = [];
     const roundToolCalls: DebugTraceToolCall[] = [];
+    const roundStored: StoredToolCall[] = [];
 
     for (const toolUse of toolUseBlocks) {
       const toolStart = Date.now();
@@ -87,6 +87,13 @@ export async function processMessage(input: {
           durationMs: Date.now() - toolStart,
         });
 
+        roundStored.push({
+          toolUseId: toolUse.id,
+          name: toolUse.name,
+          input: toolUse.input,
+          result: result.result,
+        });
+
         toolResults.push({
           type: 'tool_result',
           tool_use_id: toolUse.id,
@@ -103,6 +110,13 @@ export async function processMessage(input: {
           durationMs: Date.now() - toolStart,
         });
 
+        roundStored.push({
+          toolUseId: toolUse.id,
+          name: toolUse.name,
+          input: toolUse.input,
+          result: errorPayload,
+        });
+
         toolResults.push({
           type: 'tool_result',
           tool_use_id: toolUse.id,
@@ -112,7 +126,7 @@ export async function processMessage(input: {
       }
     }
 
-    // Record this round in the trace
+    // Record this round
     traceRounds.push({
       inputTokens: meta.inputTokens,
       outputTokens: meta.outputTokens,
@@ -120,11 +134,7 @@ export async function processMessage(input: {
       durationMs: meta.durationMs,
       toolCalls: roundToolCalls,
     });
-
-    // Accumulate all tool calls across loop iterations
-    for (const b of toolUseBlocks) {
-      allToolCalls.push({ name: b.name, input: b.input });
-    }
+    toolRounds.push(roundStored);
 
     // Continue conversation with tool results
     claudeMessages.push({ role: 'assistant', content: response.content });
@@ -173,7 +183,7 @@ export async function processMessage(input: {
     teamId,
     role: 'assistant',
     content: textContent,
-    toolCalls: allToolCalls.length > 0 ? allToolCalls : null,
+    toolCalls: toolRounds.length > 0 ? toolRounds : null,
     richCard: richCard,
     debugTrace,
   });

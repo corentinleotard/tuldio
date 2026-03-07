@@ -41,6 +41,10 @@ export async function shareDocument(input: {
   });
 }
 
+export function viewDocument(input: { pdfUrl: string }): void {
+  window.open(`${API_URL}${input.pdfUrl}`, '_blank');
+}
+
 export async function downloadDocument(input: {
   pdfUrl: string;
   fileName: string;
