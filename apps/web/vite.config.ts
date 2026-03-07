@@ -13,6 +13,7 @@ export default defineConfig({
         short_name: 'Tuldio',
         description: 'Devis et factures en 2 secondes',
         start_url: '/',
+        scope: '/',
         display: 'standalone',
         background_color: '#ffffff',
         theme_color: '#1B4D3E',

@@ -1,0 +1,6 @@
+CREATE TABLE demand_states (
+  user_id UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  team_id UUID NOT NULL REFERENCES teams(id) ON DELETE CASCADE,
+  state JSONB NOT NULL DEFAULT '{}',
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);

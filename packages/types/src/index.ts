@@ -291,6 +291,32 @@ export interface AiCostsSummary {
   calls: AiCallView[];
 }
 
+// Demand State
+export interface DemandClient {
+  id: string;
+  name: string;
+}
+
+export interface DemandLine {
+  description: string;
+  quantity: number;
+  unit: string;
+  unitPrice?: number;
+  tvaRate?: number;
+}
+
+export interface DemandDocument {
+  type: 'quote' | 'invoice';
+  title?: string;
+  tvaContext?: 'réno' | 'neuf';
+  lines: DemandLine[];
+}
+
+export interface DemandState {
+  client: DemandClient | null;
+  document: DemandDocument | null;
+}
+
 // Pagination
 export interface PaginatedResponse<T> {
   items: T[];

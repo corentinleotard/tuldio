@@ -1,25 +1,41 @@
 import { z } from 'zod';
 import type Anthropic from '@anthropic-ai/sdk';
 import { zodToJsonSchema } from 'zod-to-json-schema';
+import type { DemandState, DemandDocument } from '@tuldio/types';
 import { resolveClient, createClient, addClientNote, updateClientUc } from '../../modules/clients/index.js';
 import { createQuote, updateQuote, listQuotes, searchPastPricing } from '../../modules/quotes/index.js';
 import { createInvoice, updateInvoice, createInvoiceFromQuote, markAsPaid, listInvoices } from '../../modules/invoices/index.js';
 import { getMonthlyStats } from '../../modules/stats/index.js';
+import { HandledError } from '../errors/handled-error.js';
+import { errorCodes } from '../errors/error-codes.js';
 
 export type ToolResult = { result: unknown; richCard?: { type: string; data: unknown }; quickReplies?: string[] };
 
-type ToolContext = { teamId: string; userId: string };
+export type StateUpdate = Partial<DemandState> | 'clear' | null;
+
+type ToolContext = { teamId: string; userId: string; demandState: DemandState };
 
 interface ToolDefinition<T extends z.ZodType> {
   name: string;
   description: string;
   schema: T;
   handler: (args: z.infer<T>, ctx: ToolContext) => Promise<ToolResult>;
+  stateUpdate?: (result: unknown) => StateUpdate;
 }
 
 function defineTool<T extends z.ZodType>(def: ToolDefinition<T>): ToolDefinition<T> {
   return def;
 }
+
+// --- Shared schemas ---
+
+const lineSchema = z.object({
+  description: z.string().min(1).max(500).describe('Line item description'),
+  quantity: z.number().positive().max(100_000).describe('Quantity'),
+  unit: z.string().max(20).default('u').describe('Unit: u, m2, m, h, forfait, kg, L, lot'),
+  unitPrice: z.number().int().min(0).max(100_000_000).describe('Unit price excl. tax in cents'),
+  tvaRate: z.number().int().default(2000).describe('VAT rate in basis points'),
+});
 
 // --- Tool definitions ---
 
@@ -61,6 +77,13 @@ Strip civilities (M., Mme, Monsieur, Madame) from the search text.`,
 
     return { result: resolution };
   },
+  stateUpdate: (result) => {
+    const r = result as { status: string; client?: { id: string; firstName: string; lastName: string } };
+    if (r.status === 'exact_match' && r.client) {
+      return { client: { id: r.client.id, name: `${r.client.firstName} ${r.client.lastName}` } };
+    }
+    return null;
+  },
 });
 
 const createClientTool = defineTool({
@@ -87,14 +110,10 @@ After creation, encourage the user to provide email/phone if missing: "Tu as son
     });
     return { result: client };
   },
-});
-
-const lineSchema = z.object({
-  description: z.string().min(1).max(500).describe('Line item description'),
-  quantity: z.number().positive().max(100_000).describe('Quantity'),
-  unit: z.string().max(20).default('u').describe('Unit: u, m2, m, h, forfait, kg, L, lot'),
-  unitPrice: z.number().int().min(0).max(100_000_000).describe('Unit price excl. tax in cents'),
-  tvaRate: z.number().int().default(2000).describe('VAT rate in basis points (2000=20%, 1000=10%, 550=5.5%, 0=exempt)'),
+  stateUpdate: (result) => {
+    const r = result as { id: string; firstName: string; lastName: string };
+    return { client: { id: r.id, name: `${r.firstName} ${r.lastName}` } };
+  },
 });
 
 const searchPastPricingTool = defineTool({
@@ -116,29 +135,85 @@ Returns matching lines with unit price, quantity, document type/number, client, 
   },
 });
 
+const prepareDocumentTool = defineTool({
+  name: 'prepare_document',
+  description:
+    `Register the document being built (quote or invoice). Call this as soon as you understand the line items from the user's message — even if prices are missing.
+Call it again with updated lines when prices are confirmed. Each call REPLACES the previous state — include ALL lines every time.
+The stored lines will be used by generate_quote / generate_invoice.
+Do NOT call generate_quote or generate_invoice without calling this first with all prices set.`,
+  schema: z.object({
+    type: z.enum(['quote', 'invoice']).describe('Document type'),
+    title: z.string().max(255).optional().describe('Document title'),
+    tvaContext: z.enum(['réno', 'neuf']).optional().describe('TVA context — réno or neuf'),
+    lines: z.array(z.object({
+      description: z.string().min(1).max(500).describe('Line item description'),
+      quantity: z.number().positive().max(100_000).describe('Quantity'),
+      unit: z.string().max(20).default('u').describe('Unit: u, m2, m, h, forfait, kg, L, lot'),
+      unitPrice: z.number().int().min(0).max(100_000_000).optional().describe('Unit price excl. tax in cents — omit if not yet known'),
+      tvaRate: z.number().int().optional().describe('VAT rate in basis points (2000=20%, 1000=10%, 550=5.5%) — omit if not yet determined'),
+    })).min(1).max(50).describe('Document line items'),
+  }),
+  handler: async (args) => {
+    const allPriced = args.lines.every((l) => l.unitPrice !== undefined);
+    return {
+      result: {
+        type: args.type,
+        title: args.title,
+        tvaContext: args.tvaContext,
+        lineCount: args.lines.length,
+        allPriced,
+        lines: args.lines,
+      },
+    };
+  },
+  stateUpdate: (result) => {
+    const r = result as { type: string; title?: string; tvaContext?: string; lines: unknown[] };
+    return {
+      document: {
+        type: r.type,
+        title: r.title,
+        tvaContext: r.tvaContext,
+        lines: r.lines,
+      } as DemandDocument,
+    };
+  },
+});
+
 const generateQuoteTool = defineTool({
   name: 'generate_quote',
   description:
-    `Generate a new quote for a client. Amounts in cents, VAT per line in basis points (2000=20%, 1000=10%, 550=5.5%, 0=exempt).
-Always confirm line items and amounts with the user before calling this tool.
-Add a descriptive title (e.g. "Renovation salle de bain").
-Use the appropriate unit per line: m2, m, h, forfait, u, kg, L, lot.
-IMPORTANT: before asking the user for unit prices, FIRST call search_past_pricing for each line description. If past pricing exists, suggest it instead of asking blindly.`,
+    `Generate a quote from the prepared document and active client.
+PREREQUISITES: resolve_client and prepare_document (with all prices set) must have been called first.
+The client and lines are read from the current demand state — do not pass them.
+Optionally override the title.`,
   schema: z.object({
-    clientId: z.string().uuid().describe('Client ID (from current conversation tool results only)'),
-    title: z.string().max(255).optional().describe('Quote title/subject'),
-    lines: z.array(lineSchema).min(1).max(50).describe('Quote line items'),
+    title: z.string().max(255).optional().describe('Override title (uses prepare_document title if omitted)'),
   }),
   handler: async (args, ctx) => {
+    const { demandState } = ctx;
+    if (!demandState.client) throw new HandledError(errorCodes.noActiveClient);
+    if (!demandState.document?.lines?.length) throw new HandledError(errorCodes.noDocumentPrepared);
+
+    const incomplete = demandState.document.lines.some((l) => l.unitPrice === undefined);
+    if (incomplete) throw new HandledError(errorCodes.documentLinesIncomplete);
+
     const quote = await createQuote({
       teamId: ctx.teamId,
       userId: ctx.userId,
-      clientId: args.clientId,
-      title: args.title,
-      lines: args.lines,
+      clientId: demandState.client.id,
+      title: args.title ?? demandState.document.title,
+      lines: demandState.document.lines.map((l) => ({
+        description: l.description,
+        quantity: l.quantity,
+        unit: l.unit,
+        unitPrice: l.unitPrice!,
+        tvaRate: l.tvaRate,
+      })),
     });
     return { result: quote, richCard: { type: 'quote', data: quote } };
   },
+  stateUpdate: () => 'clear',
 });
 
 const updateQuoteTool = defineTool({
@@ -165,24 +240,37 @@ Use this instead of generating a new quote when the user asks to modify an exist
 const generateInvoiceTool = defineTool({
   name: 'generate_invoice',
   description:
-    `Generate a direct invoice (without a quote). Amounts in cents, VAT per line in basis points.
-Use this for standalone invoices. To invoice from an existing quote, use the dedicated tool instead.
-IMPORTANT: before asking the user for unit prices, FIRST call search_past_pricing for each line description. If past pricing exists, suggest it instead of asking blindly.`,
+    `Generate an invoice from the prepared document and active client.
+PREREQUISITES: resolve_client and prepare_document (with all prices set) must have been called first.
+The client and lines are read from the current demand state — do not pass them.
+Use this for standalone invoices. To invoice from an existing quote, use invoice_from_quote instead.`,
   schema: z.object({
-    clientId: z.string().uuid().describe('Client ID (from current conversation tool results only)'),
-    title: z.string().max(255).optional().describe('Invoice title/subject'),
-    lines: z.array(lineSchema).min(1).max(50).describe('Invoice line items'),
+    title: z.string().max(255).optional().describe('Override title (uses prepare_document title if omitted)'),
   }),
   handler: async (args, ctx) => {
+    const { demandState } = ctx;
+    if (!demandState.client) throw new HandledError(errorCodes.noActiveClient);
+    if (!demandState.document?.lines?.length) throw new HandledError(errorCodes.noDocumentPrepared);
+
+    const incomplete = demandState.document.lines.some((l) => l.unitPrice === undefined);
+    if (incomplete) throw new HandledError(errorCodes.documentLinesIncomplete);
+
     const invoice = await createInvoice({
       teamId: ctx.teamId,
       userId: ctx.userId,
-      clientId: args.clientId,
-      title: args.title,
-      lines: args.lines,
+      clientId: demandState.client.id,
+      title: args.title ?? demandState.document.title,
+      lines: demandState.document.lines.map((l) => ({
+        description: l.description,
+        quantity: l.quantity,
+        unit: l.unit,
+        unitPrice: l.unitPrice!,
+        tvaRate: l.tvaRate,
+      })),
     });
     return { result: invoice, richCard: { type: 'invoice', data: invoice } };
   },
+  stateUpdate: () => 'clear',
 });
 
 const updateInvoiceTool = defineTool({
@@ -225,6 +313,7 @@ Use the list tool to find the quote if needed.`,
     });
     return { result: invoice, richCard: { type: 'invoice', data: invoice } };
   },
+  stateUpdate: () => 'clear',
 });
 
 const listQuotesTool = defineTool({
@@ -344,6 +433,7 @@ const allTools: ToolDefinition<any>[] = [
   createClientTool,
   updateClientTool,
   searchPastPricingTool,
+  prepareDocumentTool,
   generateQuoteTool,
   updateQuoteTool,
   listQuotesTool,
@@ -377,13 +467,22 @@ export async function executeTool(input: {
   toolInput: Record<string, unknown>;
   teamId: string;
   userId: string;
-}): Promise<ToolResult> {
+  demandState: DemandState;
+}): Promise<{ toolResult: ToolResult; stateUpdate: StateUpdate }> {
   const tool = toolMap.get(input.toolName);
 
   if (!tool) {
-    return { result: { error: `Unknown tool: ${input.toolName}` } };
+    return { toolResult: { result: { error: `Unknown tool: ${input.toolName}` } }, stateUpdate: null };
   }
 
   const args = tool.schema.parse(input.toolInput);
-  return tool.handler(args, { teamId: input.teamId, userId: input.userId });
+  const toolResult = await tool.handler(args, {
+    teamId: input.teamId,
+    userId: input.userId,
+    demandState: input.demandState,
+  });
+
+  const stateUpdate = tool.stateUpdate ? tool.stateUpdate(toolResult.result) : null;
+
+  return { toolResult, stateUpdate };
 }

@@ -144,6 +144,21 @@ export const errorCodes = {
     statusCode: 400,
     message: 'Données invalides',
   },
+  noActiveClient: {
+    code: 'NO_ACTIVE_CLIENT',
+    statusCode: 400,
+    message: 'Aucun client sélectionné',
+  },
+  noDocumentPrepared: {
+    code: 'NO_DOCUMENT_PREPARED',
+    statusCode: 400,
+    message: 'Aucune ligne préparée',
+  },
+  documentLinesIncomplete: {
+    code: 'DOCUMENT_LINES_INCOMPLETE',
+    statusCode: 400,
+    message: 'Certaines lignes n\'ont pas de prix unitaire',
+  },
 } as const;
 
 export type ErrorCode = (typeof errorCodes)[keyof typeof errorCodes];

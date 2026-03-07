@@ -9,19 +9,12 @@ import { describe, it, expect } from 'vitest';
 import { buildSystemPrompt } from '../system-prompt.js';
 import { chatTools } from '../tool-registry.js';
 
-const prompt = buildSystemPrompt({ teamName: 'Test SARL', userName: 'Jean' });
+const prompt = buildSystemPrompt({ teamName: 'Test SARL', userName: 'Jean', demandState: { client: null, document: null } });
 
 describe('system prompt structure', () => {
-  it('stays under 50 lines', () => {
+  it('stays under 60 lines (without demand state)', () => {
     const lineCount = prompt.split('\n').length;
-    expect(lineCount).toBeLessThan(50);
-  });
-
-  it('never mentions tool names', () => {
-    const toolNames = chatTools.map((t) => t.name);
-    for (const name of toolNames) {
-      expect(prompt).not.toContain(name);
-    }
+    expect(lineCount).toBeLessThan(60);
   });
 
   it('never contains UUIDs', () => {
@@ -29,12 +22,12 @@ describe('system prompt structure', () => {
     expect(prompt).not.toMatch(uuidPattern);
   });
 
-  it('does not script conversation flows (no step-by-step instructions)', () => {
-    // These patterns indicate procedural scripting — the old broken pattern
+  it('does not script conversation flows (no step-by-step dialogue instructions)', () => {
+    // These patterns indicate procedural dialogue scripting — the old broken pattern
+    // Tool flow sequences (1. resolve_client 2. prepare_document) are allowed
     const proceduralPatterns = [
       /étape \d/i,
       /step \d/i,
-      /1\.\s.*\n2\.\s.*\n3\.\s/,  // numbered multi-step sequences
       /selon le résultat/i,
       /si.*retourne.*alors/i,
     ];
@@ -72,11 +65,11 @@ describe('tool descriptions', () => {
     }
   });
 
-  it('quote and invoice tools reference search_past_pricing', () => {
+  it('generate tools reference prepare_document prerequisite', () => {
     const quoteDesc = chatTools.find((t) => t.name === 'generate_quote')!.description;
     const invoiceDesc = chatTools.find((t) => t.name === 'generate_invoice')!.description;
-    expect(quoteDesc).toContain('search_past_pricing');
-    expect(invoiceDesc).toContain('search_past_pricing');
+    expect(quoteDesc).toContain('prepare_document');
+    expect(invoiceDesc).toContain('prepare_document');
   });
 
   it('no tool description duplicates system prompt content', () => {

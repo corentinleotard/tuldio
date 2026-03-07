@@ -1,15 +1,24 @@
 import type Anthropic from '@anthropic-ai/sdk';
+import type { DemandState } from '@tuldio/types';
 import { callClaude } from './claude-client.js';
 import { buildSystemPrompt } from './system-prompt.js';
 import { buildClaudeMessages, type StoredToolCall } from './build-context.js';
-import { chatTools, executeTool } from './tool-registry.js';
+import { chatTools, executeTool, type StateUpdate } from './tool-registry.js';
 import { createMessage, listMessages } from '../../modules/messages/index.js';
 import { getCurrentUser } from '../../modules/users/index.js';
 import { getTeam } from '../../modules/teams/index.js';
+import { getDemandState, upsertDemandState, clearDemandState } from '../../modules/demands/index.js';
+import { findClientById } from '../../modules/clients/repository/find-client-by-id.js';
 import { logger } from '../infra/logger.js';
 import type { Message, MessageMetadata, DebugTrace, DebugTraceRound, DebugTraceToolCall } from '@tuldio/types';
 
 const MAX_TOOL_ROUNDS = 10;
+
+function applyStateUpdate(current: DemandState, update: StateUpdate): DemandState | null {
+  if (update === null) return null; // no change
+  if (update === 'clear') return { client: null, document: null };
+  return { ...current, ...update };
+}
 
 export async function processMessage(input: {
   userId: string;
@@ -23,19 +32,27 @@ export async function processMessage(input: {
   await createMessage({ userId, teamId, role: 'user', content });
 
   // Load context
-  const [user, team, recentMessages] = await Promise.all([
+  const [user, team, recentMessages, demandState] = await Promise.all([
     getCurrentUser(userId),
     getTeam(teamId),
     listMessages({ userId, limit: 50 }),
+    getDemandState({ userId }),
   ]);
 
-  const metadataContext = metadata?.selectedClientId
-    ? `\n\nThe user just selected a client via the interactive card. The selected clientId is: ${metadata.selectedClientId}. Use this clientId directly — no need to search for the client.`
-    : '';
+  // Handle client picker selection — set active client from metadata
+  let currentState = demandState;
+  if (metadata?.selectedClientId) {
+    const client = await findClientById({ teamId, clientId: metadata.selectedClientId });
+    const clientName = client ? `${client.first_name} ${client.last_name}` : '';
+    currentState = { ...currentState, client: { id: metadata.selectedClientId, name: clientName } };
+    await upsertDemandState({ userId, teamId, state: currentState });
+  }
+
   const systemPrompt = buildSystemPrompt({
     teamName: team.name,
     userName: user.name,
-  }) + metadataContext;
+    demandState: currentState,
+  });
 
   const claudeMessages: Anthropic.MessageParam[] = buildClaudeMessages(recentMessages);
 
@@ -70,12 +87,26 @@ export async function processMessage(input: {
     for (const toolUse of toolUseBlocks) {
       const toolStart = Date.now();
       try {
-        const result = await executeTool({
+        const { toolResult: result, stateUpdate } = await executeTool({
           toolName: toolUse.name,
           toolInput: toolUse.input as Record<string, unknown>,
           teamId,
           userId,
+          demandState: currentState,
         });
+
+        // Apply state update
+        if (stateUpdate !== null) {
+          const newState = applyStateUpdate(currentState, stateUpdate);
+          if (newState) {
+            currentState = newState;
+            if (newState.client === null && newState.document === null) {
+              await clearDemandState({ userId });
+            } else {
+              await upsertDemandState({ userId, teamId, state: currentState });
+            }
+          }
+        }
 
         if (result.richCard) {
           richCard = result.richCard;
