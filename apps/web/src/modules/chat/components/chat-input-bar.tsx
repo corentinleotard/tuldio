@@ -33,7 +33,7 @@ export function ChatInputBar({ onSend, disabled, onTypingChange }: ChatInputBarP
   }
 
   return (
-    <div className="mx-auto flex w-full items-center gap-2 px-3 pb-1 md:pb-4 md:max-w-4xl">
+    <div className="mx-auto flex w-full items-center gap-2 px-3 md:max-w-4xl">
       <Button variant="ghost" size="icon" className="shrink-0 rounded-full" type="button">
         <Camera className="h-5 w-5" />
       </Button>

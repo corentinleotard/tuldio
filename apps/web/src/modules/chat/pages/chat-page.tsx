@@ -2,9 +2,7 @@ import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { Settings } from 'lucide-react';
-import { cn } from '@/lib/utils';
 import { useAuth } from '@/lib/auth-context';
-import { usePwaBanner } from '@/components/pwa-install-prompt';
 import { ChatMessageList } from '../components/chat-message-list';
 import { ChatInputBar } from '../components/chat-input-bar';
 import { QuickReplyBar } from '../components/quick-reply-bar';
@@ -34,7 +32,6 @@ function getToolNamesFromResponse(response: Message): string[] {
 export function ChatPage() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const pwaBannerVisible = usePwaBanner();
   const [isSending, setIsSending] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
 
@@ -160,7 +157,7 @@ export function ChatPage() {
       {/* Desktop: headers + content + input in a row layout */}
       <div className="flex min-h-0 flex-1">
         {/* Chat column */}
-        <div className="flex flex-1 flex-col">
+        <div className="flex min-h-0 flex-1 flex-col">
           {/* Desktop header */}
           <div className="hidden items-center border-b px-5 pb-4 pt-5 md:flex">
             <h1 className="text-[22px] font-bold tracking-tight text-primary">Chat</h1>
@@ -171,7 +168,6 @@ export function ChatPage() {
             onSendMessage={handleSend}
             onLoadOlder={handleLoadOlder}
             isLoadingOlder={isFetchingNextPage}
-            hasOlderMessages={!!hasNextPage}
             isSending={isSending}
           />
 
@@ -183,12 +179,7 @@ export function ChatPage() {
           )}
 
           {/* Input bar */}
-          <div className={cn(
-            'bg-background md:pb-0',
-            pwaBannerVisible
-              ? 'pb-[calc(104px+env(safe-area-inset-bottom))]'
-              : 'pb-[calc(4rem+env(safe-area-inset-bottom))]',
-          )}>
+          <div className="bg-background">
             <ChatInputBar onSend={handleSend} disabled={isSending} onTypingChange={setIsTyping} />
           </div>
         </div>

@@ -22,8 +22,8 @@ describe('validateInvoiceLine', () => {
     expect(validateInvoiceLine({ ...validLine, description: '' })).toContain('description is required');
   });
 
-  it('rejects invalid unit', () => {
-    expect(validateInvoiceLine({ ...validLine, unit: 'invalid' })[0]).toContain('invalid unit');
+  it('accepts any unit string (validation happens in resolveUnit)', () => {
+    expect(validateInvoiceLine({ ...validLine, unit: 'invalid' })).toEqual([]);
   });
 });
 

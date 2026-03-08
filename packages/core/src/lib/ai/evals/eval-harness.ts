@@ -13,7 +13,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { buildSystemPrompt } from '../system-prompt.js';
 import { chatTools } from '../tool-registry.js';
 import type { StoredToolRounds } from '../build-context.js';
-import type { Message, DemandState } from '@tuldio/types';
+import type { Message, DemandState, QuoteView, InvoiceView } from '@tuldio/types';
 import { buildClaudeMessages } from '../build-context.js';
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
@@ -27,6 +27,8 @@ export interface EvalScenario {
   userMessage: string;
   /** Current demand state (simulates persisted state) */
   demandState?: DemandState;
+  /** Active document data (simulates fetched document from DB) */
+  activeDocument?: QuoteView | InvoiceView;
   /** Assertions on the first tool call Claude makes */
   expectToolCall: {
     name: string;
@@ -70,7 +72,8 @@ export async function runEval(scenario: EvalScenario): Promise<{
   ];
 
   const demandState = scenario.demandState ?? { client: null, document: null };
-  const systemPrompt = buildSystemPrompt({ teamName: 'Eval SARL', userName: 'Jean', demandState });
+  const activeDocument = scenario.activeDocument ?? null;
+  const systemPrompt = buildSystemPrompt({ teamName: 'Eval SARL', userName: 'Jean', demandState, activeDocument });
   const messages = buildClaudeMessages(allMessages);
 
   const response = await client.messages.create({

@@ -20,7 +20,6 @@ interface ChatMessageListProps {
   onSendMessage: (content: string, metadata?: MessageMetadata) => void;
   onLoadOlder: () => void;
   isLoadingOlder: boolean;
-  hasOlderMessages: boolean;
   isSending: boolean;
 }
 
@@ -29,13 +28,16 @@ export function ChatMessageList({
   onSendMessage,
   onLoadOlder,
   isLoadingOlder,
-  hasOlderMessages,
   isSending,
 }: ChatMessageListProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
-  const bottomRef = useRef<HTMLDivElement>(null);
   const lastMessageIdRef = useRef<string | null>(null);
   const hasScrolledInitially = useRef(false);
+
+  function scrollToBottom() {
+    const el = scrollRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }
 
   // Scroll to bottom on initial load and when new messages are appended
   useEffect(() => {
@@ -47,43 +49,61 @@ export function ChatMessageList({
 
     if (!hasScrolledInitially.current || lastIdChanged) {
       hasScrolledInitially.current = true;
-      bottomRef.current?.scrollIntoView({ behavior: 'instant' });
+      scrollToBottom();
     }
+  }, [messages]);
+
+  // Re-scroll when content size changes (rich cards rendering after initial scroll)
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+
+    const observer = new ResizeObserver(() => {
+      // Only auto-scroll if user is near the bottom (within 100px)
+      const isNearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 100;
+      if (isNearBottom) {
+        el.scrollTop = el.scrollHeight;
+      }
+    });
+
+    // Observe the content inside the scroll container
+    for (const child of el.children) {
+      observer.observe(child);
+    }
+
+    return () => observer.disconnect();
   }, [messages]);
 
   // Scroll to bottom when sending starts
   useEffect(() => {
     if (!isSending) return;
-    bottomRef.current?.scrollIntoView({ behavior: 'instant' });
+    scrollToBottom();
   }, [isSending]);
 
   // Detect scroll to top to load older messages
+  const onLoadOlderRef = useRef(onLoadOlder);
+  onLoadOlderRef.current = onLoadOlder;
+
   useEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
 
-    let debounceId: ReturnType<typeof setTimeout> | null = null;
+    let ticking = false;
 
     function handleScroll() {
-      if (!el || !hasOlderMessages || isLoadingOlder) return;
-      if (el.scrollTop < 200) {
-        // Debounce to avoid accidental triggers during iOS keyboard
-        // open/close (container resize shifts scrollTop temporarily)
-        if (debounceId) clearTimeout(debounceId);
-        debounceId = setTimeout(() => {
-          if (el.scrollTop < 200) {
-            onLoadOlder();
-          }
-        }, 150);
-      }
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(() => {
+        ticking = false;
+        if (el && el.scrollTop < 200) {
+          onLoadOlderRef.current();
+        }
+      });
     }
 
     el.addEventListener('scroll', handleScroll, { passive: true });
-    return () => {
-      el.removeEventListener('scroll', handleScroll);
-      if (debounceId) clearTimeout(debounceId);
-    };
-  }, [hasOlderMessages, isLoadingOlder, onLoadOlder]);
+    return () => el.removeEventListener('scroll', handleScroll);
+  }, []);
 
   function handleClientSelect(client: ClientView) {
     onSendMessage(`C'est ${client.firstName} ${client.lastName}`, {
@@ -92,7 +112,7 @@ export function ChatMessageList({
   }
 
   return (
-    <div ref={scrollRef} className="flex flex-1 flex-col overflow-y-auto">
+    <div ref={scrollRef} className="flex min-h-0 flex-1 flex-col overflow-y-auto">
       {/* Spacer pushes messages to bottom when content is shorter than viewport */}
       <div className="flex-1" />
 
@@ -119,7 +139,7 @@ export function ChatMessageList({
           </div>
         )}
 
-        <div ref={bottomRef} />
+        <div />
       </div>
     </div>
   );

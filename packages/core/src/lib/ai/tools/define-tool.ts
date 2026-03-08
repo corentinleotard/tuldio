@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import type { DemandState } from '@tuldio/types';
 
-export type ToolResult = { result: unknown; richCard?: { type: string; data: unknown }; quickReplies?: string[] };
+export type ToolResult = { result: unknown; richCard?: { type: string; data: unknown }; quickReplies?: string[]; stateUpdate?: StateUpdate };
 
 export type StateUpdate = Partial<DemandState> | 'clear' | null;
 
@@ -21,7 +21,7 @@ interface ToolDefinition<T extends z.ZodType, R> {
   name: string;
   description: string;
   schema: T;
-  handler: (args: z.infer<T>, ctx: ToolContext) => Promise<{ result: R; richCard?: { type: string; data: unknown }; quickReplies?: string[] }>;
+  handler: (args: z.infer<T>, ctx: ToolContext) => Promise<{ result: R; richCard?: { type: string; data: unknown }; quickReplies?: string[]; stateUpdate?: StateUpdate }>;
   stateUpdate?: (result: R, ctx: ToolContext) => StateUpdate;
 }
 
@@ -29,7 +29,7 @@ export function defineTool<T extends z.ZodType, R>(def: ToolDefinition<T, R>): A
   return def as AnyToolDefinition;
 }
 
-/** Shared line schema used by update_quote and update_invoice */
+/** Shared line schema used by create_document and update_document */
 export const lineSchema = z.object({
   description: z.string().min(1).max(500).describe('Line item description'),
   quantity: z.number().positive().max(100_000).describe('Quantity'),

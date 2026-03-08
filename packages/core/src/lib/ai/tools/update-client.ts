@@ -1,14 +1,15 @@
 import { z } from 'zod';
 import { defineTool } from './define-tool.js';
+import { HandledError } from '../../errors/handled-error.js';
+import { errorCodes } from '../../errors/error-codes.js';
 import { updateClientUc } from '../../../modules/clients/index.js';
 
 export const updateClientTool = defineTool({
   name: 'update_client',
   description:
-    `Update an existing client's information (email, phone, address, name).
-Use when the user provides missing contact info (e.g. after a document email flow fails because the client has no email).`,
+    `Update the active client's contact information (name, email, phone, address).
+Operates on the current active client from state.`,
   schema: z.object({
-    clientId: z.string().uuid().describe('Client ID (from current conversation tool results only)'),
     firstName: z.string().min(1).max(100).optional().describe('New first name'),
     lastName: z.string().min(1).max(100).optional().describe('New last name'),
     email: z.string().email().optional().describe('New email'),
@@ -16,9 +17,12 @@ Use when the user provides missing contact info (e.g. after a document email flo
     address: z.string().max(500).optional().describe('New address'),
   }),
   handler: async (args, ctx) => {
+    if (!ctx.demandState.client) {
+      throw new HandledError(errorCodes.noActiveClient);
+    }
     const client = await updateClientUc({
       teamId: ctx.teamId,
-      clientId: args.clientId,
+      clientId: ctx.demandState.client.id,
       firstName: args.firstName,
       lastName: args.lastName,
       email: args.email,

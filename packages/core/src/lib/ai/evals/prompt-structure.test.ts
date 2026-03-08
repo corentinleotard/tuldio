@@ -9,10 +9,15 @@ import { describe, it, expect } from 'vitest';
 import { buildSystemPrompt } from '../system-prompt.js';
 import { chatTools } from '../tool-registry.js';
 
-const prompt = buildSystemPrompt({ teamName: 'Test SARL', userName: 'Jean', demandState: { client: null, document: null } });
+const prompt = buildSystemPrompt({
+  teamName: 'Test SARL',
+  userName: 'Jean',
+  demandState: { client: null, document: null },
+  activeDocument: null,
+});
 
 describe('system prompt structure', () => {
-  it('stays under 60 lines (without demand state)', () => {
+  it('stays under 60 lines (without state)', () => {
     const lineCount = prompt.split('\n').length;
     expect(lineCount).toBeLessThan(60);
   });
@@ -23,8 +28,6 @@ describe('system prompt structure', () => {
   });
 
   it('does not script conversation flows (no step-by-step dialogue instructions)', () => {
-    // These patterns indicate procedural dialogue scripting — the old broken pattern
-    // Tool flow sequences (1. resolve_client 2. prepare_document) are allowed
     const proceduralPatterns = [
       /étape \d/i,
       /step \d/i,
@@ -49,7 +52,7 @@ describe('system prompt structure', () => {
 });
 
 describe('tool descriptions', () => {
-  it('every ID parameter includes "current conversation" constraint', () => {
+  it('every ID parameter includes "tool results" constraint', () => {
     for (const tool of chatTools) {
       const schema = tool.input_schema as { properties?: Record<string, { description?: string }> };
       if (!schema.properties) continue;
@@ -58,22 +61,14 @@ describe('tool descriptions', () => {
         if (paramName.endsWith('Id') && paramSchema.description) {
           expect(
             paramSchema.description.toLowerCase(),
-            `${tool.name}.${paramName} must include "current conversation" constraint`,
-          ).toContain('current conversation');
+            `${tool.name}.${paramName} must include "tool results" constraint`,
+          ).toContain('tool results');
         }
       }
     }
   });
 
-  it('generate tools reference add_lines prerequisites', () => {
-    const quoteDesc = chatTools.find((t) => t.name === 'generate_quote')!.description;
-    const invoiceDesc = chatTools.find((t) => t.name === 'generate_invoice')!.description;
-    expect(quoteDesc).toContain('add_lines');
-    expect(invoiceDesc).toContain('add_lines');
-  });
-
   it('no tool description duplicates system prompt content', () => {
-    // Tool descriptions should not repeat the prompt's identity/tone rules
     for (const tool of chatTools) {
       expect(tool.description).not.toMatch(/tutoie/i);
       expect(tool.description).not.toMatch(/toujours en fran[cç]ais/i);

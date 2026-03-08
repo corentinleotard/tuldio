@@ -127,6 +127,9 @@ export interface QuoteView {
   pdfUrl: string | null;
   validUntil: string | null;
   sentAt: string | null;
+  acceptedAt: string | null;
+  refusedAt: string | null;
+  cancelledAt: string | null;
   createdAt: string;
 }
 
@@ -161,6 +164,7 @@ export interface InvoiceView {
   pdfUrl: string | null;
   sentAt: string | null;
   paidAt: string | null;
+  cancelledAt: string | null;
   dueDate: string | null;
   createdAt: string;
 }
@@ -297,25 +301,14 @@ export interface DemandClient {
   name: string;
 }
 
-export interface DemandLine {
-  description: string;
-  quantity: number;
-  unit: string;
-  unitPrice?: number;
-  tvaRate?: number;
-}
-
-export interface DemandDocument {
+export interface DemandActiveDocument {
+  id: string;
   type: 'quote' | 'invoice';
-  title?: string;
-  tvaContext?: 'réno' | 'neuf';
-  lines: DemandLine[];
-  generatedId?: string;
 }
 
 export interface DemandState {
   client: DemandClient | null;
-  document: DemandDocument | null;
+  document: DemandActiveDocument | null;
 }
 
 // Pagination

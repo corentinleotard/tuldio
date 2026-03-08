@@ -9,19 +9,10 @@ import { createClientTool } from './tools/create-client.js';
 import { updateClientTool } from './tools/update-client.js';
 import { addClientNoteTool } from './tools/add-client-note.js';
 import { searchPastPricingTool } from './tools/search-past-pricing.js';
-import { addLinesTool } from './tools/add-lines.js';
-import { updateLineTool } from './tools/update-line.js';
-import { removeLineTool } from './tools/remove-line.js';
-import { generateQuoteTool } from './tools/generate-quote.js';
-import { updateQuoteTool } from './tools/update-quote.js';
-import { generateInvoiceTool } from './tools/generate-invoice.js';
-import { updateInvoiceTool } from './tools/update-invoice.js';
-import { invoiceFromQuoteTool } from './tools/invoice-from-quote.js';
-import { listQuotesTool } from './tools/list-quotes.js';
-import { listInvoicesTool } from './tools/list-invoices.js';
+import { createDocumentTool } from './tools/create-document.js';
+import { updateDocumentTool } from './tools/update-document.js';
+import { listDocumentsTool } from './tools/list-documents.js';
 import { getStatsTool } from './tools/get-stats.js';
-import { markAsPaidTool } from './tools/mark-as-paid.js';
-import { cancelInvoiceTool } from './tools/cancel-invoice.js';
 
 export type { ToolResult, StateUpdate };
 
@@ -29,21 +20,12 @@ const allTools: AnyToolDefinition[] = [
   resolveClientTool,
   createClientTool,
   updateClientTool,
-  searchPastPricingTool,
-  addLinesTool,
-  updateLineTool,
-  removeLineTool,
-  generateQuoteTool,
-  updateQuoteTool,
-  listQuotesTool,
-  generateInvoiceTool,
-  updateInvoiceTool,
-  invoiceFromQuoteTool,
-  listInvoicesTool,
-  getStatsTool,
-  markAsPaidTool,
-  cancelInvoiceTool,
   addClientNoteTool,
+  searchPastPricingTool,
+  createDocumentTool,
+  updateDocumentTool,
+  listDocumentsTool,
+  getStatsTool,
 ];
 
 const toolMap = new Map<string, AnyToolDefinition>(
@@ -78,10 +60,14 @@ export async function executeTool(input: {
   const ctx = { teamId: input.teamId, userId: input.userId, demandState: input.demandState };
 
   const start = Date.now();
-  logger.info(`tool.start ${input.toolName}`, { teamId: input.teamId, userId: input.userId, demandState: input.demandState });
+  logger.info(`tool.start ${input.toolName}`, { teamId: input.teamId, userId: input.userId });
 
   const toolResult = await tool.handler(args, ctx);
-  const stateUpdate = tool.stateUpdate ? tool.stateUpdate(toolResult.result, ctx) : null;
+
+  // Handler-returned stateUpdate takes precedence over the callback
+  const stateUpdate = toolResult.stateUpdate !== undefined
+    ? toolResult.stateUpdate
+    : (tool.stateUpdate ? tool.stateUpdate(toolResult.result, ctx) : null);
 
   const duration = Date.now() - start;
   logger.info(`tool.end ${input.toolName} ${duration}ms`, { teamId: input.teamId });

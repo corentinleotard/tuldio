@@ -1,10 +1,10 @@
 /**
- * Eval: Demand state flow — the AI must use add_lines and respect active state.
+ * Eval: Document creation flow — the AI must use the right tools in the right order.
  *
- * Tests the full document creation flow:
- * - AI calls add_lines (with type) when user gives line items
+ * Tests:
+ * - AI calls search_past_pricing or create_document when user gives line items
  * - AI calls resolve_client when user switches client mid-flow
- * - AI calls generate_quote when demand state is complete
+ * - AI calls create_document when user confirms and all info is ready
  *
  * Run with: pnpm eval
  */
@@ -20,14 +20,12 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-describe('demand flow evals', () => {
+describe('document creation flow evals', () => {
   beforeEach(async () => {
     await sleep(RATE_LIMIT_DELAY);
   });
 
-  it('calls search_past_pricing or add_lines when user provides line items', async () => {
-    // Client already resolved, user gives lines
-    // AI may call search_past_pricing first (proactive pricing lookup) or add_lines directly
+  it('calls search_past_pricing or create_document when user provides line items with prices', async () => {
     const resolveRounds: StoredToolRounds = [[{
       toolUseId: 'tu-resolve',
       name: 'resolve_client',
@@ -39,31 +37,27 @@ describe('demand flow evals', () => {
       name: 'line items trigger tool action',
       history: [
         userMsg('Fais un devis pour Martin'),
-        assistantMsg('J\'ai trouvé Jean Martin. C\'est de la réno ou du neuf ?', resolveRounds),
-        userMsg('réno'),
-        assistantMsg('C\'est noté réno. Quels travaux ?'),
+        assistantMsg('J\'ai trouvé Jean Martin. Quels travaux ?', resolveRounds),
       ],
       demandState: {
         client: { id: 'c1', name: 'Jean Martin' },
         document: null,
       },
-      userMessage: '30 metres lineaires de terrassement et 25m2 de polyane',
+      userMessage: '30 metres lineaires de terrassement à 45€/m et 25m2 de polyane à 50€/m2',
       expectToolCall: {
-        // AI should either search past pricing or prepare the document — both are valid
-        name: 'search_past_pricing',
+        name: 'create_document',
       },
     };
 
     const result = await runEval(scenario);
-    // Accept search_past_pricing or add_lines (creates document + adds lines in one call)
+    // Accept create_document or search_past_pricing (proactive pricing lookup)
     if (!result.pass) {
       const firstTool = result.toolCalls[0]?.name;
-      expect(firstTool, result.error).toBe('add_lines');
+      expect(firstTool, result.error).toBe('search_past_pricing');
     }
   }, TIMEOUT);
 
   it('calls resolve_client when user switches client mid-flow', async () => {
-    // Client Martin resolved, lines prepared, user switches to Dupont
     const resolveRounds: StoredToolRounds = [[{
       toolUseId: 'tu-resolve',
       name: 'resolve_client',
@@ -74,16 +68,12 @@ describe('demand flow evals', () => {
     const scenario: EvalScenario = {
       name: 'client switch triggers resolve_client',
       history: [
-        userMsg('Devis pour Martin, 10m2 carrelage'),
-        assistantMsg('J\'ai trouvé Jean Martin et préparé les lignes. Quel prix pour le carrelage ?', resolveRounds),
+        userMsg('Devis pour Martin, 10m2 carrelage à 45€'),
+        assistantMsg('J\'ai trouvé Jean Martin. Je prépare le devis ?', resolveRounds),
       ],
       demandState: {
         client: { id: 'c1', name: 'Jean Martin' },
-        document: {
-          type: 'quote',
-          tvaContext: 'réno',
-          lines: [{ description: 'Carrelage', quantity: 10, unit: 'm2' }],
-        },
+        document: null,
       },
       userMessage: 'Finalement c\'est pour Dupont pas Martin',
       expectToolCall: {
@@ -96,31 +86,27 @@ describe('demand flow evals', () => {
     expect(result.pass, result.error).toBe(true);
   }, TIMEOUT);
 
-  it('calls generate_quote when all info is ready and user confirms', async () => {
-    // All lines are priced in state — AI should go straight to generate_quote
+  it('calls create_document when user confirms and all info is ready', async () => {
+    const resolveRounds: StoredToolRounds = [[{
+      toolUseId: 'tu-resolve',
+      name: 'resolve_client',
+      input: { search: 'Martin' },
+      result: { status: 'exact_match', client: { id: 'c1', firstName: 'Jean', lastName: 'Martin' } },
+    }]];
+
     const scenario: EvalScenario = {
-      name: 'generate_quote when state is complete',
+      name: 'create_document when all info ready',
       history: [
-        userMsg('45 euros le metre'),
-        assistantMsg('D\'accord, 45€/m pour le terrassement. Et le polyane ?'),
-        userMsg('50 euros'),
-        assistantMsg('Parfait. Terrassement 30m à 45€/m et polyane 25m² à 50€/m². Je génère le devis ?'),
+        userMsg('Devis pour Martin, 30m terrassement à 45€ et 25m2 polyane à 50€'),
+        assistantMsg('J\'ai trouvé Jean Martin. Terrassement 30m à 45€/m et polyane 25m² à 50€/m². Je crée le devis ?', resolveRounds),
       ],
       demandState: {
         client: { id: 'c1', name: 'Jean Martin' },
-        document: {
-          type: 'quote',
-          title: 'Terrassement et polyane',
-          tvaContext: 'réno',
-          lines: [
-            { description: 'Terrassement', quantity: 30, unit: 'm', unitPrice: 4500, tvaRate: 1000 },
-            { description: 'Polyane', quantity: 25, unit: 'm2', unitPrice: 5000, tvaRate: 550 },
-          ],
-        },
+        document: null,
       },
       userMessage: 'oui vas-y',
       expectToolCall: {
-        name: 'generate_quote',
+        name: 'create_document',
       },
     };
 
@@ -128,49 +114,14 @@ describe('demand flow evals', () => {
     expect(result.pass, result.error).toBe(true);
   }, TIMEOUT);
 
-  it('calls update_line when user gives prices for existing lines', async () => {
-    // Lines in state without prices, user now gives prices — AI should use update_line
+  it('does NOT create document without resolving client first', async () => {
     const scenario: EvalScenario = {
-      name: 'update lines with prices',
-      history: [
-        userMsg('30m terrassement et 25m2 polyane'),
-        assistantMsg('J\'ai noté les lignes. Quel prix pour le terrassement et le polyane ?'),
-      ],
-      demandState: {
-        client: { id: 'c1', name: 'Jean Martin' },
-        document: {
-          type: 'quote',
-          tvaContext: 'réno',
-          lines: [
-            { description: 'Terrassement', quantity: 30, unit: 'm' },
-            { description: 'Polyane', quantity: 25, unit: 'm2' },
-          ],
-        },
-      },
-      userMessage: 'terrassement 45 euros et polyane 50 euros',
-      expectToolCall: {
-        name: 'update_line',
-      },
-    };
-
-    const result = await runEval(scenario);
-    expect(result.pass, result.error).toBe(true);
-  }, TIMEOUT);
-
-  it('does NOT call generate_quote without resolving client first', async () => {
-    // No client in state, but lines are ready — AI must resolve client first
-    const scenario: EvalScenario = {
-      name: 'no quote without client',
+      name: 'no document without client',
       demandState: {
         client: null,
-        document: {
-          type: 'quote',
-          lines: [
-            { description: 'Carrelage', quantity: 10, unit: 'm2', unitPrice: 4500, tvaRate: 1000 },
-          ],
-        },
+        document: null,
       },
-      userMessage: 'Fais le devis pour Dupont',
+      userMessage: 'Fais un devis pour Dupont, 10m2 carrelage à 45€',
       expectToolCall: {
         name: 'resolve_client',
         inputContains: { search: 'Dupont' },

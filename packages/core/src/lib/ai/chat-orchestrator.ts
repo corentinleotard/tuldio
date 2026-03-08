@@ -1,5 +1,5 @@
 import type Anthropic from '@anthropic-ai/sdk';
-import type { DemandState } from '@tuldio/types';
+import type { DemandState, QuoteView, InvoiceView } from '@tuldio/types';
 import { callClaude } from './claude-client.js';
 import { buildSystemPrompt } from './system-prompt.js';
 import { buildClaudeMessages, type StoredToolCall } from './build-context.js';
@@ -9,6 +9,8 @@ import { getCurrentUser } from '../../modules/users/index.js';
 import { getTeam } from '../../modules/teams/index.js';
 import { getDemandState, upsertDemandState, clearDemandState } from '../../modules/demands/index.js';
 import { findClientById } from '../../modules/clients/repository/find-client-by-id.js';
+import { getQuote } from '../../modules/quotes/index.js';
+import { getInvoice } from '../../modules/invoices/index.js';
 import { logger } from '../infra/logger.js';
 import type { Message, MessageMetadata, DebugTrace, DebugTraceRound, DebugTraceToolCall } from '@tuldio/types';
 
@@ -22,6 +24,25 @@ function applyStateUpdate(current: DemandState, update: StateUpdate): DemandStat
     client: update.client !== undefined ? update.client : current.client,
     document: update.document !== undefined ? update.document : current.document,
   };
+}
+
+/** Fetch the active document from DB if the state has a document pointer */
+async function fetchActiveDocument(input: {
+  state: DemandState;
+  teamId: string;
+}): Promise<(QuoteView | InvoiceView) | null> {
+  const docPointer = input.state.document;
+  if (!docPointer?.id) return null;
+
+  try {
+    if (docPointer.type === 'quote') {
+      return await getQuote({ teamId: input.teamId, quoteId: docPointer.id });
+    }
+    return await getInvoice({ teamId: input.teamId, invoiceId: docPointer.id });
+  } catch {
+    // Document not found (deleted?) — will be cleared below
+    return null;
+  }
 }
 
 export async function processMessage(input: {
@@ -45,6 +66,13 @@ export async function processMessage(input: {
 
   // Handle client picker selection — set active client from metadata
   let currentState = demandState;
+
+  // Guard against old-format demand state (document without id)
+  if (currentState.document && !currentState.document.id) {
+    currentState = { ...currentState, document: null };
+    await clearDemandState({ userId });
+  }
+
   if (metadata?.selectedClientId) {
     const client = await findClientById({ teamId, clientId: metadata.selectedClientId });
     const clientName = client ? `${client.first_name} ${client.last_name}` : '';
@@ -52,10 +80,20 @@ export async function processMessage(input: {
     await upsertDemandState({ userId, teamId, state: currentState });
   }
 
+  // Fetch active document from DB
+  let activeDocument = await fetchActiveDocument({ state: currentState, teamId });
+
+  // If document pointer exists but document not found, clear it
+  if (currentState.document && !activeDocument) {
+    currentState = { ...currentState, document: null };
+    await upsertDemandState({ userId, teamId, state: currentState });
+  }
+
   let systemPrompt = buildSystemPrompt({
     teamName: team.name,
     userName: user.name,
     demandState: currentState,
+    activeDocument,
   });
 
   const claudeMessages: Anthropic.MessageParam[] = buildClaudeMessages(recentMessages);
@@ -109,6 +147,9 @@ export async function processMessage(input: {
             } else {
               await upsertDemandState({ userId, teamId, state: currentState });
             }
+
+            // Re-fetch active document after state change
+            activeDocument = await fetchActiveDocument({ state: currentState, teamId });
           }
         }
 
@@ -187,11 +228,12 @@ export async function processMessage(input: {
     claudeMessages.push({ role: 'assistant', content: response.content });
     claudeMessages.push({ role: 'user', content: toolResults });
 
-    // Rebuild system prompt so Claude sees updated demand state
+    // Rebuild system prompt so Claude sees updated state
     systemPrompt = buildSystemPrompt({
       teamName: team.name,
       userName: user.name,
       demandState: currentState,
+      activeDocument,
     });
 
     ({ message: response, meta } = await callClaude({
