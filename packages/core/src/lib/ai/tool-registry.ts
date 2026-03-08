@@ -12,6 +12,8 @@ import { searchPastPricingTool } from './tools/search-past-pricing.js';
 import { createDocumentTool } from './tools/create-document.js';
 import { updateDocumentTool } from './tools/update-document.js';
 import { listDocumentsTool } from './tools/list-documents.js';
+import { deleteDocumentTool } from './tools/delete-document.js';
+import { openDocumentTool } from './tools/open-document.js';
 import { getStatsTool } from './tools/get-stats.js';
 
 export type { ToolResult, StateUpdate };
@@ -24,7 +26,9 @@ const allTools: AnyToolDefinition[] = [
   searchPastPricingTool,
   createDocumentTool,
   updateDocumentTool,
+  deleteDocumentTool,
   listDocumentsTool,
+  openDocumentTool,
   getStatsTool,
 ];
 

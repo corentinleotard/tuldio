@@ -3,7 +3,7 @@ import { defineTool, lineSchema, type ToolResult } from './define-tool.js';
 import { HandledError } from '../../errors/handled-error.js';
 import { errorCodes } from '../../errors/error-codes.js';
 import { getQuote, updateQuote, updateQuoteStatusUc } from '../../../modules/quotes/index.js';
-import { getInvoice, updateInvoice, markAsPaid, cancelOrDeleteInvoice } from '../../../modules/invoices/index.js';
+import { getInvoice, updateInvoice, updateInvoiceStatusUc } from '../../../modules/invoices/index.js';
 import { resolveUnit } from '../../../modules/units/index.js';
 import type { DocumentLineView } from '@tuldio/types';
 
@@ -19,20 +19,14 @@ const updatedLineSchema = z.object({
 export const updateDocumentTool = defineTool({
   name: 'update_document',
   description:
-    `Update the active document's lines, title, or status.
+    `Update the active document's lines, title, or status. Requires an active document in state.
 For line changes use delta operations — reference existing lines by their ID shown in the current state:
   - addedLines: new lines to append
   - removedLineIds: IDs of lines to remove
   - updatedLines: partial field updates on existing lines (by lineId)
 You can combine operations in a single call (e.g. add + remove + update).
-For status changes: provide status only (accepted, refused, paid, cancelled).`,
+For status changes: provide status only. Quotes: accepted, refused. Invoices: paid, cancelled. To delete a draft document, use delete_document instead.`,
   schema: z.object({
-    documentId: z.string().uuid().optional().describe(
-      'Target document (from recent tool results only). Omit to use the active document.',
-    ),
-    documentType: z.enum(['quote', 'invoice']).optional().describe(
-      'Required when documentId is provided',
-    ),
     title: z.string().max(255).optional().describe('New title'),
     status: z.enum(['accepted', 'refused', 'paid', 'cancelled']).optional().describe('New status'),
     addedLines: z.array(lineSchema).max(50).optional().describe('New lines to append'),
@@ -40,8 +34,8 @@ For status changes: provide status only (accepted, refused, paid, cancelled).`,
     updatedLines: z.array(updatedLineSchema).optional().describe('Partial updates to existing lines by lineId'),
   }),
   handler: async (args, ctx): Promise<ToolResult> => {
-    const docId = args.documentId ?? ctx.demandState.document?.id;
-    const docType = args.documentType ?? ctx.demandState.document?.type;
+    const docId = ctx.demandState.document?.id;
+    const docType = ctx.demandState.document?.type;
 
     if (!docId || !docType) {
       throw new HandledError(errorCodes.noDocumentPrepared);
@@ -50,33 +44,17 @@ For status changes: provide status only (accepted, refused, paid, cancelled).`,
     // --- Status change ---
     if (args.status) {
       if (docType === 'invoice') {
-        if (args.status === 'paid') {
-          const invoice = await markAsPaid({ teamId: ctx.teamId, invoiceId: docId });
-          return {
-            result: invoice,
-            richCard: { type: 'invoice', data: invoice },
-            stateUpdate: { document: null },
-          };
-        }
-        if (args.status === 'cancelled') {
-          const { action, invoice } = await cancelOrDeleteInvoice({ teamId: ctx.teamId, invoiceId: docId });
-          return {
-            result: action === 'deleted'
-              ? { action, message: 'Facture brouillon supprimée.' }
-              : { action, invoice },
-            ...(invoice ? { richCard: { type: 'invoice', data: invoice } } : {}),
-            stateUpdate: { document: null },
-          };
-        }
-        throw new HandledError(errorCodes.invalidStatusTransition);
+        const invoice = await updateInvoiceStatusUc({ teamId: ctx.teamId, invoiceId: docId, status: args.status });
+        return {
+          result: invoice,
+          richCard: { type: 'invoice', data: invoice },
+          stateUpdate: { document: null },
+        };
       }
 
       // Quote status
-      if (args.status === 'paid') {
-        throw new HandledError(errorCodes.invalidStatusTransition);
-      }
       const quote = await updateQuoteStatusUc({ teamId: ctx.teamId, quoteId: docId, status: args.status });
-      const isTerminal = args.status === 'cancelled' || args.status === 'refused';
+      const isTerminal = args.status === 'accepted' || args.status === 'refused';
       return {
         result: quote,
         richCard: { type: 'quote', data: quote },

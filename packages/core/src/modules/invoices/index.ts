@@ -3,6 +3,6 @@ export { updateInvoice } from './use-cases/update-invoice.js';
 export { createInvoiceFromQuote } from './use-cases/create-invoice-from-quote.js';
 export { listInvoices } from './use-cases/list-invoices.js';
 export { getInvoice } from './use-cases/get-invoice.js';
-export { markAsPaid, updateInvoiceStatusUc } from './use-cases/mark-as-paid.js';
+export { updateInvoiceStatusUc } from './use-cases/update-invoice-status-uc.js';
+export { deleteInvoiceUc } from './use-cases/delete-invoice-uc.js';
 export { downloadInvoicePdf } from './use-cases/download-invoice-pdf.js';
-export { cancelOrDeleteInvoice } from './use-cases/cancel-or-delete-invoice.js';

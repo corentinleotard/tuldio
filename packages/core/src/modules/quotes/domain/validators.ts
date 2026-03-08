@@ -15,8 +15,8 @@ export function computeQuoteTotals(lines: DocumentLineInput[]): DocumentTotals {
 }
 
 const quoteTransitions: Record<string, string[]> = {
-  draft: ['sent', 'accepted', 'cancelled'],
-  sent: ['accepted', 'refused', 'cancelled'],
+  draft: ['sent', 'accepted', 'refused'],
+  sent: ['accepted', 'refused'],
 };
 
 export function validateQuoteStatusTransition(input: {

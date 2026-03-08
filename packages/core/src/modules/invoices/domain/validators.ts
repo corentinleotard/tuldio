@@ -15,7 +15,7 @@ export function computeInvoiceTotals(lines: DocumentLineInput[]): DocumentTotals
 }
 
 const invoiceTransitions: Record<string, string[]> = {
-  draft: ['sent', 'cancelled'],
+  draft: ['sent', 'paid', 'cancelled'],
   sent: ['paid', 'overdue', 'cancelled'],
   overdue: ['paid', 'cancelled'],
 };
@@ -30,10 +30,6 @@ export function validateInvoiceStatusTransition(input: {
 // Invoice lines can only be modified while the invoice is still a draft
 export function canEditInvoice(status: string): boolean {
   return status === 'draft';
-}
-
-export function canMarkAsPaid(status: string): boolean {
-  return status === 'sent' || status === 'overdue';
 }
 
 export function canCancelInvoice(status: string): boolean {

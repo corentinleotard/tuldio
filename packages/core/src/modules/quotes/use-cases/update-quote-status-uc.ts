@@ -32,9 +32,9 @@ export async function updateQuoteStatusUc(input: {
     throw new HandledError(errorCodes.invalidStatusTransition);
   }
 
-  // Freeze PDF when transitioning to sent
+  // Freeze PDF when leaving draft
   let pdfUrl = current.pdf_url;
-  if (input.status === 'sent' && !pdfUrl) {
+  if (current.status === 'draft' && !pdfUrl) {
     const lineViews = toLineViews(current.lines);
     const tvaGroups = toTvaGroups(current.lines);
     const pdfInput = await buildDocumentPdfInput({

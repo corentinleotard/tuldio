@@ -77,13 +77,32 @@ describe('validateQuoteStatusTransition', () => {
     expect(validateQuoteStatusTransition({ from: 'draft', to: 'accepted' })).toBe(true);
   });
 
-  it('allows draft → cancelled', () => {
-    expect(validateQuoteStatusTransition({ from: 'draft', to: 'cancelled' })).toBe(true);
+  it('allows draft → refused (skip sent)', () => {
+    expect(validateQuoteStatusTransition({ from: 'draft', to: 'refused' })).toBe(true);
   });
 
-  it('rejects accepted → anything', () => {
+  it('rejects draft → cancelled (no cancel for quotes)', () => {
+    expect(validateQuoteStatusTransition({ from: 'draft', to: 'cancelled' })).toBe(false);
+  });
+
+  it('rejects sent → cancelled (no cancel for quotes)', () => {
+    expect(validateQuoteStatusTransition({ from: 'sent', to: 'cancelled' })).toBe(false);
+  });
+
+  it('rejects accepted → anything (terminal)', () => {
     expect(validateQuoteStatusTransition({ from: 'accepted', to: 'sent' })).toBe(false);
     expect(validateQuoteStatusTransition({ from: 'accepted', to: 'draft' })).toBe(false);
+    expect(validateQuoteStatusTransition({ from: 'accepted', to: 'refused' })).toBe(false);
+  });
+
+  it('rejects refused → anything (terminal)', () => {
+    expect(validateQuoteStatusTransition({ from: 'refused', to: 'draft' })).toBe(false);
+    expect(validateQuoteStatusTransition({ from: 'refused', to: 'sent' })).toBe(false);
+    expect(validateQuoteStatusTransition({ from: 'refused', to: 'accepted' })).toBe(false);
+  });
+
+  it('rejects going backwards (sent → draft)', () => {
+    expect(validateQuoteStatusTransition({ from: 'sent', to: 'draft' })).toBe(false);
   });
 
   it('rejects unknown status', () => {

@@ -22,17 +22,17 @@ export async function updateInvoiceStatusUc(input: {
     throw new HandledError(errorCodes.invoiceNotFound);
   }
 
+  // Standard status transition
   const isValid = validateInvoiceStatusTransition({
     from: invoice.status,
     to: input.status,
   });
-
   if (!isValid) {
     throw new HandledError(errorCodes.invalidStatusTransition);
   }
 
-  // Freeze PDF when transitioning to sent
-  if (input.status === 'sent' && !invoice.pdf_url) {
+  // Freeze PDF when leaving draft
+  if (invoice.status === 'draft' && !invoice.pdf_url) {
     const lineViews = toLineViews(invoice.lines);
     const tvaGroups = toTvaGroups(invoice.lines);
     const pdfInput = await buildDocumentPdfInput({
@@ -60,7 +60,6 @@ export async function updateInvoiceStatusUc(input: {
 
   logger.info('invoice.status_changed', { teamId: input.teamId, invoiceId: input.invoiceId, from: invoice.status, to: input.status });
 
-  // Re-fetch with lines for the view
   const full = await findInvoiceById({ teamId: input.teamId, invoiceId: input.invoiceId });
   if (!full) throw new HandledError(errorCodes.invoiceNotFound);
   const client = await findClientById({ teamId: input.teamId, clientId: full.client_id });
@@ -68,11 +67,4 @@ export async function updateInvoiceStatusUc(input: {
     clientName: client ? `${client.first_name} ${client.last_name}` : undefined,
     clientEmail: client?.email ?? undefined,
   });
-}
-
-export async function markAsPaid(input: {
-  teamId: string;
-  invoiceId: string;
-}): Promise<InvoiceView> {
-  return updateInvoiceStatusUc({ ...input, status: 'paid' });
 }

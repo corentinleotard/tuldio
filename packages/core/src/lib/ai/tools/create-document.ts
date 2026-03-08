@@ -10,27 +10,31 @@ export const createDocumentTool = defineTool({
   name: 'create_document',
   description:
     `Create a new quote or invoice for the active client. All lines must have unitPrice set.
-To create an invoice from an existing quote, provide fromQuoteId — lines are copied automatically.`,
+To create an invoice from the active quote, set fromActiveQuote to true — lines are copied automatically.`,
   schema: z.object({
     type: z.enum(['quote', 'invoice']).describe('Document type'),
     title: z.string().max(255).optional().describe('Document title'),
-    fromQuoteId: z.string().uuid().optional().describe(
-      'Create invoice from this quote (from recent tool results only). Omit lines when using this.',
+    fromActiveQuote: z.boolean().optional().describe(
+      'Create invoice from the active quote in state. Only valid when type is invoice and active document is a quote.',
     ),
     lines: z.array(lineSchema).min(1).max(50).optional().describe(
-      'Document lines — required unless using fromQuoteId',
+      'Document lines — required unless using fromActiveQuote',
     ),
   }),
   handler: async (args, ctx): Promise<ToolResult> => {
-    // Invoice from existing quote — client comes from the quote
-    if (args.fromQuoteId) {
+    // Invoice from active quote
+    if (args.fromActiveQuote) {
       if (args.type !== 'invoice') {
         throw new HandledError(errorCodes.invalidInput);
+      }
+      const activeDoc = ctx.demandState.document;
+      if (!activeDoc || activeDoc.type !== 'quote') {
+        throw new HandledError(errorCodes.noDocumentPrepared);
       }
       const invoice = await createInvoiceFromQuote({
         teamId: ctx.teamId,
         userId: ctx.userId,
-        quoteId: args.fromQuoteId,
+        quoteId: activeDoc.id,
         title: args.title,
       });
       return {

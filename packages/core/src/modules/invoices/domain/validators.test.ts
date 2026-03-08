@@ -3,7 +3,6 @@ import {
   buildAcompteLine,
   canCancelInvoice,
   canEditInvoice,
-  canMarkAsPaid,
   computeInvoiceTotals,
   computeRemaining,
   isOverdue,
@@ -63,13 +62,25 @@ describe('validateInvoiceStatusTransition', () => {
     expect(validateInvoiceStatusTransition({ from: 'overdue', to: 'paid' })).toBe(true);
   });
 
+  it('allows draft → paid (skip sent)', () => {
+    expect(validateInvoiceStatusTransition({ from: 'draft', to: 'paid' })).toBe(true);
+  });
+
+  it('allows draft → cancelled', () => {
+    expect(validateInvoiceStatusTransition({ from: 'draft', to: 'cancelled' })).toBe(true);
+  });
+
   it('allows sent → cancelled', () => {
     expect(validateInvoiceStatusTransition({ from: 'sent', to: 'cancelled' })).toBe(true);
   });
 
-  it('rejects paid → anything', () => {
+  it('rejects paid → anything (terminal)', () => {
     expect(validateInvoiceStatusTransition({ from: 'paid', to: 'sent' })).toBe(false);
     expect(validateInvoiceStatusTransition({ from: 'paid', to: 'cancelled' })).toBe(false);
+  });
+
+  it('rejects going backwards (sent → draft)', () => {
+    expect(validateInvoiceStatusTransition({ from: 'sent', to: 'draft' })).toBe(false);
   });
 });
 
@@ -93,14 +104,6 @@ describe('canEditInvoice', () => {
   it('blocks editing cancelled invoices', () => {
     expect(canEditInvoice('cancelled')).toBe(false);
   });
-});
-
-describe('canMarkAsPaid', () => {
-  it('allows sent → paid', () => expect(canMarkAsPaid('sent')).toBe(true));
-  it('allows overdue → paid', () => expect(canMarkAsPaid('overdue')).toBe(true));
-  it('rejects draft', () => expect(canMarkAsPaid('draft')).toBe(false));
-  it('rejects already paid', () => expect(canMarkAsPaid('paid')).toBe(false));
-  it('rejects cancelled', () => expect(canMarkAsPaid('cancelled')).toBe(false));
 });
 
 describe('canCancelInvoice', () => {

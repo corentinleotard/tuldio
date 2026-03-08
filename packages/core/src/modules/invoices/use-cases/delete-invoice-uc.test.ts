@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { query } from '../../../lib/database/db.js';
 import { generateId } from '../../../lib/infra/id.js';
-import { cancelOrDeleteInvoice } from './cancel-or-delete-invoice.js';
+import { deleteInvoiceUc } from './delete-invoice-uc.js';
 
 async function seedTeamAndClient(teamId: string, clientId: string) {
   await query(`INSERT INTO teams (id, name) VALUES ($1, 'Test SARL')`, [teamId]);
@@ -11,11 +11,7 @@ async function seedTeamAndClient(teamId: string, clientId: string) {
   );
 }
 
-async function insertInvoice(input: {
-  teamId: string;
-  clientId: string;
-  status?: string;
-}) {
+async function insertInvoice(input: { teamId: string; clientId: string; status?: string }) {
   const invoiceId = generateId();
   const userId = generateId();
 
@@ -32,87 +28,60 @@ async function insertInvoice(input: {
 
   await query(
     `INSERT INTO invoice_lines (id, invoice_id, sort_order, description, quantity, unit, unit_price, tva_rate, total_ht)
-     VALUES ($1, $2, 1, 'Prestation initiale', 1, 'u', 10000, 2000, 10000)`,
+     VALUES ($1, $2, 1, 'Prestation', 1, 'u', 10000, 2000, 10000)`,
     [generateId(), invoiceId],
   );
 
   return invoiceId;
 }
 
-describe('cancelOrDeleteInvoice', () => {
-  it('deletes a draft invoice and its lines', async () => {
+describe('deleteInvoiceUc', () => {
+  it('deletes a draft invoice', async () => {
     const teamId = generateId();
     const clientId = generateId();
     await seedTeamAndClient(teamId, clientId);
     const invoiceId = await insertInvoice({ teamId, clientId, status: 'draft' });
 
-    const result = await cancelOrDeleteInvoice({ teamId, invoiceId });
+    await deleteInvoiceUc({ teamId, invoiceId });
 
-    expect(result.action).toBe('deleted');
-    expect(result.invoice).toBeNull();
-
-    // Verify invoice is gone
-    const invoiceRows = await query('SELECT id FROM invoices WHERE id = $1', [invoiceId]);
-    expect(invoiceRows.rows).toHaveLength(0);
-
-    // Verify lines are gone (cascade)
-    const lineRows = await query('SELECT id FROM invoice_lines WHERE invoice_id = $1', [invoiceId]);
-    expect(lineRows.rows).toHaveLength(0);
+    const rows = await query('SELECT id FROM invoices WHERE id = $1', [invoiceId]);
+    expect(rows.rows).toHaveLength(0);
   });
 
-  it('cancels a sent invoice', async () => {
+  it('rejects deletion of a sent invoice', async () => {
     const teamId = generateId();
     const clientId = generateId();
     await seedTeamAndClient(teamId, clientId);
     const invoiceId = await insertInvoice({ teamId, clientId, status: 'sent' });
 
-    const result = await cancelOrDeleteInvoice({ teamId, invoiceId });
+    await expect(
+      deleteInvoiceUc({ teamId, invoiceId }),
+    ).rejects.toThrow('Cette facture ne peut plus être modifiée');
 
-    expect(result.action).toBe('cancelled');
-    expect(result.invoice).not.toBeNull();
-    expect(result.invoice!.status).toBe('cancelled');
-
-    // Verify invoice still exists in DB
-    const invoiceRows = await query('SELECT status FROM invoices WHERE id = $1', [invoiceId]);
-    expect(invoiceRows.rows[0]!.status).toBe('cancelled');
+    const rows = await query('SELECT id FROM invoices WHERE id = $1', [invoiceId]);
+    expect(rows.rows).toHaveLength(1);
   });
 
-  it('cancels an overdue invoice', async () => {
-    const teamId = generateId();
-    const clientId = generateId();
-    await seedTeamAndClient(teamId, clientId);
-    const invoiceId = await insertInvoice({ teamId, clientId, status: 'overdue' });
-
-    const result = await cancelOrDeleteInvoice({ teamId, invoiceId });
-
-    expect(result.action).toBe('cancelled');
-    expect(result.invoice!.status).toBe('cancelled');
-  });
-
-  it('rejects cancellation of a paid invoice', async () => {
+  it('rejects deletion of a paid invoice', async () => {
     const teamId = generateId();
     const clientId = generateId();
     await seedTeamAndClient(teamId, clientId);
     const invoiceId = await insertInvoice({ teamId, clientId, status: 'paid' });
 
     await expect(
-      cancelOrDeleteInvoice({ teamId, invoiceId }),
-    ).rejects.toThrow('Transition de statut invalide');
-
-    // Verify status unchanged
-    const invoiceRows = await query('SELECT status FROM invoices WHERE id = $1', [invoiceId]);
-    expect(invoiceRows.rows[0]!.status).toBe('paid');
+      deleteInvoiceUc({ teamId, invoiceId }),
+    ).rejects.toThrow('Cette facture ne peut plus être modifiée');
   });
 
-  it('rejects cancellation of an already cancelled invoice', async () => {
+  it('rejects deletion of a cancelled invoice', async () => {
     const teamId = generateId();
     const clientId = generateId();
     await seedTeamAndClient(teamId, clientId);
     const invoiceId = await insertInvoice({ teamId, clientId, status: 'cancelled' });
 
     await expect(
-      cancelOrDeleteInvoice({ teamId, invoiceId }),
-    ).rejects.toThrow('Transition de statut invalide');
+      deleteInvoiceUc({ teamId, invoiceId }),
+    ).rejects.toThrow('Cette facture ne peut plus être modifiée');
   });
 
   it('throws when invoice not found', async () => {
@@ -121,7 +90,7 @@ describe('cancelOrDeleteInvoice', () => {
     await seedTeamAndClient(teamId, clientId);
 
     await expect(
-      cancelOrDeleteInvoice({ teamId, invoiceId: generateId() }),
+      deleteInvoiceUc({ teamId, invoiceId: generateId() }),
     ).rejects.toThrow('Facture introuvable');
   });
 
@@ -133,11 +102,11 @@ describe('cancelOrDeleteInvoice', () => {
     const invoiceId = await insertInvoice({ teamId, clientId, status: 'draft' });
 
     await expect(
-      cancelOrDeleteInvoice({ teamId: otherTeamId, invoiceId }),
+      deleteInvoiceUc({ teamId: otherTeamId, invoiceId }),
     ).rejects.toThrow('Facture introuvable');
 
-    // Verify invoice still exists
-    const invoiceRows = await query('SELECT id FROM invoices WHERE id = $1', [invoiceId]);
-    expect(invoiceRows.rows).toHaveLength(1);
+    // Invoice still exists
+    const rows = await query('SELECT id FROM invoices WHERE id = $1', [invoiceId]);
+    expect(rows.rows).toHaveLength(1);
   });
 });
