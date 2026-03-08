@@ -2,7 +2,9 @@ import type { InvoiceView } from '@tuldio/types';
 import { HandledError } from '../../../lib/errors/handled-error.js';
 import { errorCodes } from '../../../lib/errors/error-codes.js';
 import { logger } from '../../../lib/infra/logger.js';
+import { canInvoiceQuote, shouldAutoAcceptQuote } from '../../quotes/domain/validators.js';
 import { findQuoteById } from '../../quotes/repository/find-quote-by-id.js';
+import { updateQuoteStatus } from '../../quotes/repository/update-quote-status.js';
 import { findClientById } from '../../clients/repository/find-client-by-id.js';
 import { insertInvoice } from '../repository/insert-invoice.js';
 import { findInvoiceById } from '../repository/find-invoice-by-id.js';
@@ -23,9 +25,17 @@ export async function createInvoiceFromQuote(input: {
     throw new HandledError(errorCodes.quoteNotFound);
   }
 
-  // Only accepted or sent quotes can be invoiced
-  if (quote.status !== 'accepted' && quote.status !== 'sent') {
-    throw new HandledError(errorCodes.invalidStatusTransition);
+  if (!canInvoiceQuote(quote.status)) {
+    throw new HandledError(errorCodes.quoteNotInvoiceable);
+  }
+
+  if (shouldAutoAcceptQuote(quote.status)) {
+    await updateQuoteStatus({
+      teamId: input.teamId,
+      quoteId: quote.id,
+      status: 'accepted',
+    });
+    logger.info('quote.auto_accepted', { teamId: input.teamId, quoteId: quote.id });
   }
 
   // Copy quote lines to invoice lines

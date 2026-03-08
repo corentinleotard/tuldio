@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import {
   canEditQuote,
+  canInvoiceQuote,
+  shouldAutoAcceptQuote,
   computeQuoteTotals,
   defaultValidUntil,
   validateQuoteLine,
@@ -81,24 +83,32 @@ describe('validateQuoteStatusTransition', () => {
     expect(validateQuoteStatusTransition({ from: 'draft', to: 'refused' })).toBe(true);
   });
 
-  it('rejects draft → cancelled (no cancel for quotes)', () => {
-    expect(validateQuoteStatusTransition({ from: 'draft', to: 'cancelled' })).toBe(false);
+  it('allows draft → cancelled', () => {
+    expect(validateQuoteStatusTransition({ from: 'draft', to: 'cancelled' })).toBe(true);
   });
 
-  it('rejects sent → cancelled (no cancel for quotes)', () => {
-    expect(validateQuoteStatusTransition({ from: 'sent', to: 'cancelled' })).toBe(false);
+  it('allows sent → cancelled', () => {
+    expect(validateQuoteStatusTransition({ from: 'sent', to: 'cancelled' })).toBe(true);
   });
 
   it('rejects accepted → anything (terminal)', () => {
     expect(validateQuoteStatusTransition({ from: 'accepted', to: 'sent' })).toBe(false);
     expect(validateQuoteStatusTransition({ from: 'accepted', to: 'draft' })).toBe(false);
     expect(validateQuoteStatusTransition({ from: 'accepted', to: 'refused' })).toBe(false);
+    expect(validateQuoteStatusTransition({ from: 'accepted', to: 'cancelled' })).toBe(false);
   });
 
   it('rejects refused → anything (terminal)', () => {
     expect(validateQuoteStatusTransition({ from: 'refused', to: 'draft' })).toBe(false);
     expect(validateQuoteStatusTransition({ from: 'refused', to: 'sent' })).toBe(false);
     expect(validateQuoteStatusTransition({ from: 'refused', to: 'accepted' })).toBe(false);
+    expect(validateQuoteStatusTransition({ from: 'refused', to: 'cancelled' })).toBe(false);
+  });
+
+  it('rejects cancelled → anything (terminal)', () => {
+    expect(validateQuoteStatusTransition({ from: 'cancelled', to: 'draft' })).toBe(false);
+    expect(validateQuoteStatusTransition({ from: 'cancelled', to: 'sent' })).toBe(false);
+    expect(validateQuoteStatusTransition({ from: 'cancelled', to: 'accepted' })).toBe(false);
   });
 
   it('rejects going backwards (sent → draft)', () => {
@@ -115,8 +125,8 @@ describe('canEditQuote', () => {
     expect(canEditQuote({ status: 'draft', hasLinkedInvoices: false })).toBe(true);
   });
 
-  it('allows editing sent without invoices', () => {
-    expect(canEditQuote({ status: 'sent', hasLinkedInvoices: false })).toBe(true);
+  it('blocks editing sent quotes', () => {
+    expect(canEditQuote({ status: 'sent', hasLinkedInvoices: false })).toBe(false);
   });
 
   it('blocks editing when invoices are linked', () => {
@@ -133,6 +143,50 @@ describe('canEditQuote', () => {
 
   it('blocks editing cancelled quotes', () => {
     expect(canEditQuote({ status: 'cancelled', hasLinkedInvoices: false })).toBe(false);
+  });
+});
+
+describe('canInvoiceQuote', () => {
+  it('allows invoicing draft quotes', () => {
+    expect(canInvoiceQuote('draft')).toBe(true);
+  });
+
+  it('allows invoicing sent quotes', () => {
+    expect(canInvoiceQuote('sent')).toBe(true);
+  });
+
+  it('allows invoicing accepted quotes', () => {
+    expect(canInvoiceQuote('accepted')).toBe(true);
+  });
+
+  it('blocks invoicing refused quotes', () => {
+    expect(canInvoiceQuote('refused')).toBe(false);
+  });
+
+  it('blocks invoicing cancelled quotes', () => {
+    expect(canInvoiceQuote('cancelled')).toBe(false);
+  });
+});
+
+describe('shouldAutoAcceptQuote', () => {
+  it('returns true for draft', () => {
+    expect(shouldAutoAcceptQuote('draft')).toBe(true);
+  });
+
+  it('returns true for sent', () => {
+    expect(shouldAutoAcceptQuote('sent')).toBe(true);
+  });
+
+  it('returns false for accepted', () => {
+    expect(shouldAutoAcceptQuote('accepted')).toBe(false);
+  });
+
+  it('returns false for refused', () => {
+    expect(shouldAutoAcceptQuote('refused')).toBe(false);
+  });
+
+  it('returns false for cancelled', () => {
+    expect(shouldAutoAcceptQuote('cancelled')).toBe(false);
   });
 });
 

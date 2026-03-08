@@ -59,6 +59,11 @@ export const errorCodes = {
     statusCode: 409,
     message: 'Ce devis ne peut plus être modifié',
   },
+  quoteNotInvoiceable: {
+    code: 'QUOTE_NOT_INVOICEABLE',
+    statusCode: 409,
+    message: 'Ce devis ne peut pas être facturé',
+  },
   invoiceNotFound: {
     code: 'INVOICE_NOT_FOUND',
     statusCode: 404,

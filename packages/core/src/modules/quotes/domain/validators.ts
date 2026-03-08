@@ -15,8 +15,8 @@ export function computeQuoteTotals(lines: DocumentLineInput[]): DocumentTotals {
 }
 
 const quoteTransitions: Record<string, string[]> = {
-  draft: ['sent', 'accepted', 'refused'],
-  sent: ['accepted', 'refused'],
+  draft: ['sent', 'accepted', 'refused', 'cancelled'],
+  sent: ['accepted', 'refused', 'cancelled'],
 };
 
 export function validateQuoteStatusTransition(input: {
@@ -31,7 +31,15 @@ export function canEditQuote(input: {
   hasLinkedInvoices: boolean;
 }): boolean {
   if (input.hasLinkedInvoices) return false;
-  return input.status === 'draft' || input.status === 'sent';
+  return input.status === 'draft';
+}
+
+export function canInvoiceQuote(status: string): boolean {
+  return status !== 'refused' && status !== 'cancelled';
+}
+
+export function shouldAutoAcceptQuote(status: string): boolean {
+  return canInvoiceQuote(status) && status !== 'accepted';
 }
 
 export function defaultValidUntil(createdAt: Date): Date {
