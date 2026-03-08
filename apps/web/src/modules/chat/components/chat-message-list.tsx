@@ -1,4 +1,4 @@
-import { useRef, useEffect, type RefObject } from 'react';
+import { useRef, useEffect } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { Loader2 } from 'lucide-react';
 import type {
@@ -23,7 +23,6 @@ interface ChatMessageListProps {
   isLoadingOlder: boolean;
   hasOlderMessages: boolean;
   isSending: boolean;
-  bottomRef: RefObject<HTMLDivElement | null>;
 }
 
 export function ChatMessageList({
@@ -33,7 +32,6 @@ export function ChatMessageList({
   isLoadingOlder,
   hasOlderMessages,
   isSending,
-  bottomRef,
 }: ChatMessageListProps) {
   const parentRef = useRef<HTMLDivElement>(null);
   const prevMessageCountRef = useRef(messages.length);
@@ -55,7 +53,6 @@ export function ChatMessageList({
 
     if (!hasScrolledInitially.current || wasAppend) {
       hasScrolledInitially.current = true;
-      // Use requestAnimationFrame to ensure virtualizer has measured
       requestAnimationFrame(() => {
         virtualizer.scrollToIndex(messages.length - 1, { align: 'end' });
       });
@@ -75,15 +72,27 @@ export function ChatMessageList({
     const el = parentRef.current;
     if (!el) return;
 
+    let debounceId: ReturnType<typeof setTimeout> | null = null;
+
     function handleScroll() {
       if (!el || !hasOlderMessages || isLoadingOlder) return;
       if (el.scrollTop < 200) {
-        onLoadOlder();
+        // Debounce to avoid accidental triggers during iOS keyboard
+        // open/close (container resize shifts scrollTop temporarily)
+        if (debounceId) clearTimeout(debounceId);
+        debounceId = setTimeout(() => {
+          if (el.scrollTop < 200) {
+            onLoadOlder();
+          }
+        }, 150);
       }
     }
 
     el.addEventListener('scroll', handleScroll, { passive: true });
-    return () => el.removeEventListener('scroll', handleScroll);
+    return () => {
+      el.removeEventListener('scroll', handleScroll);
+      if (debounceId) clearTimeout(debounceId);
+    };
   }, [hasOlderMessages, isLoadingOlder, onLoadOlder]);
 
   function handleClientSelect(client: ClientView) {
@@ -113,12 +122,13 @@ export function ChatMessageList({
           >
             {virtualItems.map((virtualRow) => {
               const msg = messages[virtualRow.index]!;
+              const isLast = virtualRow.index === messages.length - 1;
               return (
                 <div
                   key={virtualRow.key}
                   data-index={virtualRow.index}
                   ref={virtualizer.measureElement}
-                  className="px-4 py-1.5"
+                  className={`px-4 py-1.5 ${isLast ? 'pb-4' : ''}`}
                 >
                   <MessageBubble message={msg} />
                   {msg.richCard && renderRichCard(msg.richCard, handleClientSelect, (text) => onSendMessage(text))}
@@ -133,7 +143,6 @@ export function ChatMessageList({
             <TypingIndicator />
           </div>
         )}
-        <div ref={bottomRef as RefObject<HTMLDivElement>} className="h-4" />
       </div>
     </div>
   );

@@ -41,7 +41,6 @@ export function ChatInputBar({ onSend, disabled, onTypingChange }: ChatInputBarP
         value={value}
         onChange={(e) => updateValue(e.target.value)}
         onKeyDown={handleKeyDown}
-        onBlur={() => window.scrollTo(0, 0)}
         placeholder="Ecrivez un message..."
         rows={1}
         className="flex-1 resize-none rounded-3xl border border-border bg-card px-4 py-2.5 text-[15px] placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"

@@ -3,6 +3,8 @@ import { defineTool } from './define-tool.js';
 import { resolveClient, type ClientResolution } from '../../../modules/clients/index.js';
 import { shouldWipeDocument } from '../should-wipe-document.js';
 
+type ResolveClientResult = ClientResolution & { intent: 'new' | 'switch_recipient' };
+
 export const resolveClientTool = defineTool({
   name: 'resolve_client',
   description:
@@ -19,8 +21,11 @@ Strip civilities (M., Mme, Monsieur, Madame) from the search text.`,
     ),
     email: z.string().email().optional().describe('Client email if mentioned'),
     phone: z.string().max(30).optional().describe('Client phone if mentioned'),
+    intent: z.enum(['new', 'switch_recipient']).default('new').describe(
+      "Use 'new' when the user wants a new document for a different client. Use 'switch_recipient' when the user is correcting the client on the current draft (e.g. 'c'est pour Anna, pas Martin').",
+    ),
   }),
-  handler: async (args, ctx): Promise<{ result: ClientResolution; richCard?: { type: string; data: unknown }; quickReplies?: string[] }> => {
+  handler: async (args, ctx): Promise<{ result: ResolveClientResult; richCard?: { type: string; data: unknown }; quickReplies?: string[] }> => {
     const resolution = await resolveClient({
       teamId: ctx.teamId,
       search: args.search,
@@ -28,28 +33,36 @@ Strip civilities (M., Mme, Monsieur, Madame) from the search text.`,
       phone: args.phone,
     });
 
+    const result: ResolveClientResult = { ...resolution, intent: args.intent };
+
     if (resolution.status === 'exact_match') {
-      return { result: resolution };
+      return { result };
     }
 
     if (resolution.status === 'ambiguous' && resolution.candidates.length < 3) {
       return {
-        result: resolution,
+        result,
         richCard: { type: 'client_picker', data: resolution.candidates },
       };
     }
 
     if (resolution.status === 'no_match') {
-      return { result: resolution, quickReplies: ['Oui, crée-le'] };
+      return { result, quickReplies: ['Oui, crée-le'] };
     }
 
-    return { result: resolution };
+    return { result };
   },
   stateUpdate: (result, ctx) => {
     if (result.status === 'exact_match' && result.client) {
+      const wipe = shouldWipeDocument({
+        document: ctx.demandState.document,
+        currentClientId: ctx.demandState.client?.id ?? null,
+        newClientId: result.client.id,
+        intent: result.intent,
+      });
       return {
         client: { id: result.client.id, name: `${result.client.firstName} ${result.client.lastName}` },
-        ...(shouldWipeDocument(ctx.demandState.document) ? { document: null } : {}),
+        ...(wipe ? { document: null } : {}),
       };
     }
     return null;

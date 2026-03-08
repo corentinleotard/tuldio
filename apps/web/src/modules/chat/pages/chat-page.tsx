@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { Settings } from 'lucide-react';
@@ -15,7 +15,6 @@ export function ChatPage() {
   const queryClient = useQueryClient();
   const [isSending, setIsSending] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
-  const bottomRef = useRef<HTMLDivElement>(null);
 
   const {
     data,
@@ -43,10 +42,6 @@ export function ChatPage() {
       fetchNextPage();
     }
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
-
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [isSending]);
 
   async function handleSend(content: string, metadata?: MessageMetadata) {
     const tempUserMsg: Message = {
@@ -110,14 +105,13 @@ export function ChatPage() {
       );
     } finally {
       setIsSending(false);
-      setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
     }
   }
 
   const navigate = useNavigate();
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex h-full flex-col overflow-hidden">
       {/* Mobile header */}
       <div className="flex items-center justify-between border-b px-4 py-3 md:hidden">
         <span className="text-2xl font-bold text-primary">Tuldio</span>
@@ -146,7 +140,6 @@ export function ChatPage() {
             isLoadingOlder={isFetchingNextPage}
             hasOlderMessages={!!hasNextPage}
             isSending={isSending}
-            bottomRef={bottomRef}
           />
 
           {/* Quick reply pills */}

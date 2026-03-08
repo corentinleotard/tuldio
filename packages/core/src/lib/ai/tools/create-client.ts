@@ -28,9 +28,15 @@ After creation, encourage the user to provide email/phone if missing: "Tu as son
     return { result: client };
   },
   stateUpdate: (result, ctx) => {
+    const wipe = shouldWipeDocument({
+      document: ctx.demandState.document,
+      currentClientId: ctx.demandState.client?.id ?? null,
+      newClientId: result.id,
+      intent: 'new',
+    });
     return {
       client: { id: result.id, name: `${result.firstName} ${result.lastName}` },
-      ...(shouldWipeDocument(ctx.demandState.document) ? { document: null } : {}),
+      ...(wipe ? { document: null } : {}),
     };
   },
 });
