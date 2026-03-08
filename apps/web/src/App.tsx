@@ -1,7 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from '@/lib/auth-context';
-import { AuthGuard, GuestGuard } from '@/components/route-guards';
+import { AuthGuard, GuestGuard, RootRedirect } from '@/components/route-guards';
 import { AppLayout } from '@/components/app-layout';
 import { LoginPage } from '@/modules/auth/pages/login-page';
 import { VerifyPage } from '@/modules/auth/pages/verify-page';
@@ -74,7 +74,7 @@ export function App() {
               <Route path="/settings/ai-costs" element={<AiCostsPage />} />
               <Route path="/settings/debug-chat" element={<DebugChatPage />} />
             </Route>
-            <Route path="*" element={<Navigate to="/chat" replace />} />
+            <Route path="*" element={<RootRedirect />} />
           </Routes>
         </AuthProvider>
       </BrowserRouter>

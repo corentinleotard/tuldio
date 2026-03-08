@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
 import { MessageSquare, FileText, Users, BarChart3, Settings } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -15,6 +16,30 @@ const navItems = [
 export function AppLayout() {
   const { user } = useAuth();
   const pwaBannerVisible = usePwaBanner();
+
+  // iOS Safari: after keyboard closes, visualViewport.offsetTop can remain
+  // non-zero, causing fixed elements (bottom nav) to appear offset with
+  // phantom padding. Force a scroll reset on keyboard dismiss.
+  useEffect(() => {
+    const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
+    if (!isIOS) return;
+
+    function resetScroll() {
+      requestAnimationFrame(() => {
+        window.scrollTo(0, 0);
+      });
+    }
+
+    // Reset on visualViewport resize (keyboard open/close)
+    window.visualViewport?.addEventListener('resize', resetScroll);
+    // Reset on input blur (keyboard dismiss)
+    document.addEventListener('focusout', resetScroll);
+
+    return () => {
+      window.visualViewport?.removeEventListener('resize', resetScroll);
+      document.removeEventListener('focusout', resetScroll);
+    };
+  }, []);
 
   return (
     <div className="flex h-dvh">

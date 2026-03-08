@@ -21,6 +21,7 @@ import { listQuotesTool } from './tools/list-quotes.js';
 import { listInvoicesTool } from './tools/list-invoices.js';
 import { getStatsTool } from './tools/get-stats.js';
 import { markAsPaidTool } from './tools/mark-as-paid.js';
+import { cancelInvoiceTool } from './tools/cancel-invoice.js';
 
 export type { ToolResult, StateUpdate };
 
@@ -41,6 +42,7 @@ const allTools: AnyToolDefinition[] = [
   listInvoicesTool,
   getStatsTool,
   markAsPaidTool,
+  cancelInvoiceTool,
   addClientNoteTool,
 ];
 

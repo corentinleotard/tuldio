@@ -1,5 +1,4 @@
 import { useRef, useEffect } from 'react';
-import { useVirtualizer } from '@tanstack/react-virtual';
 import { Loader2 } from 'lucide-react';
 import type {
   Message,
@@ -33,43 +32,34 @@ export function ChatMessageList({
   hasOlderMessages,
   isSending,
 }: ChatMessageListProps) {
-  const parentRef = useRef<HTMLDivElement>(null);
-  const prevMessageCountRef = useRef(messages.length);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const bottomRef = useRef<HTMLDivElement>(null);
+  const lastMessageIdRef = useRef<string | null>(null);
   const hasScrolledInitially = useRef(false);
-
-  const virtualizer = useVirtualizer({
-    count: messages.length,
-    getScrollElement: () => parentRef.current,
-    estimateSize: () => 80,
-    overscan: 10,
-  });
 
   // Scroll to bottom on initial load and when new messages are appended
   useEffect(() => {
     if (messages.length === 0) return;
 
-    const wasAppend = messages.length > prevMessageCountRef.current;
-    prevMessageCountRef.current = messages.length;
+    const lastMessage = messages[messages.length - 1]!;
+    const lastIdChanged = lastMessage.id !== lastMessageIdRef.current;
+    lastMessageIdRef.current = lastMessage.id;
 
-    if (!hasScrolledInitially.current || wasAppend) {
+    if (!hasScrolledInitially.current || lastIdChanged) {
       hasScrolledInitially.current = true;
-      requestAnimationFrame(() => {
-        virtualizer.scrollToIndex(messages.length - 1, { align: 'end' });
-      });
+      bottomRef.current?.scrollIntoView({ behavior: 'instant' });
     }
-  }, [messages.length, virtualizer]);
+  }, [messages]);
 
-  // Scroll to bottom after sending
+  // Scroll to bottom when sending starts
   useEffect(() => {
     if (!isSending) return;
-    requestAnimationFrame(() => {
-      virtualizer.scrollToIndex(messages.length - 1, { align: 'end' });
-    });
-  }, [isSending, messages.length, virtualizer]);
+    bottomRef.current?.scrollIntoView({ behavior: 'instant' });
+  }, [isSending]);
 
   // Detect scroll to top to load older messages
   useEffect(() => {
-    const el = parentRef.current;
+    const el = scrollRef.current;
     if (!el) return;
 
     let debounceId: ReturnType<typeof setTimeout> | null = null;
@@ -101,48 +91,35 @@ export function ChatMessageList({
     });
   }
 
-  const virtualItems = virtualizer.getVirtualItems();
-
   return (
-    <div ref={parentRef} className="flex-1 overflow-y-auto">
-      <div className="mx-auto max-w-2xl">
+    <div ref={scrollRef} className="flex flex-1 flex-col overflow-y-auto">
+      {/* Spacer pushes messages to bottom when content is shorter than viewport */}
+      <div className="flex-1" />
+
+      <div className="mx-auto w-full max-w-2xl">
         {isLoadingOlder && (
           <div className="flex justify-center py-4">
             <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
           </div>
         )}
 
-        <div
-          className="relative w-full"
-          style={{ height: virtualizer.getTotalSize() }}
-        >
+        {messages.map((msg, i) => (
           <div
-            className="absolute left-0 top-0 w-full"
-            style={{ transform: `translateY(${virtualItems[0]?.start ?? 0}px)` }}
+            key={msg.id}
+            className={`px-4 py-1.5 ${i === messages.length - 1 ? 'pb-4' : ''}`}
           >
-            {virtualItems.map((virtualRow) => {
-              const msg = messages[virtualRow.index]!;
-              const isLast = virtualRow.index === messages.length - 1;
-              return (
-                <div
-                  key={virtualRow.key}
-                  data-index={virtualRow.index}
-                  ref={virtualizer.measureElement}
-                  className={`px-4 py-1.5 ${isLast ? 'pb-4' : ''}`}
-                >
-                  <MessageBubble message={msg} />
-                  {msg.richCard && renderRichCard(msg.richCard, handleClientSelect, (text) => onSendMessage(text))}
-                </div>
-              );
-            })}
+            <MessageBubble message={msg} />
+            {msg.richCard && renderRichCard(msg.richCard, handleClientSelect, (text) => onSendMessage(text))}
           </div>
-        </div>
+        ))}
 
         {isSending && (
           <div className="px-4 pb-4">
             <TypingIndicator />
           </div>
         )}
+
+        <div ref={bottomRef} />
       </div>
     </div>
   );

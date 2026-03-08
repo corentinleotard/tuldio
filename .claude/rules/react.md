@@ -72,6 +72,11 @@ apps/web/src/
 - Small/meta: 14px — never smaller (`text-sm` minimum)
 - Amounts/prices: 18-20px, `font-bold` — money must be instantly scannable
 
+## Effects & Cleanup
+
+- Every `useEffect` that creates a subscription, interval, timeout, or event listener MUST return a cleanup function — forgetting it causes memory leaks and stale callbacks
+- Always verify: "if this effect re-runs or unmounts, is the previous one properly torn down?"
+
 ## Performance
 
 - Memoize expensive computations with `useMemo`

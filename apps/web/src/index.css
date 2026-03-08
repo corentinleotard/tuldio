@@ -88,8 +88,11 @@
   }
   html, body {
     margin: 0;
-    height: 100vh;
+    height: 100%;
     overflow: hidden;
+  }
+  #root {
+    height: 100%;
   }
   body {
     @apply bg-background text-foreground;

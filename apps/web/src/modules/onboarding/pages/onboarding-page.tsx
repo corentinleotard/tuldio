@@ -1,7 +1,7 @@
 import { useRef, useState, type FormEvent } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { Loader2, FileText, PenLine, ChevronRight, Download } from 'lucide-react';
+import { Loader2, FileText, PenLine, ChevronRight, ChevronLeft, Download, LogOut } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -32,17 +32,23 @@ function getFieldId(fields: { id: string; key: string }[], key: string): string 
 
 function StepIndicator({ current, onNavigate }: { current: Step; onNavigate: (step: Step) => void }) {
   return (
-    <div className="flex items-center justify-center gap-2">
-      {[1, 2, 3].map((s) => (
+    <div className="relative flex items-center justify-center gap-2">
+      {current > 1 && (
         <button
-          key={s}
           type="button"
-          disabled={s >= current}
-          onClick={() => onNavigate(s as Step)}
+          onClick={() => onNavigate((current - 1) as Step)}
+          className="absolute left-0 flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </button>
+      )}
+      {[1, 2, 3].map((s) => (
+        <div
+          key={s}
           className={cn(
             'h-2 rounded-full transition-all',
-            s === current && 'w-6 rounded bg-primary',
-            s < current && 'w-2 cursor-pointer bg-primary hover:opacity-70',
+            s === current && 'w-6 bg-primary',
+            s < current && 'w-2 bg-primary',
             s > current && 'w-2 bg-secondary',
           )}
         />
@@ -52,7 +58,7 @@ function StepIndicator({ current, onNavigate }: { current: Step; onNavigate: (st
 }
 
 export function OnboardingPage() {
-  const { team } = useAuth();
+  const { team, signOut } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
@@ -196,10 +202,27 @@ export function OnboardingPage() {
       {/* Desktop header */}
       <header className="hidden items-center justify-between border-b bg-card px-10 py-5 md:flex">
         <span className="text-2xl font-bold tracking-tight text-primary">Tuldio</span>
-        <span className="text-[13px] italic text-muted-foreground">
-          Tu lui dis, c&apos;est fait.
-        </span>
+        <button
+          type="button"
+          onClick={signOut}
+          className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[13px] text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+        >
+          <LogOut className="h-3.5 w-3.5" />
+          Se déconnecter
+        </button>
       </header>
+
+      {/* Mobile disconnect button */}
+      <div className="flex justify-end px-5 pt-4 md:hidden">
+        <button
+          type="button"
+          onClick={signOut}
+          className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[13px] text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+        >
+          <LogOut className="h-3.5 w-3.5" />
+          Se déconnecter
+        </button>
+      </div>
 
       {/* Main content */}
       <main
