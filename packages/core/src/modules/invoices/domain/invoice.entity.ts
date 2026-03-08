@@ -29,6 +29,7 @@ export const invoiceSchema = z.object({
   pdf_url: z.string().nullable(),
   sent_at: z.date().nullable(),
   paid_at: z.date().nullable(),
+  cancelled_at: z.date().nullable(),
   due_date: z.date().nullable(),
   created_at: z.date(),
 });

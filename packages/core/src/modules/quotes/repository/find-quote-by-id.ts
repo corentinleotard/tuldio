@@ -10,7 +10,7 @@ export async function findQuoteById(input: {
   quoteId: string;
 }): Promise<QuoteWithLines | null> {
   const result = await query<QuoteRow>(
-    'SELECT id, team_id, created_by, client_id, number, title, total_ht, total_ttc, status, pdf_url, valid_until, sent_at, created_at FROM quotes WHERE id = $1 AND team_id = $2 LIMIT 1',
+    'SELECT id, team_id, created_by, client_id, number, title, total_ht, total_ttc, status, pdf_url, valid_until, sent_at, accepted_at, refused_at, cancelled_at, created_at FROM quotes WHERE id = $1 AND team_id = $2 LIMIT 1',
     [input.quoteId, input.teamId],
   );
 

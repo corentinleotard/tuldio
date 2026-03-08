@@ -28,6 +28,9 @@ export const quoteSchema = z.object({
   pdf_url: z.string().nullable(),
   valid_until: z.date().nullable(),
   sent_at: z.date().nullable(),
+  accepted_at: z.date().nullable(),
+  refused_at: z.date().nullable(),
+  cancelled_at: z.date().nullable(),
   created_at: z.date(),
 });
 

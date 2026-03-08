@@ -37,7 +37,7 @@ export async function insertQuote(input: {
     const result = await query<QuoteRow>(
       `INSERT INTO quotes (id, team_id, created_by, client_id, number, title, total_ht, total_ttc, valid_until)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-       RETURNING id, team_id, created_by, client_id, number, title, total_ht, total_ttc, status, pdf_url, valid_until, sent_at, created_at`,
+       RETURNING id, team_id, created_by, client_id, number, title, total_ht, total_ttc, status, pdf_url, valid_until, sent_at, accepted_at, refused_at, cancelled_at, created_at`,
       [id, input.teamId, input.createdBy, input.clientId, number, input.title ?? null, input.totalHt, input.totalTtc, input.validUntil ?? null],
     );
 

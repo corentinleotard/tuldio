@@ -11,13 +11,15 @@ export async function updateInvoiceStatus(input: {
     extraSets = ', sent_at = NOW()';
   } else if (input.status === 'paid') {
     extraSets = ', paid_at = NOW()';
+  } else if (input.status === 'cancelled') {
+    extraSets = ', cancelled_at = NOW()';
   }
 
   const result = await query<InvoiceRow>(
     `UPDATE invoices
      SET status = $1${extraSets}
      WHERE id = $2 AND team_id = $3
-     RETURNING id, team_id, created_by, client_id, quote_id, number, title, total_ht, total_ttc, status, pdf_url, sent_at, paid_at, due_date, created_at`,
+     RETURNING id, team_id, created_by, client_id, quote_id, number, title, total_ht, total_ttc, status, pdf_url, sent_at, paid_at, cancelled_at, due_date, created_at`,
     [input.status, input.invoiceId, input.teamId],
   );
 

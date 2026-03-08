@@ -31,6 +31,9 @@ export async function getQuote(input: {
     pdfUrl: row.pdf_url,
     validUntil: row.valid_until?.toISOString() ?? null,
     sentAt: row.sent_at?.toISOString() ?? null,
+    acceptedAt: row.accepted_at?.toISOString() ?? null,
+    refusedAt: row.refused_at?.toISOString() ?? null,
+    cancelledAt: row.cancelled_at?.toISOString() ?? null,
     createdAt: row.created_at.toISOString(),
   };
 }

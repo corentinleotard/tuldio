@@ -26,7 +26,7 @@ export async function updateInvoiceLines(input: {
       `UPDATE invoices
        SET ${setClauses.join(', ')}
        WHERE id = $3 AND team_id = $4 AND status = 'draft'
-       RETURNING id, team_id, created_by, client_id, quote_id, number, title, total_ht, total_ttc, status, pdf_url, sent_at, paid_at, due_date, created_at`,
+       RETURNING id, team_id, created_by, client_id, quote_id, number, title, total_ht, total_ttc, status, pdf_url, sent_at, paid_at, cancelled_at, due_date, created_at`,
       params,
     );
 

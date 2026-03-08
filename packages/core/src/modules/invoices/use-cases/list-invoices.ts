@@ -24,6 +24,7 @@ export async function listInvoices(input: {
     pdfUrl: row.pdf_url,
     sentAt: row.sent_at?.toISOString() ?? null,
     paidAt: row.paid_at?.toISOString() ?? null,
+    cancelledAt: row.cancelled_at?.toISOString() ?? null,
     dueDate: row.due_date?.toISOString() ?? null,
     createdAt: row.created_at.toISOString(),
   }));

@@ -103,6 +103,9 @@ export async function createQuote(input: {
     pdfUrl: null,
     validUntil: row.valid_until?.toISOString() ?? null,
     sentAt: null,
+    acceptedAt: null,
+    refusedAt: null,
+    cancelledAt: null,
     createdAt: row.created_at.toISOString(),
   };
 }

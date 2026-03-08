@@ -2,7 +2,9 @@ import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { Settings } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { useAuth } from '@/lib/auth-context';
+import { usePwaBanner } from '@/components/pwa-install-prompt';
 import { ChatMessageList } from '../components/chat-message-list';
 import { ChatInputBar } from '../components/chat-input-bar';
 import { QuickReplyBar } from '../components/quick-reply-bar';
@@ -10,9 +12,29 @@ import { DesktopContextPanel } from '../components/desktop-context-panel';
 import { sendMessage, fetchMessages } from '../api/chat.api';
 import type { Message, MessageMetadata } from '@tuldio/types';
 
+/** Map mutating tool names to React Query keys that should be invalidated */
+const TOOL_INVALIDATIONS: Record<string, string[][]> = {
+  mark_as_paid: [['invoices'], ['stats']],
+  cancel_invoice: [['invoices'], ['stats']],
+  generate_invoice: [['invoices'], ['stats']],
+  invoice_from_quote: [['invoices'], ['quotes'], ['stats']],
+  update_invoice: [['invoices']],
+  generate_quote: [['quotes'], ['stats']],
+  update_quote: [['quotes']],
+  create_client: [['clients']],
+  update_client: [['clients']],
+};
+
+function getToolNamesFromResponse(response: Message): string[] {
+  const toolCalls = response.toolCalls as { name: string }[][] | null;
+  if (!toolCalls) return [];
+  return toolCalls.flat().map((tc) => tc.name);
+}
+
 export function ChatPage() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const pwaBannerVisible = usePwaBanner();
   const [isSending, setIsSending] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
 
@@ -80,6 +102,17 @@ export function ChatPage() {
           };
         },
       );
+
+      // Invalidate caches affected by tool calls
+      const toolNames = getToolNamesFromResponse(response);
+      const keysToInvalidate = new Set<string>();
+      for (const name of toolNames) {
+        const keys = TOOL_INVALIDATIONS[name];
+        if (keys) keys.forEach((k) => keysToInvalidate.add(JSON.stringify(k)));
+      }
+      for (const keyJson of keysToInvalidate) {
+        queryClient.invalidateQueries({ queryKey: JSON.parse(keyJson) as string[] });
+      }
     } catch {
       const errorMsg: Message = {
         id: `error-${Date.now()}`,
@@ -111,7 +144,7 @@ export function ChatPage() {
   const navigate = useNavigate();
 
   return (
-    <div className="flex h-full flex-col overflow-hidden">
+    <div className="absolute inset-0 flex flex-col overflow-hidden">
       {/* Mobile header */}
       <div className="flex items-center justify-between border-b px-4 py-3 md:hidden">
         <span className="text-2xl font-bold text-primary">Tuldio</span>
@@ -150,7 +183,12 @@ export function ChatPage() {
           )}
 
           {/* Input bar */}
-          <div className="border-t bg-background">
+          <div className={cn(
+            'bg-background md:pb-0',
+            pwaBannerVisible
+              ? 'pb-[calc(104px+env(safe-area-inset-bottom))]'
+              : 'pb-[calc(4rem+env(safe-area-inset-bottom))]',
+          )}>
             <ChatInputBar onSend={handleSend} disabled={isSending} onTypingChange={setIsTyping} />
           </div>
         </div>

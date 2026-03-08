@@ -1,4 +1,3 @@
-import { useEffect } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
 import { MessageSquare, FileText, Users, BarChart3, Settings } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -16,30 +15,6 @@ const navItems = [
 export function AppLayout() {
   const { user } = useAuth();
   const pwaBannerVisible = usePwaBanner();
-
-  // iOS Safari: after keyboard closes, visualViewport.offsetTop can remain
-  // non-zero, causing fixed elements (bottom nav) to appear offset with
-  // phantom padding. Force a scroll reset on keyboard dismiss.
-  useEffect(() => {
-    const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
-    if (!isIOS) return;
-
-    function resetScroll() {
-      requestAnimationFrame(() => {
-        window.scrollTo(0, 0);
-      });
-    }
-
-    // Reset on visualViewport resize (keyboard open/close)
-    window.visualViewport?.addEventListener('resize', resetScroll);
-    // Reset on input blur (keyboard dismiss)
-    document.addEventListener('focusout', resetScroll);
-
-    return () => {
-      window.visualViewport?.removeEventListener('resize', resetScroll);
-      document.removeEventListener('focusout', resetScroll);
-    };
-  }, []);
 
   return (
     <div className="flex h-dvh">
@@ -90,7 +65,7 @@ export function AppLayout() {
 
       {/* Main content */}
       <main className="flex min-w-0 flex-1 flex-col pt-safe-top md:pt-0">
-        <div className={cn('flex-1 overflow-auto md:pb-0', pwaBannerVisible ? 'pb-[calc(104px+env(safe-area-inset-bottom))]' : 'pb-[calc(4rem+env(safe-area-inset-bottom))]')}>
+        <div className={cn('relative flex-1 overflow-auto md:pb-0', pwaBannerVisible ? 'pb-[calc(104px+env(safe-area-inset-bottom))]' : 'pb-[calc(4rem+env(safe-area-inset-bottom))]')}>
           <Outlet />
         </div>
       </main>
