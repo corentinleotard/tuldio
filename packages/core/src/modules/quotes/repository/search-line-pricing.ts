@@ -11,6 +11,7 @@ export interface PastPricingRow {
   document_number: string;
   client_name: string;
   created_at: string;
+  score: number;
 }
 
 export async function searchLinePricing(input: {

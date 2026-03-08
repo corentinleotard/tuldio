@@ -21,5 +21,6 @@ export async function searchPastPricing(input: {
     documentNumber: r.document_number,
     clientName: r.client_name,
     createdAt: r.created_at,
+    score: r.score,
   }));
 }

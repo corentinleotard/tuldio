@@ -15,7 +15,7 @@ Returns matching lines with unit price, quantity, document info, and date.`,
       teamId: ctx.teamId,
       search: args.search,
     });
-    const hasMatches = Array.isArray(results) && results.length > 0;
-    return { result: results, ...(hasMatches ? { quickReplies: ['Oui, même prix'] } : {}) };
+    const hasStrongMatch = results.some((r) => r.score >= 0.5);
+    return { result: results, ...(hasStrongMatch ? { quickReplies: ['Oui, même prix'] } : {}) };
   },
 });

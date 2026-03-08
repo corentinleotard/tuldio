@@ -196,6 +196,7 @@ export interface PastPricingView {
   documentNumber: string;
   clientName: string;
   createdAt: string;
+  score: number;
 }
 
 // Prestations

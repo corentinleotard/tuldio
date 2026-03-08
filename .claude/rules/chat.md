@@ -39,6 +39,7 @@ If you cannot answer all 3, do NOT modify the prompt. Open a discussion first.
 - **Tool descriptions are the single source of truth** for how each tool should be used. They are in English for better instruction following.
 - **Every ID parameter** in a tool schema MUST include `(from current conversation tool results only)` in its `.describe()`.
 - **Run `pnpm eval` after any change** to system prompt, tool descriptions, or context building. These tests assert on tool call behavior. If an eval fails, your change broke something — revert first, think second.
+- **No business logic in tool handlers or descriptions.** Tool descriptions explain *what* the tool does, not *how* the domain works. Business rules (status transitions, terminal states, validation thresholds) belong in domain code (`modules/*/domain/`). Tool handlers call domain functions — they don't re-implement them. If a tool needs to branch on a business rule, extract a domain function and import it.
 
 ## Rich Cards — Snapshot + Live Data
 

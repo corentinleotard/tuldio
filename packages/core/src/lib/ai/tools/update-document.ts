@@ -25,10 +25,11 @@ For line changes use delta operations — reference existing lines by their ID s
   - removedLineIds: IDs of lines to remove
   - updatedLines: partial field updates on existing lines (by lineId)
 You can combine operations in a single call (e.g. add + remove + update).
-For status changes: provide status only. Quotes: accepted, refused. Invoices: paid, cancelled. To delete a draft document, use delete_document instead.`,
+For status changes: provide status only, no other fields. Invalid transitions will be rejected.
+To delete a draft document, use delete_document instead.`,
   schema: z.object({
     title: z.string().max(255).optional().describe('New title'),
-    status: z.enum(['accepted', 'refused', 'paid', 'cancelled']).optional().describe('New status'),
+    status: z.enum(['sent', 'accepted', 'refused', 'paid', 'cancelled']).optional().describe('New status'),
     addedLines: z.array(lineSchema).max(50).optional().describe('New lines to append'),
     removedLineIds: z.array(z.string().uuid()).optional().describe('IDs of lines to remove'),
     updatedLines: z.array(updatedLineSchema).optional().describe('Partial updates to existing lines by lineId'),
@@ -48,19 +49,16 @@ For status changes: provide status only. Quotes: accepted, refused. Invoices: pa
         return {
           result: invoice,
           richCard: { type: 'invoice', data: invoice },
-          stateUpdate: { document: null },
+          stateUpdate: { document: { id: docId, type: 'invoice' as const } },
         };
       }
 
       // Quote status
       const quote = await updateQuoteStatusUc({ teamId: ctx.teamId, quoteId: docId, status: args.status });
-      const isTerminal = args.status === 'accepted' || args.status === 'refused';
       return {
         result: quote,
         richCard: { type: 'quote', data: quote },
-        stateUpdate: isTerminal
-          ? { document: null }
-          : { document: { id: docId, type: 'quote' as const } },
+        stateUpdate: { document: { id: docId, type: 'quote' as const } },
       };
     }
 
