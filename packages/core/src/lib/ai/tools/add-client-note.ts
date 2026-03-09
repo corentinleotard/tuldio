@@ -7,7 +7,8 @@ import { addClientNote } from '../../../modules/clients/index.js';
 export const addClientNoteTool = defineTool({
   name: 'add_client_note',
   description:
-    `Add a note to the active client.
+    `Add a note to the active client. Requires an active client (via resolve_client or detect_client).
+When adding notes for multiple clients: add the note for the current active client FIRST, then resolve_client for the next one, then add their note. One at a time.
 Use type 'warning' for safety or access information (gate code, dangerous animal, difficult access).`,
   schema: z.object({
     content: z.string().min(1).max(2000).describe('Note content'),

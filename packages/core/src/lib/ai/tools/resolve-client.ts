@@ -8,9 +8,10 @@ export const resolveClientTool = defineTool({
   description:
     `Search for an existing client by name, email, or phone. Must be called every time the user mentions a client.
 Use clientId to pick a specific client from pending candidates (after disambiguation).
-Returns: exact_match (proceed), ambiguous (client picker or ask user to clarify), or no_match (propose creation).`,
+Returns: exact_match (proceed), ambiguous (client picker or ask user to clarify), or no_match (propose creation).
+IMPORTANT: Only one client can be active at a time. When the user mentions multiple clients, complete ALL actions for the current active client before calling resolve_client for the next one. Never call resolve_client multiple times in parallel.`,
   schema: z.object({
-    search: z.string().min(1).max(200).describe('Client name to search for'),
+    search: z.string().min(1).max(200).optional().describe('Client name to search for'),
     clientId: z.string().uuid().optional().describe('Pick a client directly by ID (from pending candidates only)'),
     email: z.string().email().optional().describe('Client email if mentioned'),
     phone: z.string().max(30).optional().describe('Client phone if mentioned'),
@@ -34,6 +35,10 @@ Returns: exact_match (proceed), ambiguous (client picker or ask user to clarify)
           ...(clientChanged ? { document: null } : {}),
         },
       };
+    }
+
+    if (!args.search) {
+      return { result: { status: 'no_match', error: 'Either search or clientId is required' } };
     }
 
     const resolution = await resolveClient({
