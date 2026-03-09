@@ -3,7 +3,7 @@ import { MessageSquare, FileText, Users, BarChart3, Settings } from 'lucide-reac
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/lib/auth-context';
 import { Avatar } from '@/components/ui/avatar';
-import { PwaInstallPrompt, usePwaBanner } from '@/components/pwa-install-prompt';
+import { PwaInstallPrompt } from '@/components/pwa-install-prompt';
 
 const navItems = [
   { to: '/chat', label: 'Chat', desktopLabel: 'Chat', icon: MessageSquare, badge: 0 },
@@ -14,10 +14,8 @@ const navItems = [
 
 export function AppLayout() {
   const { user } = useAuth();
-  const pwaBannerVisible = usePwaBanner();
-
   return (
-    <div className="flex h-dvh">
+    <div className="flex h-dvh flex-col md:flex-row">
       {/* Desktop sidebar */}
       <aside className="hidden w-72 shrink-0 flex-col border-r bg-card md:flex">
         <div className="flex items-center border-b px-5 pb-4 pt-5">
@@ -64,37 +62,23 @@ export function AppLayout() {
       </aside>
 
       {/* Main content */}
-      <main className="flex min-w-0 flex-1 flex-col pt-safe-top md:pt-0">
-        <div
-          className={cn(
-            'relative flex-1 overflow-auto md:pb-0',
-            pwaBannerVisible
-              ? 'pb-[calc(104px+env(safe-area-inset-bottom))]'
-              : 'pb-[calc(4rem+env(safe-area-inset-bottom))]',
-          )}
-        >
+      <main className="flex min-h-0 min-w-0 flex-1 flex-col pt-safe-top md:pt-0">
+        <div className="relative min-h-0 flex-1 overflow-auto">
           <Outlet />
         </div>
       </main>
 
       {/* Mobile bottom: install prompt + tabs */}
-      <div className="fixed inset-x-0 bottom-0 z-50 bg-card md:hidden">
+      <div className="shrink-0 md:hidden">
         <PwaInstallPrompt />
         <nav className="flex border-t border-border bg-card pb-safe">
           {navItems.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
-              onTouchStart={() => {
-                // iOS PWA: dismiss keyboard immediately on nav tap to avoid
-                // delayed navigation and viewport offset issues.
-                if (document.activeElement instanceof HTMLElement) {
-                  document.activeElement.blur();
-                }
-              }}
               className={({ isActive }) =>
                 cn(
-                  'flex flex-1 flex-col items-center gap-[3px] pt-2 pb-1 text-[10px] font-medium transition-colors',
+                  'flex flex-1 touch-manipulation flex-col items-center gap-[3px] pt-2 pb-1 text-[10px] font-medium transition-colors',
                   isActive
                     ? 'font-semibold text-primary'
                     : 'text-muted-foreground',

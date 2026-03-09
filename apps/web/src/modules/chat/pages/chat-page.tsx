@@ -179,7 +179,7 @@ export function ChatPage() {
           )}
 
           {/* Input bar */}
-          <div className="bg-background pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-4">
+          <div className="bg-background pb-2 md:pb-4">
             <ChatInputBar onSend={handleSend} disabled={isSending} onTypingChange={setIsTyping} />
           </div>
         </div>

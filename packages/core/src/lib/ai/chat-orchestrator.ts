@@ -3,12 +3,13 @@ import type { DemandState, QuoteView, InvoiceView } from '@tuldio/types';
 import { callClaude } from './claude-client.js';
 import { buildSystemPrompt } from './system-prompt.js';
 import { buildClaudeMessages, type StoredToolCall } from './build-context.js';
-import { chatTools, executeTool, type StateUpdate } from './tool-registry.js';
+import { chatTools, detectClientTools, executeTool, type StateUpdate } from './tool-registry.js';
 import { createMessage, listMessages } from '../../modules/messages/index.js';
 import { getCurrentUser } from '../../modules/users/index.js';
 import { getTeam } from '../../modules/teams/index.js';
 import { getDemandState, upsertDemandState, clearDemandState } from '../../modules/demands/index.js';
 import { findClientById } from '../../modules/clients/repository/find-client-by-id.js';
+import { resolveClient } from '../../modules/clients/index.js';
 import { getQuote } from '../../modules/quotes/index.js';
 import { getInvoice } from '../../modules/invoices/index.js';
 import { logger } from '../infra/logger.js';
@@ -44,6 +45,116 @@ async function fetchActiveDocument(input: {
     // Document not found (deleted?) — will be cleared below
     return null;
   }
+}
+
+interface DetectClientResult {
+  clientMentioned: boolean;
+  search?: string;
+  clientId?: string;
+}
+
+/** Pre-processing step: detect client mentions and resolve in code */
+async function preProcessClientDetection(input: {
+  systemPrompt: string;
+  claudeMessages: Anthropic.MessageParam[];
+  currentState: DemandState;
+  teamId: string;
+  userId: string;
+}): Promise<{
+  currentState: DemandState;
+  richCard: { type: string; data: unknown } | null;
+  quickReplies: string[] | null;
+  traceRound: DebugTraceRound;
+}> {
+  const { systemPrompt, claudeMessages, teamId, userId } = input;
+  let { currentState } = input;
+  let richCard: { type: string; data: unknown } | null = null;
+  let quickReplies: string[] | null = null;
+
+  // Step 1: Force detect_client call
+  const detectResponse = await callClaude({
+    systemPrompt,
+    messages: claudeMessages,
+    tools: detectClientTools,
+    toolChoice: { type: 'tool', name: 'detect_client' },
+    teamId,
+    userId,
+    purpose: 'detect_client',
+  });
+
+  const detectToolUse = detectResponse.message.content.find(
+    (block): block is Anthropic.ToolUseBlock => block.type === 'tool_use' && block.name === 'detect_client',
+  );
+
+  const detection = detectToolUse?.input as DetectClientResult | undefined;
+
+  logger.info('detect_client', { teamId, userId, detection });
+
+  // Step 2: Process detection result in code
+  if (detection?.clientMentioned) {
+    if (detection.clientId) {
+      // Direct pick from pending candidates
+      const client = await findClientById({ teamId, clientId: detection.clientId });
+      if (client) {
+        const clientChanged = currentState.client?.id !== client.id;
+        currentState = {
+          ...currentState,
+          client: { id: client.id, name: `${client.first_name} ${client.last_name}` },
+          pendingCandidates: null,
+          ...(clientChanged ? { document: null } : {}),
+        };
+      } else {
+        // Invalid clientId — clear pending candidates
+        currentState = { ...currentState, pendingCandidates: null };
+      }
+    } else if (detection.search) {
+      // Fuzzy search
+      const resolution = await resolveClient({ teamId, search: detection.search });
+
+      if (resolution.status === 'exact_match') {
+        const clientChanged = currentState.client?.id !== resolution.client.id;
+        currentState = {
+          ...currentState,
+          client: { id: resolution.client.id, name: `${resolution.client.firstName} ${resolution.client.lastName}` },
+          pendingCandidates: null,
+          ...(clientChanged ? { document: null } : {}),
+        };
+      } else if (resolution.status === 'ambiguous') {
+        const candidates = resolution.candidates.map((c) => ({
+          id: c.id,
+          name: `${c.firstName} ${c.lastName}`,
+        }));
+        currentState = { ...currentState, pendingCandidates: candidates };
+
+        if (resolution.candidates.length <= 3) {
+          richCard = { type: 'client_picker', data: resolution.candidates };
+        }
+      } else if (resolution.status === 'no_match') {
+        currentState = { ...currentState, pendingCandidates: null };
+        quickReplies = ['Oui, crée-le'];
+      }
+    }
+  } else {
+    // No client mentioned — clear stale pending candidates
+    if (currentState.pendingCandidates && currentState.pendingCandidates.length > 0) {
+      currentState = { ...currentState, pendingCandidates: null };
+    }
+  }
+
+  const traceRound: DebugTraceRound = {
+    inputTokens: detectResponse.meta.inputTokens,
+    outputTokens: detectResponse.meta.outputTokens,
+    costCents: detectResponse.meta.costCents,
+    durationMs: detectResponse.meta.durationMs,
+    toolCalls: [{
+      name: 'detect_client',
+      input: detection ?? {},
+      output: detection ?? {},
+      durationMs: 0,
+    }],
+  };
+
+  return { currentState, richCard, quickReplies, traceRound };
 }
 
 export async function processMessage(input: {
@@ -99,27 +210,52 @@ export async function processMessage(input: {
 
   const claudeMessages: Anthropic.MessageParam[] = buildClaudeMessages(recentMessages);
 
-  // Force resolve_client if there are pending candidates from a previous disambiguation
-  const hasPendingCandidates = currentState.pendingCandidates && currentState.pendingCandidates.length > 0;
-  const forcedToolChoice: Anthropic.ToolChoice | undefined = hasPendingCandidates
-    ? { type: 'tool', name: 'resolve_client' }
-    : undefined;
+  // --- Pre-processing: detect client mentions and resolve in code ---
+  const traceRounds: DebugTraceRound[] = [];
+  let richCard: { type: string; data: unknown } | null = null;
+  let quickReplies: string[] | null = null;
 
-  // Call Claude with tools
+  // Skip detection if client was already selected via picker metadata
+  if (!metadata?.selectedClientId) {
+    const detection = await preProcessClientDetection({
+      systemPrompt,
+      claudeMessages,
+      currentState,
+      teamId,
+      userId,
+    });
+
+    currentState = detection.currentState;
+    richCard = detection.richCard;
+    quickReplies = detection.quickReplies;
+    traceRounds.push(detection.traceRound);
+
+    // Persist state if it changed
+    await upsertDemandState({ userId, teamId, state: currentState });
+
+    // Re-fetch active document after potential state change
+    activeDocument = await fetchActiveDocument({ state: currentState, teamId });
+
+    // Rebuild system prompt with updated state
+    systemPrompt = buildSystemPrompt({
+      teamName: team.name,
+      userName: user.name,
+      demandState: currentState,
+      activeDocument,
+    });
+  }
+
+  // --- Main agent call ---
   let { message: response, meta } = await callClaude({
     systemPrompt,
     messages: claudeMessages,
     tools: chatTools,
-    toolChoice: forcedToolChoice,
     teamId,
     userId,
     purpose: 'chat',
   });
 
-  let richCard: { type: string; data: unknown } | null = null;
-  let quickReplies: string[] | null = null;
   const toolRounds: StoredToolCall[][] = [];
-  const traceRounds: DebugTraceRound[] = [];
 
   // Handle tool use loop
   let rounds = 0;
@@ -231,13 +367,6 @@ export async function processMessage(input: {
       toolCalls: roundToolCalls,
     });
     toolRounds.push(roundStored);
-
-    // After the forced resolve_client round, clear stale pendingCandidates
-    // to prevent forcing on the next message if resolution failed
-    if (hasPendingCandidates && rounds === 1 && currentState.pendingCandidates && currentState.pendingCandidates.length > 0) {
-      currentState = { ...currentState, pendingCandidates: null };
-      await upsertDemandState({ userId, teamId, state: currentState });
-    }
 
     // Continue conversation with tool results
     claudeMessages.push({ role: 'assistant', content: response.content });

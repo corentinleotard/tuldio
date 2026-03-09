@@ -15,6 +15,7 @@ import { listDocumentsTool } from './tools/list-documents.js';
 import { deleteDocumentTool } from './tools/delete-document.js';
 import { openDocumentTool } from './tools/open-document.js';
 import { getStatsTool } from './tools/get-stats.js';
+import { detectClientTool } from './tools/detect-client.js';
 
 export type { ToolResult, StateUpdate };
 
@@ -45,6 +46,16 @@ export const chatTools: Anthropic.Tool[] = allTools.map((t) => {
     input_schema: jsonSchema as Anthropic.Tool['input_schema'],
   };
 });
+
+/** detect_client tool definition — used only in the pre-processing round, not in chatTools */
+export const detectClientTools: Anthropic.Tool[] = (() => {
+  const { $schema: _, ...jsonSchema } = zodToJsonSchema(detectClientTool.schema, { target: 'jsonSchema7' });
+  return [{
+    name: detectClientTool.name,
+    description: detectClientTool.description,
+    input_schema: jsonSchema as Anthropic.Tool['input_schema'],
+  }];
+})();
 
 /** Execute a tool by name — validates input with zod, then runs handler */
 export async function executeTool(input: {
