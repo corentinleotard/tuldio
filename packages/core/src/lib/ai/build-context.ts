@@ -2,6 +2,7 @@ import type Anthropic from '@anthropic-ai/sdk';
 import type { Message } from '@tuldio/types';
 
 const RECENT_MESSAGES_COUNT = 8;
+export const DETECTION_MESSAGES_COUNT = 5;
 
 export type StoredToolCall = {
   toolUseId: string;
@@ -18,10 +19,11 @@ export type StoredToolRounds = StoredToolCall[][];
  * For assistant messages that have tool rounds, reconstruct the full
  * tool_use / tool_result exchange so Claude sees structured tool data.
  */
-export function buildClaudeMessages(allMessages: Message[]): Anthropic.MessageParam[] {
+export function buildClaudeMessages(allMessages: Message[], options?: { limit?: number }): Anthropic.MessageParam[] {
+  const count = options?.limit ?? RECENT_MESSAGES_COUNT;
   // Take the last N messages, ensuring the slice starts with a user message
   // to avoid orphaned tool_result blocks after tool round expansion.
-  let startIndex = Math.max(0, allMessages.length - RECENT_MESSAGES_COUNT);
+  let startIndex = Math.max(0, allMessages.length - count);
   while (startIndex > 0 && allMessages[startIndex]!.role !== 'user') {
     startIndex--;
   }

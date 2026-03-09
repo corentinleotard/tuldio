@@ -1,8 +1,8 @@
 import type Anthropic from '@anthropic-ai/sdk';
 import type { DemandState, QuoteView, InvoiceView } from '@tuldio/types';
 import { callClaude } from './claude-client.js';
-import { buildSystemPrompt } from './system-prompt.js';
-import { buildClaudeMessages, type StoredToolCall } from './build-context.js';
+import { buildSystemPrompt, buildDetectionSystemPrompt } from './system-prompt.js';
+import { buildClaudeMessages, DETECTION_MESSAGES_COUNT, type StoredToolCall } from './build-context.js';
 import { chatTools, detectClientTools, executeTool, type StateUpdate } from './tool-registry.js';
 import { createMessage, listMessages } from '../../modules/messages/index.js';
 import { getCurrentUser } from '../../modules/users/index.js';
@@ -55,9 +55,8 @@ interface DetectClientResult {
 
 /** Pre-processing step: detect client mentions and resolve in code */
 async function preProcessClientDetection(input: {
-  systemPrompt: string;
-  claudeMessages: Anthropic.MessageParam[];
   currentState: DemandState;
+  allMessages: Message[];
   teamId: string;
   userId: string;
 }): Promise<{
@@ -66,7 +65,12 @@ async function preProcessClientDetection(input: {
   quickReplies: string[] | null;
   traceRound: DebugTraceRound;
 }> {
-  const { systemPrompt, claudeMessages, teamId, userId } = input;
+  const { teamId, userId, allMessages } = input;
+
+  // Minimal prompt: only active client + pending candidates
+  const systemPrompt = buildDetectionSystemPrompt({ demandState: input.currentState });
+  // Short message window: only last 3 messages (enough for anaphoric references)
+  const claudeMessages = buildClaudeMessages(allMessages, { limit: DETECTION_MESSAGES_COUNT });
   let { currentState } = input;
   let richCard: { type: string; data: unknown } | null = null;
   let quickReplies: string[] | null = null;
@@ -218,9 +222,8 @@ export async function processMessage(input: {
   // Skip detection if client was already selected via picker metadata
   if (!metadata?.selectedClientId) {
     const detection = await preProcessClientDetection({
-      systemPrompt,
-      claudeMessages,
       currentState,
+      allMessages: recentMessages,
       teamId,
       userId,
     });

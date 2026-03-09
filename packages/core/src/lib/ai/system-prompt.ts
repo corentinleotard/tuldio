@@ -74,3 +74,26 @@ When the user requests multiple actions, process them in the order they are ment
 
   return prompt;
 }
+
+/** Minimal system prompt for the detect_client pre-processing step.
+ *  Only includes active client + pending candidates — no tone, formatting, or document state. */
+export function buildDetectionSystemPrompt(input: {
+  demandState: DemandState;
+}): string {
+  const { client, pendingCandidates } = input.demandState;
+
+  let prompt = 'Extract client references from the user message.';
+
+  if (client) {
+    prompt += `\nActive client: ${client.name}`;
+  }
+
+  if (pendingCandidates && pendingCandidates.length > 0) {
+    prompt += '\nPending candidates:';
+    for (const c of pendingCandidates) {
+      prompt += `\n- ${c.name} (clientId: ${c.id})`;
+    }
+  }
+
+  return prompt;
+}

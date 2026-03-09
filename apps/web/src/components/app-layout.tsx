@@ -69,9 +69,9 @@ export function AppLayout() {
       </main>
 
       {/* Mobile bottom: install prompt + tabs */}
-      <div className="shrink-0 md:hidden">
+      <div className="shrink-0 bg-card md:hidden">
         <PwaInstallPrompt />
-        <nav className="flex border-t border-border bg-card pb-safe">
+        <nav className="flex border-t border-border pb-safe">
           {navItems.map((item) => (
             <NavLink
               key={item.to}
