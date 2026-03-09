@@ -3,7 +3,6 @@ import { MessageSquare, FileText, Users, BarChart3, Settings } from 'lucide-reac
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/lib/auth-context';
 import { Avatar } from '@/components/ui/avatar';
-import { PwaInstallPrompt } from '@/components/pwa-install-prompt';
 
 const navItems = [
   { to: '/chat', label: 'Chat', desktopLabel: 'Chat', icon: MessageSquare, badge: 0 },
@@ -70,7 +69,6 @@ export function AppLayout() {
 
       {/* Mobile bottom: install prompt + tabs */}
       <div className="shrink-0 bg-card md:hidden">
-        <PwaInstallPrompt />
         <nav className="flex border-t border-border pb-safe">
           {navItems.map((item) => (
             <NavLink
