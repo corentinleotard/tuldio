@@ -72,8 +72,8 @@ export function RichCardQuote({ data, onSendMessage }: RichCardQuoteProps) {
     setConfirming(false);
   }
 
-  function handleView() {
-    viewDocument({ pdfUrl });
+  async function handleView() {
+    await viewDocument({ pdfUrl });
   }
 
   async function handleStatusUpdate(newStatus: 'accepted' | 'refused') {

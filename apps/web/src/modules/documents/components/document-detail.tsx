@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import type { QuoteView, InvoiceView } from '@tuldio/types';
 import { Download, ChevronDown } from 'lucide-react';
 import { cn, formatCurrency, formatDate, formatShortDate } from '@/lib/utils';
-import { API_URL } from '@/lib/api-fetch';
+import { viewDocument } from '@/lib/share-document';
 import {
   statusConfig,
   defaultStatus,
@@ -208,7 +208,7 @@ export function DocumentDetail({ document: doc, type, onStatusChange }: Document
           {doc.pdfUrl && (
             <button
               type="button"
-              onClick={() => window.open(`${API_URL}${doc.pdfUrl}`, '_blank')}
+              onClick={() => viewDocument({ pdfUrl: doc.pdfUrl! })}
               className="inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
             >
               <Download className="h-4 w-4" />

@@ -41,8 +41,18 @@ export async function shareDocument(input: {
   });
 }
 
-export function viewDocument(input: { pdfUrl: string }): void {
-  window.open(`${API_URL}${input.pdfUrl}`, '_blank');
+export async function viewDocument(input: { pdfUrl: string }): Promise<void> {
+  const tab = window.open('about:blank', '_blank');
+  try {
+    const blob = await fetchPdfBlob(input.pdfUrl);
+    const blobUrl = URL.createObjectURL(blob);
+    if (tab) {
+      tab.location.href = blobUrl;
+    }
+  } catch (err) {
+    tab?.close();
+    throw err;
+  }
 }
 
 export async function downloadDocument(input: {

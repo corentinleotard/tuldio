@@ -72,8 +72,8 @@ export function RichCardInvoice({ data, onSendMessage }: RichCardInvoiceProps) {
     setConfirming(false);
   }
 
-  function handleView() {
-    viewDocument({ pdfUrl });
+  async function handleView() {
+    await viewDocument({ pdfUrl });
   }
 
   async function handleMarkPaid() {
