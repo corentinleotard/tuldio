@@ -69,7 +69,7 @@ export function AppLayout() {
 
       {/* Mobile bottom: install prompt + tabs */}
       <div className="shrink-0 bg-card md:hidden">
-        <nav className="flex border-t border-border pb-safe">
+        <nav className="flex border-t border-border pb-2">
           {navItems.map((item) => (
             <NavLink
               key={item.to}
