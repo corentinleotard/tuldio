@@ -310,6 +310,7 @@ export interface DemandActiveDocument {
 export interface DemandState {
   client: DemandClient | null;
   document: DemandActiveDocument | null;
+  pendingCandidates?: DemandClient[] | null;
 }
 
 // Pagination

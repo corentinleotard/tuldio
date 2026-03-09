@@ -47,8 +47,8 @@ export async function resolveClient(input: {
     }
   }
 
-  // Fuzzy match on name
-  const matches = await searchClients({ teamId, search });
+  // Fuzzy match on name — cap to 20, enough for disambiguation
+  const matches = await searchClients({ teamId, search, limit: 20 });
 
   if (matches.length === 0) {
     return { status: 'no_match' };

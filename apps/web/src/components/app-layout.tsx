@@ -78,13 +78,20 @@ export function AppLayout() {
       </main>
 
       {/* Mobile bottom: install prompt + tabs */}
-      <div className="fixed inset-x-0 bottom-0 z-50 md:hidden">
+      <div className="fixed inset-x-0 bottom-0 z-50 bg-card md:hidden">
         <PwaInstallPrompt />
         <nav className="flex border-t border-border bg-card pb-safe">
           {navItems.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
+              onTouchStart={() => {
+                // iOS PWA: dismiss keyboard immediately on nav tap to avoid
+                // delayed navigation and viewport offset issues.
+                if (document.activeElement instanceof HTMLElement) {
+                  document.activeElement.blur();
+                }
+              }}
               className={({ isActive }) =>
                 cn(
                   'flex flex-1 flex-col items-center gap-[3px] pt-2 pb-1 text-[10px] font-medium transition-colors',

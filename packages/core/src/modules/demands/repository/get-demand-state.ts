@@ -9,6 +9,6 @@ export async function getDemandState(input: {
     [input.userId],
   );
 
-  if (result.rows.length === 0) return { client: null, document: null };
+  if (result.rows.length === 0) return { client: null, document: null, pendingCandidates: null };
   return result.rows[0]!.state;
 }

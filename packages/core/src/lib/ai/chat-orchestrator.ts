@@ -18,11 +18,12 @@ const MAX_TOOL_ROUNDS = 10;
 
 function applyStateUpdate(current: DemandState, update: StateUpdate): DemandState | null {
   if (update === null) return null; // no change
-  if (update === 'clear') return { client: null, document: null };
+  if (update === 'clear') return { client: null, document: null, pendingCandidates: null };
 
   return {
     client: update.client !== undefined ? update.client : current.client,
     document: update.document !== undefined ? update.document : current.document,
+    pendingCandidates: update.pendingCandidates !== undefined ? update.pendingCandidates : current.pendingCandidates,
   };
 }
 
@@ -76,7 +77,7 @@ export async function processMessage(input: {
   if (metadata?.selectedClientId) {
     const client = await findClientById({ teamId, clientId: metadata.selectedClientId });
     const clientName = client ? `${client.first_name} ${client.last_name}` : '';
-    currentState = { ...currentState, client: { id: metadata.selectedClientId, name: clientName }, document: null };
+    currentState = { ...currentState, client: { id: metadata.selectedClientId, name: clientName }, document: null, pendingCandidates: null };
     await upsertDemandState({ userId, teamId, state: currentState });
   }
 
@@ -98,11 +99,18 @@ export async function processMessage(input: {
 
   const claudeMessages: Anthropic.MessageParam[] = buildClaudeMessages(recentMessages);
 
+  // Force resolve_client if there are pending candidates from a previous disambiguation
+  const hasPendingCandidates = currentState.pendingCandidates && currentState.pendingCandidates.length > 0;
+  const forcedToolChoice: Anthropic.ToolChoice | undefined = hasPendingCandidates
+    ? { type: 'tool', name: 'resolve_client' }
+    : undefined;
+
   // Call Claude with tools
   let { message: response, meta } = await callClaude({
     systemPrompt,
     messages: claudeMessages,
     tools: chatTools,
+    toolChoice: forcedToolChoice,
     teamId,
     userId,
     purpose: 'chat',
@@ -142,7 +150,7 @@ export async function processMessage(input: {
           const newState = applyStateUpdate(currentState, stateUpdate);
           if (newState) {
             currentState = newState;
-            if (newState.client === null && newState.document === null) {
+            if (newState.client === null && newState.document === null && !newState.pendingCandidates) {
               await clearDemandState({ userId });
             } else {
               await upsertDemandState({ userId, teamId, state: currentState });
@@ -223,6 +231,13 @@ export async function processMessage(input: {
       toolCalls: roundToolCalls,
     });
     toolRounds.push(roundStored);
+
+    // After the forced resolve_client round, clear stale pendingCandidates
+    // to prevent forcing on the next message if resolution failed
+    if (hasPendingCandidates && rounds === 1 && currentState.pendingCandidates && currentState.pendingCandidates.length > 0) {
+      currentState = { ...currentState, pendingCandidates: null };
+      await upsertDemandState({ userId, teamId, state: currentState });
+    }
 
     // Continue conversation with tool results
     claudeMessages.push({ role: 'assistant', content: response.content });

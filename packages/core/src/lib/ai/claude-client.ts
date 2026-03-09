@@ -120,6 +120,7 @@ export async function callClaude(input: {
   systemPrompt: string;
   messages: Anthropic.MessageParam[];
   tools?: Anthropic.Tool[];
+  toolChoice?: Anthropic.ToolChoice;
   teamId?: string;
   userId?: string;
   purpose?: string;
@@ -144,6 +145,7 @@ export async function callClaude(input: {
     system: hardenedSystem,
     messages: delimited,
     tools: input.tools,
+    ...(input.toolChoice ? { tool_choice: input.toolChoice } : {}),
   });
 
   const durationMs = Date.now() - start;
