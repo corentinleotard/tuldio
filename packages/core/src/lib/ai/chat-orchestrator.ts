@@ -114,6 +114,7 @@ async function preProcessClientDetection(input: {
     } else if (detection.search) {
       // Fuzzy search
       const resolution = await resolveClient({ teamId, search: detection.search });
+      logger.info('resolve_client', { teamId, userId, search: detection.search, status: resolution.status });
 
       if (resolution.status === 'exact_match') {
         const clientChanged = currentState.client?.id !== resolution.client.id;
