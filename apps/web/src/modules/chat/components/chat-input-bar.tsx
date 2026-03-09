@@ -8,6 +8,15 @@ interface ChatInputBarProps {
   onTypingChange?: (isTyping: boolean) => void;
 }
 
+/** Force-reset iOS Safari zoom after keyboard dismiss (belt-and-suspenders with 16px font) */
+function resetIOSZoom() {
+  const viewport = document.querySelector('meta[name="viewport"]');
+  if (!viewport) return;
+  const original = viewport.getAttribute('content') ?? '';
+  viewport.setAttribute('content', original + ', maximum-scale=1');
+  requestAnimationFrame(() => viewport.setAttribute('content', original));
+}
+
 export function ChatInputBar({ onSend, disabled, onTypingChange }: ChatInputBarProps) {
   const [value, setValue] = useState(() => sessionStorage.getItem('chat-draft') ?? '');
 
@@ -41,9 +50,11 @@ export function ChatInputBar({ onSend, disabled, onTypingChange }: ChatInputBarP
         value={value}
         onChange={(e) => updateValue(e.target.value)}
         onKeyDown={handleKeyDown}
+        onBlur={resetIOSZoom}
         placeholder="Ecrivez un message..."
         rows={1}
-        className="flex-1 resize-none rounded-3xl border border-border bg-card px-4 py-2.5 text-[15px] placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        // text-base (16px) prevents iOS auto-zoom on input focus (triggers at <16px)
+        className="flex-1 resize-none rounded-3xl border border-border bg-card px-4 py-2.5 text-base placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         disabled={disabled}
       />
       <Button

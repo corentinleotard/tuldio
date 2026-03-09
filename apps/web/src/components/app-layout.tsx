@@ -15,7 +15,7 @@ const navItems = [
 export function AppLayout() {
   const { user } = useAuth();
   return (
-    <div className="flex h-dvh flex-col md:flex-row">
+    <div className="flex h-full flex-col md:flex-row">
       {/* Desktop sidebar */}
       <aside className="hidden w-72 shrink-0 flex-col border-r bg-card md:flex">
         <div className="flex items-center border-b px-5 pb-4 pt-5">
