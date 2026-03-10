@@ -1,7 +1,9 @@
 import type { TeamField, UpdateTeamFieldRequest } from '@tuldio/types';
 import { HandledError } from '../../../lib/errors/handled-error.js';
 import { errorCodes } from '../../../lib/errors/error-codes.js';
+import { findTeamFieldById } from '../repository/find-team-field-by-id.js';
 import { upsertTeamField } from '../repository/upsert-team-field.js';
+import { updateDraftDocumentsTva } from '../repository/update-draft-documents-tva.js';
 import { toTeamField } from '../domain/team-field.view.js';
 
 export async function updateTeamField(input: {
@@ -10,21 +12,14 @@ export async function updateTeamField(input: {
 } & UpdateTeamFieldRequest): Promise<TeamField> {
   const { teamId, fieldId, value, showQuote, showInvoice } = input;
 
+  const current = await findTeamFieldById({ teamId, fieldId });
+  if (!current) throw new HandledError(errorCodes.teamNotFound);
+
   let effectiveShowQuote = showQuote;
   let effectiveShowInvoice = showInvoice;
 
   // UX rule: when user changes a value and both show flags are false → auto-enable both
   if (value !== undefined && showQuote === undefined && showInvoice === undefined) {
-    // We need to check current state — but the upsert will handle this
-    // We'll read the current row first
-    const { query: dbQuery } = await import('../../../lib/database/db.js');
-    const result = await dbQuery(
-      'SELECT show_quote, show_invoice FROM team_fields WHERE id = $1 AND team_id = $2',
-      [fieldId, teamId],
-    );
-    const current = result.rows[0];
-    if (!current) throw new HandledError(errorCodes.teamNotFound);
-
     if (!current.show_quote && !current.show_invoice) {
       effectiveShowQuote = true;
       effectiveShowInvoice = true;
@@ -40,6 +35,10 @@ export async function updateTeamField(input: {
   });
 
   if (!row) throw new HandledError(errorCodes.teamNotFound);
+
+  if (row.key === 'tva_exempt' && row.value !== current.value) {
+    await updateDraftDocumentsTva({ teamId, tvaExempt: row.value === 'true' });
+  }
 
   return toTeamField(row);
 }

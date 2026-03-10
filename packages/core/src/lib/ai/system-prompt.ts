@@ -65,10 +65,9 @@ When the user requests multiple actions, process them in the order they are ment
 
   const { pendingCandidates } = input.demandState;
   if (pendingCandidates && pendingCandidates.length > 0) {
-    prompt += '\n\n## Pending client disambiguation\n';
-    prompt += 'The user is choosing from these candidates. Call resolve_client with the matching clientId:\n';
+    prompt += '\n\n## Pending candidates\n';
     for (const c of pendingCandidates) {
-      prompt += `\n- ${c.name} (clientId: ${c.id})`;
+      prompt += `\n- ${c.name}`;
     }
   }
 
