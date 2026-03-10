@@ -191,15 +191,27 @@ describe('shouldAutoAcceptQuote', () => {
 });
 
 describe('defaultValidUntil', () => {
-  it('returns date + 30 days', () => {
+  it('returns date + 30 days by default', () => {
     const created = new Date('2026-03-01T12:00:00Z');
-    const result = defaultValidUntil(created);
+    const result = defaultValidUntil({ createdAt: created, days: 30 });
     expect(result.toISOString().slice(0, 10)).toBe('2026-03-31');
   });
 
   it('handles month overflow', () => {
     const created = new Date('2026-01-15T12:00:00Z');
-    const result = defaultValidUntil(created);
+    const result = defaultValidUntil({ createdAt: created, days: 30 });
     expect(result.toISOString().slice(0, 10)).toBe('2026-02-14');
+  });
+
+  it('supports custom validity days', () => {
+    const created = new Date('2026-03-01T12:00:00Z');
+    const result = defaultValidUntil({ createdAt: created, days: 15 });
+    expect(result.toISOString().slice(0, 10)).toBe('2026-03-16');
+  });
+
+  it('supports 60 days validity', () => {
+    const created = new Date('2026-03-01T12:00:00Z');
+    const result = defaultValidUntil({ createdAt: created, days: 60 });
+    expect(result.toISOString().slice(0, 10)).toBe('2026-04-30');
   });
 });

@@ -3,6 +3,7 @@ import {
   buildAcompteLine,
   canCancelInvoice,
   canEditInvoice,
+  computeDueDate,
   computeInvoiceTotals,
   computeRemaining,
   isOverdue,
@@ -112,6 +113,30 @@ describe('canCancelInvoice', () => {
   it('allows overdue', () => expect(canCancelInvoice('overdue')).toBe(true));
   it('rejects paid', () => expect(canCancelInvoice('paid')).toBe(false));
   it('rejects already cancelled', () => expect(canCancelInvoice('cancelled')).toBe(false));
+});
+
+describe('computeDueDate', () => {
+  it('adds delay days to createdAt', () => {
+    const createdAt = new Date(2026, 2, 10); // March 10
+    const result = computeDueDate({ createdAt, delayDays: 30 });
+    expect(result.getFullYear()).toBe(2026);
+    expect(result.getMonth()).toBe(3); // April
+    expect(result.getDate()).toBe(9);
+  });
+
+  it('handles month boundary', () => {
+    const createdAt = new Date(2026, 0, 31); // Jan 31
+    const result = computeDueDate({ createdAt, delayDays: 30 });
+    expect(result.getFullYear()).toBe(2026);
+    expect(result.getMonth()).toBe(2); // March
+    expect(result.getDate()).toBe(2);
+  });
+
+  it('handles 1 day delay', () => {
+    const createdAt = new Date(2026, 2, 10); // March 10
+    const result = computeDueDate({ createdAt, delayDays: 1 });
+    expect(result.getDate()).toBe(11);
+  });
 });
 
 describe('isOverdue', () => {

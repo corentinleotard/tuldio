@@ -63,6 +63,7 @@ async function preProcessClientDetection(input: {
   currentState: DemandState;
   richCard: { type: string; data: unknown } | null;
   quickReplies: string[] | null;
+  clientNotFound: string | null;
   traceRound: DebugTraceRound;
 }> {
   const { teamId, userId, allMessages } = input;
@@ -73,7 +74,8 @@ async function preProcessClientDetection(input: {
   const claudeMessages = buildClaudeMessages(allMessages, { limit: DETECTION_MESSAGES_COUNT });
   let { currentState } = input;
   let richCard: { type: string; data: unknown } | null = null;
-  let quickReplies: string[] | null = null;
+  const quickReplies: string[] | null = null;
+  let clientNotFound: string | null = null;
 
   // Step 1: Force detect_client call
   const detectResponse = await callClaude({
@@ -136,7 +138,7 @@ async function preProcessClientDetection(input: {
         }
       } else if (resolution.status === 'no_match') {
         currentState = { ...currentState, pendingCandidates: null };
-        quickReplies = ['Oui, crée-le'];
+        clientNotFound = detection.search;
       }
     }
   } else {
@@ -159,7 +161,7 @@ async function preProcessClientDetection(input: {
     }],
   };
 
-  return { currentState, richCard, quickReplies, traceRound };
+  return { currentState, richCard, quickReplies, clientNotFound, traceRound };
 }
 
 export async function processMessage(input: {
@@ -219,6 +221,7 @@ export async function processMessage(input: {
   const traceRounds: DebugTraceRound[] = [];
   let richCard: { type: string; data: unknown } | null = null;
   let quickReplies: string[] | null = null;
+  let clientNotFound: string | null = null;
 
   // Skip detection if client was already selected via picker metadata
   if (!metadata?.selectedClientId) {
@@ -232,6 +235,7 @@ export async function processMessage(input: {
     currentState = detection.currentState;
     richCard = detection.richCard;
     quickReplies = detection.quickReplies;
+    clientNotFound = detection.clientNotFound;
     traceRounds.push(detection.traceRound);
 
     // Persist state if it changed
@@ -246,6 +250,7 @@ export async function processMessage(input: {
       userName: user.name,
       demandState: currentState,
       activeDocument,
+      clientNotFound,
     });
   }
 
@@ -377,11 +382,13 @@ export async function processMessage(input: {
     claudeMessages.push({ role: 'user', content: toolResults });
 
     // Rebuild system prompt so Claude sees updated state
+    // Clear clientNotFound once a client has been set (create_client was called)
     systemPrompt = buildSystemPrompt({
       teamName: team.name,
       userName: user.name,
       demandState: currentState,
       activeDocument,
+      clientNotFound: currentState.client ? null : clientNotFound,
     });
 
     ({ message: response, meta } = await callClaude({

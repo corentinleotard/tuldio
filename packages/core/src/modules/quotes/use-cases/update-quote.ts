@@ -1,6 +1,6 @@
 import type { QuoteView } from '@tuldio/types';
-import { computeQuoteTotals, validateQuoteLine } from '../domain/validators.js';
-import { canEditQuote } from '../domain/validators.js';
+import { computeQuoteTotals, validateQuoteLine, canEditQuote } from '../domain/validators.js';
+import { isFieldTrue } from '../../teams/domain/team-field.entity.js';
 import { findQuoteById } from '../repository/find-quote-by-id.js';
 import { updateQuoteLines } from '../repository/update-quote-lines.js';
 import { HandledError } from '../../../lib/errors/handled-error.js';
@@ -40,7 +40,7 @@ export async function updateQuote(input: {
   }
 
   const tvaExemptField = await findTeamFieldByKey({ teamId: input.teamId, key: 'tva_exempt' });
-  const tvaExempt = tvaExemptField?.value === 'true';
+  const tvaExempt = isFieldTrue(tvaExemptField);
 
   const linesWithDefaults = input.lines.map((l) => ({
     description: l.description,

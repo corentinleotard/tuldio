@@ -40,6 +40,7 @@ export const invoiceSchema = z.object({
   paid_at: z.date().nullable(),
   cancelled_at: z.date().nullable(),
   due_date: z.date().nullable(),
+  prestation_date: z.date().nullable(),
   created_at: z.date(),
 });
 

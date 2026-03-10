@@ -16,6 +16,7 @@ export interface GeneratePdfInput {
   createdAt: Date;
   dueDate?: Date | null;
   validUntil?: Date | null;
+  prestationDate?: Date | null;
 }
 
 function buildHtml(input: GeneratePdfInput & { team: PdfTeam }): string {
@@ -41,6 +42,7 @@ function buildHtml(input: GeneratePdfInput & { team: PdfTeam }): string {
         tvaGroups: input.tvaGroups,
         createdAt: input.createdAt,
         dueDate: input.dueDate ?? null,
+        prestationDate: input.prestationDate ?? null,
       });
 }
 

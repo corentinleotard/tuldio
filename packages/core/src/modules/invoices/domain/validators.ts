@@ -36,6 +36,12 @@ export function canCancelInvoice(status: string): boolean {
   return status !== 'paid' && status !== 'cancelled';
 }
 
+export function computeDueDate(input: { createdAt: Date; delayDays: number }): Date {
+  const date = new Date(input.createdAt);
+  date.setDate(date.getDate() + input.delayDays);
+  return date;
+}
+
 export function isOverdue(input: { dueDate: Date | null; status: string; now: Date }): boolean {
   if (input.status !== 'sent' || !input.dueDate) return false;
   return input.now > input.dueDate;

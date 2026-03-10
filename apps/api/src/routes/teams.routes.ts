@@ -14,6 +14,7 @@ import { handleGetTeamFields } from '../controllers/handle-get-team-fields.js';
 import { handleUpdateTeamField } from '../controllers/handle-update-team-field.js';
 import { handleCreateTeamField } from '../controllers/handle-create-team-field.js';
 import { handleDeleteTeamField } from '../controllers/handle-delete-team-field.js';
+import { handleUpdateTeamSettings } from '../controllers/handle-update-team-settings.js';
 
 const router: RouterType = Router();
 
@@ -30,6 +31,7 @@ router.get('/me/fields', wrapHandler(handleGetTeamFields));
 router.patch('/me/fields/:fieldId', wrapHandler(handleUpdateTeamField));
 router.post('/me/fields', wrapHandler(handleCreateTeamField));
 router.delete('/me/fields/:fieldId', wrapHandler(handleDeleteTeamField));
+router.patch('/me/settings', wrapHandler(handleUpdateTeamSettings));
 router.get('/siret/:siret', wrapHandler(handleLookupSiret));
 
 export default router;

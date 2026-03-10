@@ -50,6 +50,7 @@ export async function generatePreviewPdf(input: {
           tvaGroups: SAMPLE_TVA_GROUPS,
           createdAt: now,
           dueDate: new Date(now.getTime() + 30 * 86400000),
+          prestationDate: now,
         });
 
   return renderPdfBuffer(html);

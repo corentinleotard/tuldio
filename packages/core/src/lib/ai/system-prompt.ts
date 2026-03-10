@@ -5,6 +5,7 @@ export function buildSystemPrompt(input: {
   userName: string;
   demandState: DemandState;
   activeDocument: (QuoteView | InvoiceView) | null;
+  clientNotFound?: string | null;
 }): string {
   const today = new Date().toLocaleDateString('fr-FR', { dateStyle: 'long' });
 
@@ -69,6 +70,10 @@ When the user requests multiple actions, process them in the order they are ment
     for (const c of pendingCandidates) {
       prompt += `\n- ${c.name}`;
     }
+  }
+
+  if (input.clientNotFound) {
+    prompt += `\n\n**Client not found:** "${input.clientNotFound}" is not in the database. If the user wants to do something for this person (quote, invoice, expense), call create_client directly — no confirmation needed. If the user is just asking about this person, say they don't exist.`;
   }
 
   return prompt;

@@ -4,7 +4,9 @@ import {
   formatCurrency,
   formatDate,
   formatSiret,
+  isSameDay,
   getField,
+  getBooleanField,
   getCustomFields,
   renderLegalMentions,
   type PdfTeam,
@@ -28,8 +30,9 @@ export function renderInvoiceHtml(input: {
   tvaGroups: PdfTvaGroup[];
   createdAt: Date;
   dueDate: Date | null;
+  prestationDate: Date | null;
 }): string {
-  const { team, client, number, lines, totalHt, totalTtc, tvaGroups, createdAt, dueDate } = input;
+  const { team, client, number, lines, totalHt, totalTtc, tvaGroups, createdAt, dueDate, prestationDate } = input;
   const f = team.fields;
   const dt = 'invoice' as const;
   const legal = renderLegalMentions(f, dt);
@@ -41,7 +44,7 @@ export function renderInvoiceHtml(input: {
   const email = getField(f, 'email', dt);
   const website = getField(f, 'website', dt);
   const tvaNumber = getField(f, 'tva_number', dt);
-  const tvaExempt = getField(f, 'tva_exempt', dt) === 'true';
+  const tvaExempt = getBooleanField(f, 'tva_exempt', dt);
   const logoUrl = team.logoUrl;
   const paymentTerms = getField(f, 'payment_terms', dt);
   const iban = getField(f, 'iban', dt);
@@ -76,6 +79,7 @@ export function renderInvoiceHtml(input: {
       <div class="doc-title">FACTURE</div>
       <div class="doc-meta">N\u00B0 ${esc(number)}</div>
       <div class="doc-meta">Date : ${formatDate(createdAt)}</div>
+      ${prestationDate && !isSameDay(prestationDate, createdAt) ? `<div class="doc-meta">Date de prestation : ${formatDate(prestationDate)}</div>` : ''}
       ${dueDate ? `<div class="doc-meta">\u00C9ch\u00E9ance : ${formatDate(dueDate)}</div>` : ''}
 
       <div class="client-block">

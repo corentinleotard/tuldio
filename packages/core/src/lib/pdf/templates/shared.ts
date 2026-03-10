@@ -41,6 +41,11 @@ export function getField(fields: TeamField[], key: string, docType?: 'quote' | '
   return field.value;
 }
 
+/** Get a boolean field value by key, respecting visibility for the given doc type */
+export function getBooleanField(fields: TeamField[], key: string, docType?: 'quote' | 'invoice'): boolean {
+  return getField(fields, key, docType) === 'true';
+}
+
 /** Get visible custom (non-system) fields for a zone + doc type */
 export function getCustomFields(fields: TeamField[], zone: string, docType: 'quote' | 'invoice'): TeamField[] {
   return fields.filter((f) => {
@@ -89,6 +94,12 @@ export function formatCurrency(cents: number): string {
 export function formatDate(date: Date | string): string {
   const d = typeof date === 'string' ? new Date(date) : date;
   return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+}
+
+export function isSameDay(a: Date, b: Date): boolean {
+  return a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate();
 }
 
 export function formatSiret(siret: string): string {

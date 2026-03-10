@@ -6,6 +6,8 @@ import { canInvoiceQuote, shouldAutoAcceptQuote } from '../../quotes/domain/vali
 import { findQuoteById } from '../../quotes/repository/find-quote-by-id.js';
 import { updateQuoteStatus } from '../../quotes/repository/update-quote-status.js';
 import { findClientById } from '../../clients/repository/find-client-by-id.js';
+import { findTeamById } from '../../teams/repository/find-team-by-id.js';
+import { computeDueDate } from '../domain/validators.js';
 import { insertInvoice } from '../repository/insert-invoice.js';
 import { findInvoiceById } from '../repository/find-invoice-by-id.js';
 import { toInvoiceView } from './create-invoice.js';
@@ -49,15 +51,20 @@ export async function createInvoiceFromQuote(input: {
     prestationId: l.prestation_id,
   }));
 
+  const team = await findTeamById(input.teamId);
+
   const invoice = await insertInvoice({
     teamId: input.teamId,
     createdBy: input.userId,
     clientId: quote.client_id,
     quoteId: quote.id,
     title: input.title ?? quote.title,
+    lastNumber: team?.invoice_last_number ?? 0,
+    prestationDate: new Date(),
     lines: insertLines,
     totalHt: quote.total_ht,
     totalTtc: quote.total_ttc,
+    dueDate: computeDueDate({ createdAt: new Date(), delayDays: team?.invoice_payment_delay_days ?? 30 }),
   });
 
   logger.info('invoice.created_from_quote', { teamId: input.teamId, invoiceId: invoice.id, quoteId: input.quoteId, number: invoice.number });

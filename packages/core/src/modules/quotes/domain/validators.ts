@@ -42,8 +42,8 @@ export function shouldAutoAcceptQuote(status: string): boolean {
   return canInvoiceQuote(status) && status !== 'accepted';
 }
 
-export function defaultValidUntil(createdAt: Date): Date {
-  const date = new Date(createdAt);
-  date.setDate(date.getDate() + 30);
+export function defaultValidUntil(input: { createdAt: Date; days: number }): Date {
+  const date = new Date(input.createdAt);
+  date.setDate(date.getDate() + input.days);
   return date;
 }

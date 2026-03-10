@@ -110,6 +110,7 @@ export async function processTeamDocument(input: {
           label: `Clause personnalisee ${i + 1}`,
           value: clause,
           zone: 'legal',
+          scope: 'both',
           showQuote: true,
           showInvoice: true,
           sortOrder: 10 + i,

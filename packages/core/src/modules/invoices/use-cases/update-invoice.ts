@@ -1,4 +1,5 @@
 import type { InvoiceView } from '@tuldio/types';
+import { isFieldTrue } from '../../teams/domain/team-field.entity.js';
 import { computeInvoiceTotals, validateInvoiceLine, canEditInvoice } from '../domain/validators.js';
 import { findInvoiceById } from '../repository/find-invoice-by-id.js';
 import { updateInvoiceLines } from '../repository/update-invoice-lines.js';
@@ -31,7 +32,7 @@ export async function updateInvoice(input: {
   }
 
   const tvaExemptField = await findTeamFieldByKey({ teamId: input.teamId, key: 'tva_exempt' });
-  const tvaExempt = tvaExemptField?.value === 'true';
+  const tvaExempt = isFieldTrue(tvaExemptField);
 
   const linesWithDefaults = input.lines.map((l) => ({
     description: l.description,

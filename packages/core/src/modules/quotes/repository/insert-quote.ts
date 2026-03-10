@@ -11,6 +11,7 @@ export async function insertQuote(input: {
   clientId: string;
   title?: string | null;
   validUntil?: Date | null;
+  lastNumber?: number;
   lines: InsertDocumentLine[];
   totalHt: number;
   totalTtc: number;
@@ -25,10 +26,10 @@ export async function insertQuote(input: {
     await query(`SELECT pg_advisory_xact_lock(hashtext($1 || 'quote'))`, [input.teamId]);
 
     const seqResult = await query<{ next_num: number }>(
-      `SELECT COALESCE(MAX(CAST(SPLIT_PART(number, '-', 3) AS INTEGER)), 0) + 1 AS next_num
+      `SELECT GREATEST(COALESCE(MAX(CAST(SPLIT_PART(number, '-', 3) AS INTEGER)), 0), $3) + 1 AS next_num
        FROM quotes
        WHERE team_id = $1 AND number LIKE $2`,
-      [input.teamId, `${prefix}%`],
+      [input.teamId, `${prefix}%`, input.lastNumber ?? 0],
     );
 
     const nextNum = seqResult.rows[0]?.next_num ?? 1;

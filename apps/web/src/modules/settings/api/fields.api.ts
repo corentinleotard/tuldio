@@ -1,4 +1,4 @@
-import type { TeamField, UpdateTeamFieldRequest, CreateTeamFieldRequest } from '@tuldio/types';
+import type { TeamField, TeamSummary, UpdateTeamFieldRequest, CreateTeamFieldRequest, UpdateTeamSettingsRequest } from '@tuldio/types';
 import { apiFetch, API_URL } from '@/lib/api-fetch';
 
 export async function fetchTeamFields(): Promise<TeamField[]> {
@@ -40,4 +40,11 @@ export async function uploadLogo(file: File): Promise<string> {
 
 export async function deleteLogo(): Promise<void> {
   return apiFetch<void>('/api/teams/me/logo', { method: 'DELETE' });
+}
+
+export async function updateTeamSettings(data: UpdateTeamSettingsRequest): Promise<TeamSummary> {
+  return apiFetch<TeamSummary>('/api/teams/me/settings', {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
 }

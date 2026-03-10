@@ -1,10 +1,12 @@
 import type { InvoiceView } from '@tuldio/types';
-import { computeInvoiceTotals, validateInvoiceLine } from '../domain/validators.js';
+import { isFieldTrue } from '../../teams/domain/team-field.entity.js';
+import { computeDueDate, computeInvoiceTotals, validateInvoiceLine } from '../domain/validators.js';
 import { insertInvoice } from '../repository/insert-invoice.js';
 import { findInvoiceById } from '../repository/find-invoice-by-id.js';
 import { findClientById } from '../../clients/repository/find-client-by-id.js';
 import { computeLineTotal, resolveTvaRate } from '../../shared/domain/document-math.js';
 import { findTeamFieldByKey } from '../../teams/repository/find-team-field-by-key.js';
+import { findTeamById } from '../../teams/repository/find-team-by-id.js';
 import { toLineViews, toTvaGroups } from '../../shared/domain/to-line-views.js';
 import { HandledError } from '../../../lib/errors/handled-error.js';
 import { errorCodes } from '../../../lib/errors/error-codes.js';
@@ -35,6 +37,7 @@ export function toInvoiceView(
     paidAt: row.paid_at?.toISOString() ?? null,
     cancelledAt: row.cancelled_at?.toISOString() ?? null,
     dueDate: row.due_date?.toISOString() ?? null,
+    prestationDate: row.prestation_date?.toISOString() ?? null,
     createdAt: row.created_at.toISOString(),
   };
 }
@@ -54,9 +57,11 @@ export async function createInvoice(input: {
   title?: string;
   lines: CreateInvoiceLineInput[];
   dueDate?: Date;
+  prestationDate?: Date;
 }): Promise<InvoiceView> {
+  const team = await findTeamById(input.teamId);
   const tvaExemptField = await findTeamFieldByKey({ teamId: input.teamId, key: 'tva_exempt' });
-  const tvaExempt = tvaExemptField?.value === 'true';
+  const tvaExempt = isFieldTrue(tvaExemptField);
 
   const linesWithDefaults = input.lines.map((l) => ({
     description: l.description,
@@ -90,10 +95,12 @@ export async function createInvoice(input: {
     createdBy: input.userId,
     clientId: input.clientId,
     title: input.title ?? null,
+    lastNumber: team?.invoice_last_number ?? 0,
+    prestationDate: input.prestationDate ?? new Date(),
     lines: insertLines,
     totalHt,
     totalTtc,
-    dueDate: input.dueDate,
+    dueDate: input.dueDate ?? computeDueDate({ createdAt: new Date(), delayDays: team?.invoice_payment_delay_days ?? 30 }),
   });
 
   logger.info('invoice.created', { teamId: input.teamId, invoiceId: invoice.id, number: invoice.number, totalTtc });

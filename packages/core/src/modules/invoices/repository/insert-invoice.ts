@@ -11,6 +11,8 @@ export async function insertInvoice(input: {
   clientId: string;
   quoteId?: string;
   title?: string | null;
+  lastNumber?: number;
+  prestationDate?: Date | null;
   lines: InsertDocumentLine[];
   totalHt: number;
   totalTtc: number;
@@ -26,20 +28,20 @@ export async function insertInvoice(input: {
     await query(`SELECT pg_advisory_xact_lock(hashtext($1 || 'invoice'))`, [input.teamId]);
 
     const seqResult = await query<{ next_num: number }>(
-      `SELECT COALESCE(MAX(CAST(SPLIT_PART(number, '-', 3) AS INTEGER)), 0) + 1 AS next_num
+      `SELECT GREATEST(COALESCE(MAX(CAST(SPLIT_PART(number, '-', 3) AS INTEGER)), 0), $3) + 1 AS next_num
        FROM invoices
        WHERE team_id = $1 AND number LIKE $2`,
-      [input.teamId, `${prefix}%`],
+      [input.teamId, `${prefix}%`, input.lastNumber ?? 0],
     );
 
     const nextNum = seqResult.rows[0]?.next_num ?? 1;
     const number = `${prefix}${String(nextNum).padStart(4, '0')}`;
 
     const result = await query<InvoiceRow>(
-      `INSERT INTO invoices (id, team_id, created_by, client_id, quote_id, number, title, total_ht, total_ttc, due_date)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-       RETURNING id, team_id, created_by, client_id, quote_id, number, title, total_ht, total_ttc, status, pdf_url, sent_at, paid_at, cancelled_at, due_date, created_at`,
-      [id, input.teamId, input.createdBy, input.clientId, input.quoteId ?? null, number, input.title ?? null, input.totalHt, input.totalTtc, input.dueDate ?? null],
+      `INSERT INTO invoices (id, team_id, created_by, client_id, quote_id, number, title, total_ht, total_ttc, due_date, prestation_date)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+       RETURNING id, team_id, created_by, client_id, quote_id, number, title, total_ht, total_ttc, status, pdf_url, sent_at, paid_at, cancelled_at, due_date, prestation_date, created_at`,
+      [id, input.teamId, input.createdBy, input.clientId, input.quoteId ?? null, number, input.title ?? null, input.totalHt, input.totalTtc, input.dueDate ?? null, input.prestationDate ?? new Date()],
     );
 
     if (input.lines.length > 0) {

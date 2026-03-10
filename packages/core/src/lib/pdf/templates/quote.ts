@@ -5,6 +5,7 @@ import {
   formatDate,
   formatSiret,
   getField,
+  getBooleanField,
   getCustomFields,
   renderLegalMentions,
   type PdfTeam,
@@ -41,7 +42,7 @@ export function renderQuoteHtml(input: {
   const email = getField(f, 'email', dt);
   const website = getField(f, 'website', dt);
   const tvaNumber = getField(f, 'tva_number', dt);
-  const tvaExempt = getField(f, 'tva_exempt', dt) === 'true';
+  const tvaExempt = getBooleanField(f, 'tva_exempt', dt);
   const logoUrl = team.logoUrl;
   const paymentTerms = getField(f, 'payment_terms', dt);
   const depositPercent = getField(f, 'deposit_percent', dt);

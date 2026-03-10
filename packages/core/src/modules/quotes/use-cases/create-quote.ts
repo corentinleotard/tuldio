@@ -1,12 +1,13 @@
 import type { QuoteView } from '@tuldio/types';
-import { computeQuoteTotals, validateQuoteLine } from '../domain/validators.js';
-import { defaultValidUntil } from '../domain/validators.js';
+import { computeQuoteTotals, validateQuoteLine, defaultValidUntil } from '../domain/validators.js';
+import { isFieldTrue } from '../../teams/domain/team-field.entity.js';
 import { insertQuote } from '../repository/insert-quote.js';
 import { findQuoteById } from '../repository/find-quote-by-id.js';
 import { findClientById } from '../../clients/repository/find-client-by-id.js';
 import { upsertPrestation } from '../../prestations/repository/upsert-prestation.js';
 import { computeLineTotal, resolveTvaRate } from '../../shared/domain/document-math.js';
 import { findTeamFieldByKey } from '../../teams/repository/find-team-field-by-key.js';
+import { findTeamById } from '../../teams/repository/find-team-by-id.js';
 import { toLineViews, toTvaGroups } from '../../shared/domain/to-line-views.js';
 import { HandledError } from '../../../lib/errors/handled-error.js';
 import { errorCodes } from '../../../lib/errors/error-codes.js';
@@ -27,8 +28,9 @@ export async function createQuote(input: {
   title?: string;
   lines: CreateQuoteLineInput[];
 }): Promise<QuoteView> {
+  const team = await findTeamById(input.teamId);
   const tvaExemptField = await findTeamFieldByKey({ teamId: input.teamId, key: 'tva_exempt' });
-  const tvaExempt = tvaExemptField?.value === 'true';
+  const tvaExempt = isFieldTrue(tvaExemptField);
 
   const linesWithDefaults = input.lines.map((l) => ({
     description: l.description,
@@ -72,7 +74,7 @@ export async function createQuote(input: {
     prestationId: prestationIds[i],
   }));
 
-  const validUntil = defaultValidUntil(new Date());
+  const validUntil = defaultValidUntil({ createdAt: new Date(), days: team?.quote_validity_days ?? 30 });
 
   const row = await insertQuote({
     teamId: input.teamId,
@@ -80,6 +82,7 @@ export async function createQuote(input: {
     clientId: input.clientId,
     title: input.title ?? null,
     validUntil,
+    lastNumber: team?.quote_last_number ?? 0,
     lines: insertLines,
     totalHt,
     totalTtc,

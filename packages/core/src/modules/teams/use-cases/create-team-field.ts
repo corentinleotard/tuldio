@@ -19,14 +19,19 @@ export async function createTeamField(input: {
   const zoneFields = existing.filter((f) => f.zone === input.zone);
   const maxSort = zoneFields.reduce((max, f) => Math.max(max, f.sort_order), -1);
 
+  const scope = input.scope ?? 'both';
+  const showQuote = scope !== 'invoice';
+  const showInvoice = scope !== 'quote';
+
   const row = await insertTeamField({
     teamId: input.teamId,
     key,
     label: input.label,
     value: input.value ?? '',
     zone: input.zone,
-    showQuote: true,
-    showInvoice: true,
+    scope,
+    showQuote,
+    showInvoice,
     sortOrder: maxSort + 1,
     isSystem: false,
   });

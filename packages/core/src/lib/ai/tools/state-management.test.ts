@@ -126,6 +126,7 @@ function makeInvoiceView(overrides?: Partial<InvoiceView>): InvoiceView {
     sentAt: null,
     paidAt: null,
     dueDate: null,
+    prestationDate: null,
     cancelledAt: null,
     createdAt: '2026-01-01T00:00:00.000Z',
     ...overrides,
@@ -441,7 +442,7 @@ describe('update_document (status) → state management', () => {
 describe('update_document (lines/title) → state management', () => {
   it('quote line update: document stays active', async () => {
     const quote = makeQuoteView({
-      lines: [{ id: 'line-1', description: 'Test', quantity: 1, unit: 'm2', unitPrice: 5000, tvaRate: 2000, totalHt: 5000 }],
+      lines: [{ id: 'line-1', description: 'Test', quantity: 1, unit: 'm2', unitPrice: 5000, tvaRate: 2000, totalHt: 5000, prestationId: null }],
     });
     vi.mocked(getQuote).mockResolvedValue(quote);
     vi.mocked(updateQuote).mockResolvedValue(quote);

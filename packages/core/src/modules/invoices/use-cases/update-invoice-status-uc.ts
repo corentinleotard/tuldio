@@ -47,6 +47,7 @@ export async function updateInvoiceStatusUc(input: {
       tvaGroups,
       createdAt: invoice.created_at,
       dueDate: invoice.due_date,
+      prestationDate: invoice.prestation_date,
     });
     const pdfUrl = await generatePdf(pdfInput);
     await updateInvoicePdfUrl({ teamId: input.teamId, invoiceId: invoice.id, pdfUrl });

@@ -78,7 +78,7 @@ export const resolveClientTool = defineTool({
     }
 
     if (resolution.status === 'no_match') {
-      return { result: resolution, stateUpdate: { pendingCandidates: null }, quickReplies: ['Oui, crée-le'] };
+      return { result: resolution, stateUpdate: { pendingCandidates: null } };
     }
 
     return { result: resolution };

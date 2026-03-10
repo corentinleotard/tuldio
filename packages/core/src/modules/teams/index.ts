@@ -9,5 +9,6 @@ export { getTeamFields } from './use-cases/get-team-fields.js';
 export { updateTeamField } from './use-cases/update-team-field.js';
 export { createTeamField } from './use-cases/create-team-field.js';
 export { deleteTeamField } from './use-cases/delete-team-field.js';
+export { updateTeamSettings } from './use-cases/update-team-settings.js';
 export { uploadLogo } from './use-cases/upload-logo.js';
 export { deleteLogo } from './use-cases/delete-logo.js';

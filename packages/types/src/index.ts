@@ -17,12 +17,15 @@ export interface AuthUser {
   god: boolean;
 }
 
+export type FieldScope = 'both' | 'quote' | 'invoice';
+
 export interface TeamField {
   id: string;
   key: string;
   label: string;
   value: string;
   zone: 'identity' | 'payment' | 'legal';
+  scope: FieldScope;
   showQuote: boolean;
   showInvoice: boolean;
   sortOrder: number;
@@ -34,6 +37,10 @@ export interface TeamSummary {
   name: string;
   logoUrl: string | null;
   fields: TeamField[];
+  quoteLastNumber: number;
+  quoteValidityDays: number;
+  invoiceLastNumber: number;
+  invoicePaymentDelayDays: number;
   termsAcceptedAt: string | null;
   subscriptionStatus: 'trial' | 'active' | 'cancelled' | 'expired';
   trialEndsAt: string | null;
@@ -60,7 +67,15 @@ export interface UpdateTeamFieldRequest {
 export interface CreateTeamFieldRequest {
   label: string;
   zone: 'identity' | 'payment' | 'legal';
+  scope?: FieldScope;
   value?: string;
+}
+
+export interface UpdateTeamSettingsRequest {
+  quoteLastNumber?: number;
+  quoteValidityDays?: number;
+  invoiceLastNumber?: number;
+  invoicePaymentDelayDays?: number;
 }
 
 export interface UpdateTeamRequest {
@@ -166,6 +181,7 @@ export interface InvoiceView {
   paidAt: string | null;
   cancelledAt: string | null;
   dueDate: string | null;
+  prestationDate: string | null;
   createdAt: string;
 }
 
@@ -182,6 +198,7 @@ export interface CreateInvoiceRequest {
   title?: string;
   lines: CreateInvoiceLineRequest[];
   dueDate?: string;
+  prestationDate?: string;
 }
 
 // Past Pricing

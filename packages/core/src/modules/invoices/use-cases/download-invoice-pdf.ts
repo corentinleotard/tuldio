@@ -37,6 +37,7 @@ export async function downloadInvoicePdf(input: {
     tvaGroups,
     createdAt: invoice.created_at,
     dueDate: invoice.due_date,
+    prestationDate: invoice.prestation_date,
   });
 
   const buffer = await generatePdfToBuffer(pdfInput);

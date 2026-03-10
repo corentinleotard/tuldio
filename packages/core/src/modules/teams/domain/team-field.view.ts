@@ -8,6 +8,7 @@ export function toTeamField(row: TeamFieldRow): TeamField {
     label: row.label,
     value: row.value,
     zone: row.zone,
+    scope: row.scope,
     showQuote: row.show_quote,
     showInvoice: row.show_invoice,
     sortOrder: row.sort_order,

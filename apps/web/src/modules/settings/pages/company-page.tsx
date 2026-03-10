@@ -13,10 +13,11 @@ import {
   EyeOff,
   ImagePlus,
 } from 'lucide-react';
-import type { TeamField } from '@tuldio/types';
+import type { TeamField, FieldScope } from '@tuldio/types';
 import { useAuth } from '@/lib/auth-context';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { API_URL } from '@/lib/api-fetch';
 import {
   fetchTeamFields,
@@ -25,8 +26,17 @@ import {
   deleteTeamField,
   uploadLogo,
   deleteLogo,
+  updateTeamSettings,
 } from '../api/fields.api';
 import { downloadPreviewPdf } from '@/modules/onboarding/api/onboarding.api';
+
+type Tab = 'company' | 'quote' | 'invoice';
+
+const TAB_LABELS: Record<Tab, string> = {
+  company: 'Entreprise',
+  quote: 'Devis',
+  invoice: 'Factures',
+};
 
 const ZONE_LABELS: Record<string, string> = {
   identity: 'Mon entreprise',
@@ -73,6 +83,7 @@ export function CompanyPage() {
   const { team } = useAuth();
   const queryClient = useQueryClient();
 
+  const [activeTab, setActiveTab] = useState<Tab>('company');
   const [fields, setFields] = useState<TeamField[]>([]);
   const [search, setSearch] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -83,7 +94,15 @@ export function CompanyPage() {
   const [logoUrl, setLogoUrl] = useState<string | null>(team?.logoUrl ?? null);
   const [uploadingLogo, setUploadingLogo] = useState(false);
 
+  // Team settings state
+  const [quoteLastNumber, setQuoteLastNumber] = useState(team?.quoteLastNumber ?? 0);
+  const [quoteValidityDays, setQuoteValidityDays] = useState(team?.quoteValidityDays ?? 30);
+  const [invoiceLastNumber, setInvoiceLastNumber] = useState(team?.invoiceLastNumber ?? 0);
+  const [invoicePaymentDelayDays, setInvoicePaymentDelayDays] = useState(team?.invoicePaymentDelayDays ?? 30);
+
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+  const settingsDebounceRef = useRef<ReturnType<typeof setTimeout>>();
+  const pendingSettingsRef = useRef<{ quoteLastNumber?: number; quoteValidityDays?: number; invoiceLastNumber?: number; invoicePaymentDelayDays?: number }>({});
   const inputRef = useRef<HTMLInputElement>(null);
   const logoInputRef = useRef<HTMLInputElement>(null);
 
@@ -95,10 +114,21 @@ export function CompanyPage() {
     if (team?.logoUrl !== undefined) {
       setLogoUrl(team.logoUrl);
     }
+    if (team) {
+      setQuoteLastNumber(team.quoteLastNumber);
+      setQuoteValidityDays(team.quoteValidityDays);
+      setInvoiceLastNumber(team.invoiceLastNumber);
+      setInvoicePaymentDelayDays(team.invoicePaymentDelayDays);
+    }
     fetchTeamFields().then(setFields).catch(() => {});
-  }, [team?.fields, team?.logoUrl]);
+  }, [team?.fields, team?.logoUrl, team?.quoteLastNumber, team?.quoteValidityDays, team?.invoiceLastNumber, team?.invoicePaymentDelayDays, team]);
 
-  const visibleFields = fields.filter((f) => {
+  // Filter fields by active tab scope
+  const tabScope: FieldScope | null = activeTab === 'company' ? 'both' : activeTab === 'quote' ? 'quote' : 'invoice';
+
+  const filteredFields = fields.filter((f) => f.scope === tabScope);
+
+  const visibleFields = filteredFields.filter((f) => {
     if (!search) return true;
     return f.label.toLowerCase().includes(search.toLowerCase()) ||
            f.value.toLowerCase().includes(search.toLowerCase());
@@ -121,16 +151,30 @@ export function CompanyPage() {
   }, [queryClient]);
 
   const handleToggleVisibility = useCallback(async (field: TeamField) => {
-    const current = getVisibility(field);
-    const next = nextVisibility(current);
-    setFields((prev) => prev.map((f) =>
-      f.id === field.id ? { ...f, showQuote: next.showQuote, showInvoice: next.showInvoice } : f
-    ));
-    const updated = await updateTeamField(field.id, {
-      showQuote: next.showQuote,
-      showInvoice: next.showInvoice,
-    });
-    setFields((prev) => prev.map((f) => f.id === field.id ? updated : f));
+    if (field.scope === 'both') {
+      // 4-state cycle for company fields
+      const current = getVisibility(field);
+      const next = nextVisibility(current);
+      setFields((prev) => prev.map((f) =>
+        f.id === field.id ? { ...f, showQuote: next.showQuote, showInvoice: next.showInvoice } : f
+      ));
+      const updated = await updateTeamField(field.id, {
+        showQuote: next.showQuote,
+        showInvoice: next.showInvoice,
+      });
+      setFields((prev) => prev.map((f) => f.id === field.id ? updated : f));
+    } else {
+      // Simple on/off for scoped fields
+      const isVisible = field.scope === 'quote' ? field.showQuote : field.showInvoice;
+      const payload = field.scope === 'quote'
+        ? { showQuote: !isVisible }
+        : { showInvoice: !isVisible };
+      setFields((prev) => prev.map((f) =>
+        f.id === field.id ? { ...f, ...payload } : f
+      ));
+      const updated = await updateTeamField(field.id, payload);
+      setFields((prev) => prev.map((f) => f.id === field.id ? updated : f));
+    }
     queryClient.invalidateQueries({ queryKey: ['auth', 'bootstrap'] });
   }, [queryClient]);
 
@@ -139,12 +183,13 @@ export function CompanyPage() {
     const created = await createTeamField({
       label: newLabel.trim(),
       zone: zone as TeamField['zone'],
+      scope: tabScope,
     });
     setFields((prev) => [...prev, created]);
     setAddingZone(null);
     setNewLabel('');
     queryClient.invalidateQueries({ queryKey: ['auth', 'bootstrap'] });
-  }, [newLabel, queryClient]);
+  }, [newLabel, queryClient, tabScope]);
 
   const handleDeleteField = useCallback(async (fieldId: string) => {
     await deleteTeamField(fieldId);
@@ -182,6 +227,17 @@ export function CompanyPage() {
     queryClient.invalidateQueries({ queryKey: ['auth', 'bootstrap'] });
   }, [queryClient]);
 
+  const handleSaveSettings = useCallback((updates: { quoteLastNumber?: number; quoteValidityDays?: number; invoiceLastNumber?: number; invoicePaymentDelayDays?: number }) => {
+    pendingSettingsRef.current = { ...pendingSettingsRef.current, ...updates };
+    clearTimeout(settingsDebounceRef.current);
+    settingsDebounceRef.current = setTimeout(async () => {
+      const merged = pendingSettingsRef.current;
+      pendingSettingsRef.current = {};
+      await updateTeamSettings(merged);
+      queryClient.invalidateQueries({ queryKey: ['auth', 'bootstrap'] });
+    }, 500);
+  }, [queryClient]);
+
   const startEditing = useCallback((field: TeamField) => {
     setEditingId(field.id);
     setEditValue(field.value);
@@ -198,6 +254,40 @@ export function CompanyPage() {
     setEditingId(null);
   }, [editingId, editValue, fields, handleSaveValue]);
 
+  // Render visibility badge for a field
+  const renderVisibilityBadge = (field: TeamField) => {
+    if (field.scope === 'both') {
+      const vis = getVisibility(field);
+      return (
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); handleToggleVisibility(field); }}
+          className={`flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold transition-colors ${VISIBILITY_COLOR[vis]}`}
+          title={`Visible sur: ${VISIBILITY_LABEL[vis]}`}
+        >
+          {vis === 'none' ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+          {VISIBILITY_LABEL[vis]}
+        </button>
+      );
+    }
+
+    // Scoped fields: simple on/off
+    const isVisible = field.scope === 'quote' ? field.showQuote : field.showInvoice;
+    return (
+      <button
+        type="button"
+        onClick={(e) => { e.stopPropagation(); handleToggleVisibility(field); }}
+        className={`flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold transition-colors ${
+          isVisible ? 'bg-primary/10 text-primary' : 'bg-secondary text-muted-foreground'
+        }`}
+        title={isVisible ? 'Visible' : 'Masque'}
+      >
+        {isVisible ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
+        {isVisible ? 'Visible' : 'Masque'}
+      </button>
+    );
+  };
+
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
       {/* Header */}
@@ -213,51 +303,157 @@ export function CompanyPage() {
           <h1 className="text-lg font-semibold">Mon entreprise</h1>
         </div>
 
-        {/* Search + preview buttons */}
-        <div className="mt-3 flex items-center gap-2">
-          <div className="relative flex-1">
-            <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Rechercher un champ..."
-              className="pl-8 text-sm"
-            />
-            {search && (
+        {/* Tab bar + Search (single line on desktop, stacked on mobile) */}
+        <div className="mt-3 flex flex-col gap-2 md:flex-row md:items-center">
+          <div className="flex h-12 w-fit items-center gap-0.5 rounded-2xl border border-input bg-background px-1">
+            {(['company', 'quote', 'invoice'] as Tab[]).map((tab) => (
               <button
+                key={tab}
                 type="button"
-                onClick={() => setSearch('')}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                onClick={() => { setActiveTab(tab); setSearch(''); setEditingId(null); setAddingZone(null); }}
+                className={`flex items-center rounded-xl px-3.5 text-xs font-medium transition-colors h-[calc(100%-6px)] ${
+                  activeTab === tab
+                    ? 'bg-primary text-primary-foreground'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
               >
-                <X className="h-3.5 w-3.5" />
+                {TAB_LABELS[tab]}
               </button>
-            )}
+            ))}
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={downloading !== null}
-            onClick={() => handleDownload('quote')}
-            className="shrink-0 gap-1.5 text-xs"
-          >
-            {downloading === 'quote' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileText className="h-3.5 w-3.5" />}
-            <span className="hidden sm:inline">Voir le</span> devis
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={downloading !== null}
-            onClick={() => handleDownload('invoice')}
-            className="shrink-0 gap-1.5 text-xs"
-          >
-            {downloading === 'invoice' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileText className="h-3.5 w-3.5" />}
-            <span className="hidden sm:inline">Voir la</span> facture
-          </Button>
+          <div className="flex flex-1 items-center gap-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Rechercher un champ..."
+                className="pl-8 text-sm"
+              />
+              {search && (
+                <button
+                  type="button"
+                  onClick={() => setSearch('')}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={downloading !== null}
+              onClick={() => handleDownload(activeTab === 'invoice' ? 'invoice' : 'quote')}
+              className="shrink-0 gap-1.5 text-xs"
+            >
+              {downloading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileText className="h-3.5 w-3.5" />}
+              Apercu
+            </Button>
+          </div>
         </div>
       </div>
 
-      {/* Fields grid */}
+      {/* Content */}
       <div className="flex-1 overflow-y-auto px-4 py-4 md:px-6">
+
+        {/* Settings section for Devis tab */}
+        {activeTab === 'quote' && !search && (
+          <div className="mb-5">
+            <span className="mb-2 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Numerotation & validite
+            </span>
+            <div className="overflow-hidden rounded-xl border bg-card">
+              <div className="flex items-center gap-2 border-b px-4 py-2.5">
+                <div className="w-[120px] shrink-0 md:w-[160px]">
+                  <span className="text-[13px] font-medium text-foreground">Dernier n&deg; de devis</span>
+                </div>
+                <div className="min-w-0 flex-1">
+                  <Input
+                    type="number"
+                    min={0}
+                    value={quoteLastNumber}
+                    onChange={(e) => {
+                      const v = Math.max(0, parseInt(e.target.value) || 0);
+                      setQuoteLastNumber(v);
+                      handleSaveSettings({ quoteLastNumber: v });
+                    }}
+                    className="h-7 w-28 text-[13px]"
+                  />
+                </div>
+                <span className="text-[11px] text-muted-foreground">Prochain : {quoteLastNumber + 1}</span>
+              </div>
+              <div className="flex items-center gap-2 px-4 py-2.5">
+                <div className="w-[120px] shrink-0 md:w-[160px]">
+                  <span className="text-[13px] font-medium text-foreground">Validite (jours)</span>
+                </div>
+                <div className="min-w-0 flex-1">
+                  <Input
+                    type="number"
+                    min={1}
+                    value={quoteValidityDays}
+                    onChange={(e) => {
+                      const v = Math.max(1, parseInt(e.target.value) || 30);
+                      setQuoteValidityDays(v);
+                      handleSaveSettings({ quoteValidityDays: v });
+                    }}
+                    className="h-7 w-28 text-[13px]"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Settings section for Factures tab */}
+        {activeTab === 'invoice' && !search && (
+          <div className="mb-5">
+            <span className="mb-2 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Param&egrave;tres
+            </span>
+            <div className="overflow-hidden rounded-xl border bg-card">
+              <div className="flex items-center gap-2 border-b px-4 py-2.5">
+                <div className="w-[120px] shrink-0 md:w-[160px]">
+                  <span className="text-[13px] font-medium text-foreground">Dernier n&deg; de facture</span>
+                </div>
+                <div className="min-w-0 flex-1">
+                  <Input
+                    type="number"
+                    min={0}
+                    value={invoiceLastNumber}
+                    onChange={(e) => {
+                      const v = Math.max(0, parseInt(e.target.value) || 0);
+                      setInvoiceLastNumber(v);
+                      handleSaveSettings({ invoiceLastNumber: v });
+                    }}
+                    className="h-7 w-28 text-[13px]"
+                  />
+                </div>
+                <span className="text-[11px] text-muted-foreground">Prochain : {invoiceLastNumber + 1}</span>
+              </div>
+              <div className="flex items-center gap-2 px-4 py-2.5">
+                <div className="w-[120px] shrink-0 md:w-[160px]">
+                  <span className="text-[13px] font-medium text-foreground">D&eacute;lai de paiement (jours)</span>
+                </div>
+                <div className="min-w-0 flex-1">
+                  <Input
+                    type="number"
+                    min={1}
+                    value={invoicePaymentDelayDays}
+                    onChange={(e) => {
+                      const v = Math.max(1, parseInt(e.target.value) || 30);
+                      setInvoicePaymentDelayDays(v);
+                      handleSaveSettings({ invoicePaymentDelayDays: v });
+                    }}
+                    className="h-7 w-28 text-[13px]"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Fields grid */}
         {groupedByZone.map(({ zone, label, fields: zoneFields }) => (
           <div key={zone} className="mb-5">
             {/* Zone header */}
@@ -278,8 +474,8 @@ export function CompanyPage() {
               </button>
             </div>
 
-            {/* Logo block — only in identity zone, before fields */}
-            {zone === 'identity' && !search && (
+            {/* Logo block — only in identity zone on company tab, before fields */}
+            {zone === 'identity' && activeTab === 'company' && !search && (
               <div className="mb-2 overflow-hidden rounded-xl border bg-card">
                 <div className="flex items-center gap-3 px-4 py-3">
                   <div className="w-[120px] shrink-0 md:w-[160px]">
@@ -366,7 +562,6 @@ export function CompanyPage() {
                 </div>
               )}
               {zoneFields.map((field, idx) => {
-                const vis = getVisibility(field);
                 const isEditing = editingId === field.id;
 
                 return (
@@ -376,7 +571,7 @@ export function CompanyPage() {
                       idx < zoneFields.length - 1 ? 'border-b' : ''
                     } ${isEditing ? '' : 'cursor-pointer transition-colors hover:bg-secondary/50'}`}
                     onClick={() => {
-                      if (!isEditing) startEditing(field);
+                      if (!isEditing && field.key !== 'tva_exempt') startEditing(field);
                     }}
                   >
                     {/* Label */}
@@ -391,7 +586,14 @@ export function CompanyPage() {
 
                     {/* Value */}
                     <div className="min-w-0 flex-1 overflow-hidden">
-                      {isEditing ? (
+                      {field.key === 'tva_exempt' ? (
+                        <Checkbox
+                          checked={field.value === 'true'}
+                          onChange={(checked) => {
+                            handleSaveValue(field.id, checked ? 'true' : '');
+                          }}
+                        />
+                      ) : isEditing ? (
                         <Input
                           ref={inputRef}
                           value={editValue}
@@ -413,18 +615,7 @@ export function CompanyPage() {
                     </div>
 
                     {/* Visibility toggle */}
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleToggleVisibility(field);
-                      }}
-                      className={`flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold transition-colors ${VISIBILITY_COLOR[vis]}`}
-                      title={`Visible sur: ${VISIBILITY_LABEL[vis]}`}
-                    >
-                      {vis === 'none' ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
-                      {VISIBILITY_LABEL[vis]}
-                    </button>
+                    {renderVisibilityBadge(field)}
 
                     {/* Delete custom field */}
                     {!field.isSystem && (
