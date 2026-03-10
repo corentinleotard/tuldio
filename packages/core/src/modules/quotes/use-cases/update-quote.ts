@@ -6,7 +6,8 @@ import { updateQuoteLines } from '../repository/update-quote-lines.js';
 import { HandledError } from '../../../lib/errors/handled-error.js';
 import { errorCodes } from '../../../lib/errors/error-codes.js';
 import { logger } from '../../../lib/infra/logger.js';
-import { computeLineTotal } from '../../shared/domain/document-math.js';
+import { computeLineTotal, resolveTvaRate } from '../../shared/domain/document-math.js';
+import { findTeamFieldByKey } from '../../teams/repository/find-team-field-by-key.js';
 import { toLineViews, toTvaGroups } from '../../shared/domain/to-line-views.js';
 import { query } from '../../../lib/database/db.js';
 
@@ -38,12 +39,15 @@ export async function updateQuote(input: {
     throw new HandledError(errorCodes.quoteNotDraft);
   }
 
+  const tvaExemptField = await findTeamFieldByKey({ teamId: input.teamId, key: 'tva_exempt' });
+  const tvaExempt = tvaExemptField?.value === 'true';
+
   const linesWithDefaults = input.lines.map((l) => ({
     description: l.description,
     quantity: l.quantity,
     unit: l.unit ?? 'u',
     unitPrice: l.unitPrice,
-    tvaRate: l.tvaRate ?? 2000,
+    tvaRate: resolveTvaRate({ requestedRate: l.tvaRate ?? 2000, tvaExempt }),
   }));
 
   // Validate each line

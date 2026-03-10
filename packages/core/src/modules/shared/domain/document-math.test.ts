@@ -5,6 +5,7 @@ import {
   computeTva,
   groupByTva,
   isValidTvaRate,
+  resolveTvaRate,
 } from './document-math.js';
 
 describe('isValidTvaRate', () => {
@@ -94,6 +95,24 @@ describe('groupByTva', () => {
 
   it('returns empty array for no lines', () => {
     expect(groupByTva([])).toEqual([]);
+  });
+});
+
+describe('resolveTvaRate', () => {
+  it('returns 0 when team is TVA exempt', () => {
+    expect(resolveTvaRate({ requestedRate: 2000, tvaExempt: true })).toBe(0);
+  });
+
+  it('returns 0 for any rate when exempt', () => {
+    expect(resolveTvaRate({ requestedRate: 550, tvaExempt: true })).toBe(0);
+    expect(resolveTvaRate({ requestedRate: 1000, tvaExempt: true })).toBe(0);
+    expect(resolveTvaRate({ requestedRate: 0, tvaExempt: true })).toBe(0);
+  });
+
+  it('returns requested rate when not exempt', () => {
+    expect(resolveTvaRate({ requestedRate: 2000, tvaExempt: false })).toBe(2000);
+    expect(resolveTvaRate({ requestedRate: 550, tvaExempt: false })).toBe(550);
+    expect(resolveTvaRate({ requestedRate: 0, tvaExempt: false })).toBe(0);
   });
 });
 

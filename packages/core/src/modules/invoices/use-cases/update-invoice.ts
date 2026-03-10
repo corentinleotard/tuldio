@@ -5,7 +5,8 @@ import { updateInvoiceLines } from '../repository/update-invoice-lines.js';
 import { HandledError } from '../../../lib/errors/handled-error.js';
 import { errorCodes } from '../../../lib/errors/error-codes.js';
 import { logger } from '../../../lib/infra/logger.js';
-import { computeLineTotal } from '../../shared/domain/document-math.js';
+import { computeLineTotal, resolveTvaRate } from '../../shared/domain/document-math.js';
+import { findTeamFieldByKey } from '../../teams/repository/find-team-field-by-key.js';
 import { toInvoiceView } from './create-invoice.js';
 
 interface UpdateInvoiceLineInput {
@@ -29,12 +30,15 @@ export async function updateInvoice(input: {
     throw new HandledError(errorCodes.invoiceNotDraft);
   }
 
+  const tvaExemptField = await findTeamFieldByKey({ teamId: input.teamId, key: 'tva_exempt' });
+  const tvaExempt = tvaExemptField?.value === 'true';
+
   const linesWithDefaults = input.lines.map((l) => ({
     description: l.description,
     quantity: l.quantity,
     unit: l.unit ?? 'u',
     unitPrice: l.unitPrice,
-    tvaRate: l.tvaRate ?? 2000,
+    tvaRate: resolveTvaRate({ requestedRate: l.tvaRate ?? 2000, tvaExempt }),
   }));
 
   for (const line of linesWithDefaults) {

@@ -53,6 +53,13 @@ export function groupByTva(lines: DocumentLine[]): TvaGroup[] {
     }));
 }
 
+export function resolveTvaRate(input: {
+  requestedRate: number;
+  tvaExempt: boolean;
+}): number {
+  return input.tvaExempt ? 0 : input.requestedRate;
+}
+
 export function computeDocumentTotals(lines: DocumentLine[]): DocumentTotals {
   const tvaGroups = groupByTva(lines);
   const totalHt = tvaGroups.reduce((sum, g) => sum + g.baseHt, 0);

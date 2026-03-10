@@ -3,7 +3,8 @@ import { computeInvoiceTotals, validateInvoiceLine } from '../domain/validators.
 import { insertInvoice } from '../repository/insert-invoice.js';
 import { findInvoiceById } from '../repository/find-invoice-by-id.js';
 import { findClientById } from '../../clients/repository/find-client-by-id.js';
-import { computeLineTotal } from '../../shared/domain/document-math.js';
+import { computeLineTotal, resolveTvaRate } from '../../shared/domain/document-math.js';
+import { findTeamFieldByKey } from '../../teams/repository/find-team-field-by-key.js';
 import { toLineViews, toTvaGroups } from '../../shared/domain/to-line-views.js';
 import { HandledError } from '../../../lib/errors/handled-error.js';
 import { errorCodes } from '../../../lib/errors/error-codes.js';
@@ -54,12 +55,15 @@ export async function createInvoice(input: {
   lines: CreateInvoiceLineInput[];
   dueDate?: Date;
 }): Promise<InvoiceView> {
+  const tvaExemptField = await findTeamFieldByKey({ teamId: input.teamId, key: 'tva_exempt' });
+  const tvaExempt = tvaExemptField?.value === 'true';
+
   const linesWithDefaults = input.lines.map((l) => ({
     description: l.description,
     quantity: l.quantity,
     unit: l.unit ?? 'u',
     unitPrice: l.unitPrice,
-    tvaRate: l.tvaRate ?? 2000,
+    tvaRate: resolveTvaRate({ requestedRate: l.tvaRate ?? 2000, tvaExempt }),
   }));
 
   // Validate each line

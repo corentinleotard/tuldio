@@ -5,7 +5,8 @@ import { insertQuote } from '../repository/insert-quote.js';
 import { findQuoteById } from '../repository/find-quote-by-id.js';
 import { findClientById } from '../../clients/repository/find-client-by-id.js';
 import { upsertPrestation } from '../../prestations/repository/upsert-prestation.js';
-import { computeLineTotal } from '../../shared/domain/document-math.js';
+import { computeLineTotal, resolveTvaRate } from '../../shared/domain/document-math.js';
+import { findTeamFieldByKey } from '../../teams/repository/find-team-field-by-key.js';
 import { toLineViews, toTvaGroups } from '../../shared/domain/to-line-views.js';
 import { HandledError } from '../../../lib/errors/handled-error.js';
 import { errorCodes } from '../../../lib/errors/error-codes.js';
@@ -26,12 +27,15 @@ export async function createQuote(input: {
   title?: string;
   lines: CreateQuoteLineInput[];
 }): Promise<QuoteView> {
+  const tvaExemptField = await findTeamFieldByKey({ teamId: input.teamId, key: 'tva_exempt' });
+  const tvaExempt = tvaExemptField?.value === 'true';
+
   const linesWithDefaults = input.lines.map((l) => ({
     description: l.description,
     quantity: l.quantity,
     unit: l.unit ?? 'u',
     unitPrice: l.unitPrice,
-    tvaRate: l.tvaRate ?? 2000,
+    tvaRate: resolveTvaRate({ requestedRate: l.tvaRate ?? 2000, tvaExempt }),
   }));
 
   // Validate each line

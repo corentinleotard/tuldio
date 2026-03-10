@@ -1,5 +1,14 @@
 import { z } from 'zod';
 
+// Facture                       │ Facture              │ Standard invoice for goods/services delivered                                        │
+// ├───────────────────────────────┼──────────────────────┼──────────────────────────────────────────────────────────────────────────────────────┤
+// │ Facture d'acompte             │ Facture d'acompte    │ Deposit/advance payment invoice (partial payment before delivery)                    │
+// ├───────────────────────────────┼──────────────────────┼──────────────────────────────────────────────────────────────────────────────────────┤
+// │ Facture d'avoir (credit note) │ Avoir                │ Cancellation/correction document — references the original invoice, negative amounts │
+// ├───────────────────────────────┼──────────────────────┼──────────────────────────────────────────────────────────────────────────────────────┤
+// │ Facture de situation          │ Facture de situation │ Progress billing (construction/long projects — % completion)                         │
+// └───────────────────────────────┴──────────────────────┴─────────────────────────────────────────────────────────────────────────────────────
+
 export const invoiceLineSchema = z.object({
   id: z.string().uuid(),
   invoice_id: z.string().uuid(),
