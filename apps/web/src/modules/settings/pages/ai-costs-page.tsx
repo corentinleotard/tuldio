@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, Cpu, Zap, Hash, Coins } from 'lucide-react';
+import { ArrowLeft, Cpu, Zap, Hash, Coins, Database } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { fetchAiCosts } from '../api/settings.api';
 
@@ -25,12 +25,23 @@ function formatDate(iso: string): string {
   });
 }
 
+function formatPercent(ratio: number): string {
+  return `${(ratio * 100).toFixed(1)} %`;
+}
+
 export function AiCostsPage() {
   const navigate = useNavigate();
   const { data, isLoading } = useQuery({
     queryKey: ['ai-costs'],
     queryFn: fetchAiCosts,
   });
+
+  const totalAllInputTokens = data
+    ? data.totalInputTokens + data.totalCacheReadTokens + data.totalCacheCreationTokens
+    : 0;
+  const cacheHitRate = totalAllInputTokens > 0
+    ? data!.totalCacheReadTokens / totalAllInputTokens
+    : 0;
 
   return (
     <div className="mx-auto max-w-3xl p-4 md:p-6">
@@ -56,7 +67,7 @@ export function AiCostsPage() {
       {data && (
         <>
           {/* Summary cards */}
-          <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-4">
+          <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-3">
             <SummaryCard
               icon={Coins}
               label="Cout total"
@@ -76,6 +87,16 @@ export function AiCostsPage() {
               icon={Cpu}
               label="Tokens sortie"
               value={formatNumber(data.totalOutputTokens)}
+            />
+            <SummaryCard
+              icon={Database}
+              label="Tokens caches (lus)"
+              value={formatNumber(data.totalCacheReadTokens)}
+            />
+            <SummaryCard
+              icon={Database}
+              label="Taux de cache"
+              value={formatPercent(cacheHitRate)}
             />
           </div>
 
@@ -97,6 +118,7 @@ export function AiCostsPage() {
                       <th className="px-4 py-3">Usage</th>
                       <th className="px-4 py-3">Modele</th>
                       <th className="px-4 py-3 text-right">Tokens</th>
+                      <th className="px-4 py-3 text-right">Cache</th>
                       <th className="px-4 py-3 text-right">Cout</th>
                       <th className="px-4 py-3 text-right">Duree</th>
                     </tr>
@@ -117,7 +139,12 @@ export function AiCostsPage() {
                           {call.model.replace('claude-', '')}
                         </td>
                         <td className="whitespace-nowrap px-4 py-3 text-right tabular-nums">
-                          {formatNumber(call.inputTokens + call.outputTokens)}
+                          <span className="text-muted-foreground">{formatNumber(call.inputTokens)}</span>
+                          {' / '}
+                          <span>{formatNumber(call.outputTokens)}</span>
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-3 text-right tabular-nums">
+                          <CacheBadge readTokens={call.cacheReadTokens} creationTokens={call.cacheCreationTokens} />
                         </td>
                         <td className="whitespace-nowrap px-4 py-3 text-right font-medium tabular-nums">
                           {formatCost(call.costCents)}
@@ -161,11 +188,32 @@ function SummaryCard(props: {
 function PurposeBadge(props: { purpose: string }) {
   const labels: Record<string, string> = {
     chat: 'Chat',
+    detect_client: 'Detection',
     extraction: 'Extraction',
   };
   return (
     <span className="inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
       {labels[props.purpose] ?? props.purpose}
+    </span>
+  );
+}
+
+function CacheBadge(props: { readTokens: number; creationTokens: number }) {
+  if (props.readTokens === 0 && props.creationTokens === 0) {
+    return <span className="text-xs text-muted-foreground">—</span>;
+  }
+
+  if (props.readTokens > 0) {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full bg-success/10 px-2 py-0.5 text-xs font-medium text-success">
+        {formatNumber(props.readTokens)}
+      </span>
+    );
+  }
+
+  return (
+    <span className="inline-flex items-center gap-1 rounded-full bg-warning/10 px-2 py-0.5 text-xs font-medium text-warning">
+      {formatNumber(props.creationTokens)}
     </span>
   );
 }

@@ -8,7 +8,9 @@ export const updateClientTool = defineTool({
   name: 'update_client',
   description:
     `Update the active client's contact information (name, email, phone, address).
-Operates on the current active client from state.`,
+Operates on the current active client from state. Only include fields that need to change — omitted fields remain unchanged.
+Confirm changes with the user before calling when the update was not explicitly requested (e.g. inferred from context).
+Name changes update both first name and last name independently.`,
   schema: z.object({
     firstName: z.string().min(1).max(100).optional().describe('New first name'),
     lastName: z.string().min(1).max(100).optional().describe('New last name'),

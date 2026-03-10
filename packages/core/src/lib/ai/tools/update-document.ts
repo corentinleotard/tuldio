@@ -20,7 +20,8 @@ export const updateDocumentTool = defineTool({
   name: 'update_document',
   description:
     `Update the active document's lines, title, or status. Requires an active document in state.
-For line changes use delta operations — reference existing lines by their ID shown in the current state:
+Call get_active_document first to see current line IDs when you need to update or remove existing lines.
+For line changes use delta operations:
   - addedLines: new lines to append
   - removedLineIds: IDs of lines to remove
   - updatedLines: partial field updates on existing lines (by lineId)

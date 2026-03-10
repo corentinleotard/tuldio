@@ -1,0 +1,3 @@
+ALTER TABLE ai_calls
+  ADD COLUMN cache_read_tokens INTEGER NOT NULL DEFAULT 0,
+  ADD COLUMN cache_creation_tokens INTEGER NOT NULL DEFAULT 0;

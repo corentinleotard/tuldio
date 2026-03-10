@@ -1,15 +1,12 @@
-import type { DemandState, QuoteView, InvoiceView } from '@tuldio/types';
+import type { DemandState } from '@tuldio/types';
 
 export function buildSystemPrompt(input: {
   teamName: string;
   userName: string;
-  demandState: DemandState;
-  activeDocument: (QuoteView | InvoiceView) | null;
-  clientNotFound?: string | null;
 }): string {
   const today = new Date().toLocaleDateString('fr-FR', { dateStyle: 'long' });
 
-  let prompt = `You are the business assistant for ${input.userName} at ${input.teamName}.
+  return `You are the business assistant for ${input.userName} at ${input.teamName}.
 You help manage quotes, invoices, expenses, and clients for a French small business (artisan).
 
 Today's date: ${today}
@@ -36,47 +33,8 @@ When the user requests multiple actions, process them in the order they are ment
 
 - When a tool returns an error, never claim the action succeeded. Report the error clearly.
 - A document only exists if a tool successfully created it. Never describe a document without having called the creation tool.
-- The active client and document persist across messages in the state below. Do NOT re-ask for information already present.`;
-
-  // Inject current state
-  const { client, document: docPointer } = input.demandState;
-  const doc = input.activeDocument;
-
-  if (client || doc) {
-    prompt += '\n\n## Current state\n';
-    if (client) {
-      prompt += `\n**Active client:** ${client.name}`;
-    }
-    if (docPointer && doc) {
-      const typeLabel = docPointer.type === 'quote' ? 'Devis' : 'Facture';
-      prompt += `\n**Active document:** ${typeLabel}${doc.number ? ` #${doc.number}` : ''} (${doc.status})`;
-      if (doc.title) prompt += `\n**Title:** ${doc.title}`;
-      if (doc.lines.length > 0) {
-        prompt += '\n**Lines:**';
-        for (const line of doc.lines) {
-          const price = `${(line.unitPrice / 100).toFixed(2)}€`;
-          const tva = `TVA ${line.tvaRate / 100}%`;
-          prompt += `\n[${line.id}] ${line.description}: ${line.quantity} ${line.unit} × ${price} — ${tva}`;
-        }
-      }
-      prompt += `\n**Total HT:** ${(doc.totalHt / 100).toFixed(2)}€ | **Total TTC:** ${(doc.totalTtc / 100).toFixed(2)}€`;
-    }
-    prompt += '\n\nUse this state — do NOT re-ask for information already present here.';
-  }
-
-  const { pendingCandidates } = input.demandState;
-  if (pendingCandidates && pendingCandidates.length > 0) {
-    prompt += '\n\n## Pending candidates\n';
-    for (const c of pendingCandidates) {
-      prompt += `\n- ${c.name}`;
-    }
-  }
-
-  if (input.clientNotFound) {
-    prompt += `\n\n**Client not found:** "${input.clientNotFound}" is not in the database. If the user wants to do something for this person (quote, invoice, expense), call create_client directly — no confirmation needed. If the user is just asking about this person, say they don't exist.`;
-  }
-
-  return prompt;
+- The active client and document persist across messages. Context is provided at the beginning of the conversation. Use get_active_document to see document line details.
+- Do NOT re-ask for information already present in the context or recent messages.`;
 }
 
 /** Minimal system prompt for the detect_client pre-processing step.

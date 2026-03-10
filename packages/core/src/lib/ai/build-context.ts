@@ -1,5 +1,5 @@
 import type Anthropic from '@anthropic-ai/sdk';
-import type { Message } from '@tuldio/types';
+import type { DemandState, Message } from '@tuldio/types';
 
 const RECENT_MESSAGES_COUNT = 8;
 export const DETECTION_MESSAGES_COUNT = 5;
@@ -79,4 +79,43 @@ export function buildClaudeMessages(allMessages: Message[], options?: { limit?: 
   }
 
   return claudeMessages;
+}
+
+/**
+ * Build a synthetic context message pair for the dynamic state.
+ * Injected at the start of the conversation AFTER delimiting,
+ * so it is NOT wrapped in <user_message> tags.
+ */
+export function buildContextMessages(input: {
+  demandState: DemandState;
+  clientNotFound: string | null;
+}): Anthropic.MessageParam[] {
+  const { client, document: docPointer, pendingCandidates } = input.demandState;
+
+  let context = '';
+
+  if (client) {
+    context += `Client actif : ${client.name}\n`;
+  }
+
+  if (docPointer) {
+    const typeLabel = docPointer.type === 'quote' ? 'Devis' : 'Facture';
+    context += `Document actif : ${typeLabel} (${docPointer.type}). Utilise get_active_document pour voir les lignes.\n`;
+  }
+
+  if (pendingCandidates && pendingCandidates.length > 0) {
+    context += 'Candidats en attente (demande au user de choisir) :\n';
+    for (const c of pendingCandidates) {
+      context += `- ${c.name}\n`;
+    }
+  }
+
+  if (input.clientNotFound) {
+    context += `Client introuvable : "${input.clientNotFound}" n'existe pas. Si le user veut agir pour cette personne, appelle create_client directement sans confirmation.\n`;
+  }
+
+  return [
+    { role: 'user', content: `<context>\n${context.trim()}\n</context>` },
+    { role: 'assistant', content: 'Compris.' },
+  ];
 }

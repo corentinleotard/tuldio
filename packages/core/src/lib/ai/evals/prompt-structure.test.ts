@@ -12,8 +12,6 @@ import { chatTools } from '../tool-registry.js';
 const prompt = buildSystemPrompt({
   teamName: 'Test SARL',
   userName: 'Jean',
-  demandState: { client: null, document: null },
-  activeDocument: null,
 });
 
 describe('system prompt structure', () => {

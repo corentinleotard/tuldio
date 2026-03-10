@@ -300,6 +300,8 @@ export interface AiCallView {
   purpose: string;
   inputTokens: number;
   outputTokens: number;
+  cacheReadTokens: number;
+  cacheCreationTokens: number;
   costCents: number;
   durationMs: number;
   createdAt: string;
@@ -310,6 +312,8 @@ export interface AiCostsSummary {
   totalCalls: number;
   totalInputTokens: number;
   totalOutputTokens: number;
+  totalCacheReadTokens: number;
+  totalCacheCreationTokens: number;
   calls: AiCallView[];
 }
 

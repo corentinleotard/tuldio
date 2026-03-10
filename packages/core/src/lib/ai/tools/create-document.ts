@@ -9,8 +9,10 @@ import { resolveUnit } from '../../../modules/units/index.js';
 export const createDocumentTool = defineTool({
   name: 'create_document',
   description:
-    `Create a new quote or invoice for the active client. All lines must have unitPrice set.
-To create an invoice from the active quote, set fromActiveQuote to true — lines are copied automatically.`,
+    `Create a new quote or invoice for the active client. Requires an active client in state.
+All lines must have unitPrice set (in euro cents: 4500 = 45.00€). TVA rate is in basis points (1000 = 10%, 2000 = 20%).
+To create an invoice from the active quote, set fromActiveQuote to true — lines are copied automatically, no need to pass lines.
+After creation, the document becomes the active document in state.`,
   schema: z.object({
     type: z.enum(['quote', 'invoice']).describe('Document type'),
     title: z.string().max(255).optional().describe('Document title'),

@@ -15,6 +15,7 @@ import { listDocumentsTool } from './tools/list-documents.js';
 import { deleteDocumentTool } from './tools/delete-document.js';
 import { openDocumentTool } from './tools/open-document.js';
 import { getStatsTool } from './tools/get-stats.js';
+import { getActiveDocumentTool } from './tools/get-active-document.js';
 import { detectClientTool } from './tools/detect-client.js';
 
 export type { ToolResult, StateUpdate };
@@ -30,6 +31,7 @@ const allTools: AnyToolDefinition[] = [
   deleteDocumentTool,
   listDocumentsTool,
   openDocumentTool,
+  getActiveDocumentTool,
   getStatsTool,
 ];
 

@@ -1,8 +1,8 @@
 import type Anthropic from '@anthropic-ai/sdk';
-import type { DemandState, QuoteView, InvoiceView } from '@tuldio/types';
+import type { DemandState } from '@tuldio/types';
 import { callClaude } from './claude-client.js';
 import { buildSystemPrompt, buildDetectionSystemPrompt } from './system-prompt.js';
-import { buildClaudeMessages, DETECTION_MESSAGES_COUNT, type StoredToolCall } from './build-context.js';
+import { buildClaudeMessages, buildContextMessages, DETECTION_MESSAGES_COUNT, type StoredToolCall } from './build-context.js';
 import { chatTools, detectClientTools, executeTool, type StateUpdate } from './tool-registry.js';
 import { createMessage, listMessages } from '../../modules/messages/index.js';
 import { getCurrentUser } from '../../modules/users/index.js';
@@ -10,8 +10,6 @@ import { getTeam } from '../../modules/teams/index.js';
 import { getDemandState, upsertDemandState, clearDemandState } from '../../modules/demands/index.js';
 import { findClientById } from '../../modules/clients/repository/find-client-by-id.js';
 import { resolveClient } from '../../modules/clients/index.js';
-import { getQuote } from '../../modules/quotes/index.js';
-import { getInvoice } from '../../modules/invoices/index.js';
 import { logger } from '../infra/logger.js';
 import type { Message, MessageMetadata, DebugTrace, DebugTraceRound, DebugTraceToolCall } from '@tuldio/types';
 
@@ -26,25 +24,6 @@ function applyStateUpdate(current: DemandState, update: StateUpdate): DemandStat
     document: update.document !== undefined ? update.document : current.document,
     pendingCandidates: update.pendingCandidates !== undefined ? update.pendingCandidates : current.pendingCandidates,
   };
-}
-
-/** Fetch the active document from DB if the state has a document pointer */
-async function fetchActiveDocument(input: {
-  state: DemandState;
-  teamId: string;
-}): Promise<(QuoteView | InvoiceView) | null> {
-  const docPointer = input.state.document;
-  if (!docPointer?.id) return null;
-
-  try {
-    if (docPointer.type === 'quote') {
-      return await getQuote({ teamId: input.teamId, quoteId: docPointer.id });
-    }
-    return await getInvoice({ teamId: input.teamId, invoiceId: docPointer.id });
-  } catch {
-    // Document not found (deleted?) — will be cleared below
-    return null;
-  }
 }
 
 interface DetectClientResult {
@@ -199,21 +178,8 @@ export async function processMessage(input: {
     await upsertDemandState({ userId, teamId, state: currentState });
   }
 
-  // Fetch active document from DB
-  let activeDocument = await fetchActiveDocument({ state: currentState, teamId });
-
-  // If document pointer exists but document not found, clear it
-  if (currentState.document && !activeDocument) {
-    currentState = { ...currentState, document: null };
-    await upsertDemandState({ userId, teamId, state: currentState });
-  }
-
-  let systemPrompt = buildSystemPrompt({
-    teamName: team.name,
-    userName: user.name,
-    demandState: currentState,
-    activeDocument,
-  });
+  // Static system prompt — same for all calls (enables prompt caching)
+  const systemPrompt = buildSystemPrompt({ teamName: team.name, userName: user.name });
 
   const claudeMessages: Anthropic.MessageParam[] = buildClaudeMessages(recentMessages);
 
@@ -240,24 +206,16 @@ export async function processMessage(input: {
 
     // Persist state if it changed
     await upsertDemandState({ userId, teamId, state: currentState });
-
-    // Re-fetch active document after potential state change
-    activeDocument = await fetchActiveDocument({ state: currentState, teamId });
-
-    // Rebuild system prompt with updated state
-    systemPrompt = buildSystemPrompt({
-      teamName: team.name,
-      userName: user.name,
-      demandState: currentState,
-      activeDocument,
-      clientNotFound,
-    });
   }
+
+  // Build context messages from dynamic state
+  let contextMessages = buildContextMessages({ demandState: currentState, clientNotFound });
 
   // --- Main agent call ---
   let { message: response, meta } = await callClaude({
     systemPrompt,
     messages: claudeMessages,
+    contextMessages,
     tools: chatTools,
     teamId,
     userId,
@@ -300,9 +258,6 @@ export async function processMessage(input: {
             } else {
               await upsertDemandState({ userId, teamId, state: currentState });
             }
-
-            // Re-fetch active document after state change
-            activeDocument = await fetchActiveDocument({ state: currentState, teamId });
           }
         }
 
@@ -381,19 +336,16 @@ export async function processMessage(input: {
     claudeMessages.push({ role: 'assistant', content: response.content });
     claudeMessages.push({ role: 'user', content: toolResults });
 
-    // Rebuild system prompt so Claude sees updated state
-    // Clear clientNotFound once a client has been set (create_client was called)
-    systemPrompt = buildSystemPrompt({
-      teamName: team.name,
-      userName: user.name,
+    // Rebuild context messages with updated state
+    contextMessages = buildContextMessages({
       demandState: currentState,
-      activeDocument,
       clientNotFound: currentState.client ? null : clientNotFound,
     });
 
     ({ message: response, meta } = await callClaude({
       systemPrompt,
       messages: claudeMessages,
+      contextMessages,
       tools: chatTools,
       teamId,
       userId,
