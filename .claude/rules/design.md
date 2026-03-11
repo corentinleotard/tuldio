@@ -119,9 +119,3 @@ All status colors, labels, transitions, and helpers are defined there. Never dup
 - Test on a 5-year-old Android phone — not just the latest iPhone
 - Dark mode: supported via theme swap, follows system preference. Never use platform-specific dark: prefixes — always go through theme tokens.
 - Icons: `lucide-react` everywhere. Import individually, never barrel export.
-
-## Design Preview
-
-- **Single file**: `docs/design-preview.html` — all screen mockups (mobile + desktop, light + dark)
-- When asked to add/modify a design mockup, always edit this file — never create a new one
-- Use grep + offset/limit to navigate the file (it's large)

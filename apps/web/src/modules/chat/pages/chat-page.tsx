@@ -157,7 +157,7 @@ export function ChatPage() {
       {/* Desktop: headers + content + input in a row layout */}
       <div className="flex min-h-0 flex-1">
         {/* Chat column */}
-        <div className="flex min-h-0 flex-1 flex-col">
+        <div className="flex min-w-0 min-h-0 flex-1 flex-col">
           {/* Desktop header */}
           <div className="hidden items-center border-b px-5 pb-4 pt-5 md:flex">
             <h1 className="text-[22px] font-bold tracking-tight text-primary">Chat</h1>

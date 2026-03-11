@@ -34,6 +34,9 @@ To delete a draft document, use delete_document instead.`,
     addedLines: z.array(lineSchema).max(50).optional().describe('New lines to append'),
     removedLineIds: z.array(z.string().uuid()).optional().describe('IDs of lines to remove'),
     updatedLines: z.array(updatedLineSchema).optional().describe('Partial updates to existing lines by lineId'),
+    prestationDate: z.string().optional().describe(
+      'New service/prestation date as ISO string (YYYY-MM-DD). Only for invoices.',
+    ),
   }),
   handler: async (args, ctx): Promise<ToolResult> => {
     const docId = ctx.demandState.document?.id;
@@ -46,7 +49,7 @@ To delete a draft document, use delete_document instead.`,
     // --- Status change ---
     if (args.status) {
       if (docType === 'invoice') {
-        const invoice = await updateInvoiceStatusUc({ teamId: ctx.teamId, invoiceId: docId, status: args.status });
+        const invoice = await updateInvoiceStatusUc({ teamId: ctx.teamId, userId: ctx.userId, invoiceId: docId, status: args.status });
         return {
           result: invoice,
           richCard: { type: 'invoice', data: invoice },
@@ -65,8 +68,16 @@ To delete a draft document, use delete_document instead.`,
 
     // --- Line/title update via deltas ---
     const hasLineChanges = args.addedLines?.length || args.removedLineIds?.length || args.updatedLines?.length;
-    if (!hasLineChanges && !args.title) {
+    if (!hasLineChanges && !args.title && !args.prestationDate) {
       throw new HandledError(errorCodes.invalidInput);
+    }
+
+    // Block line edits on avoir invoices — lines must mirror source
+    if (docType === 'invoice' && hasLineChanges) {
+      const currentInvoice = await getInvoice({ teamId: ctx.teamId, invoiceId: docId });
+      if (currentInvoice.invoiceType === 'avoir') {
+        throw new HandledError(errorCodes.avoirNotEditable);
+      }
     }
 
     // Fetch current lines from DB
@@ -107,6 +118,7 @@ To delete a draft document, use delete_document instead.`,
       invoiceId: docId,
       title: args.title,
       lines: resolvedLines,
+      prestationDate: args.prestationDate ? new Date(args.prestationDate) : undefined,
     });
     return {
       result: invoice,

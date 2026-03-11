@@ -20,6 +20,9 @@ export async function buildDocumentPdfInput(input: {
   dueDate?: Date | null;
   validUntil?: Date | null;
   prestationDate?: Date | null;
+  invoiceType?: string;
+  sourceInvoiceNumber?: string | null;
+  situationNumber?: number | null;
 }): Promise<GeneratePdfInput> {
   const [teamRow, clientRow, fieldRows] = await Promise.all([
     findTeamById(input.teamId),
@@ -49,5 +52,8 @@ export async function buildDocumentPdfInput(input: {
     dueDate: input.dueDate,
     validUntil: input.validUntil,
     prestationDate: input.prestationDate,
+    invoiceType: input.invoiceType,
+    sourceInvoiceNumber: input.sourceInvoiceNumber,
+    situationNumber: input.situationNumber,
   };
 }

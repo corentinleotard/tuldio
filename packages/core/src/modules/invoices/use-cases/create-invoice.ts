@@ -16,7 +16,7 @@ import type { InvoiceLineRow } from '../domain/invoice.entity.js';
 
 export function toInvoiceView(
   row: InvoiceRow & { lines?: InvoiceLineRow[] },
-  opts?: { clientName?: string; clientEmail?: string },
+  opts?: { clientName?: string; clientEmail?: string; sourceInvoiceNumber?: string },
 ): InvoiceView {
   const lines = row.lines ?? [];
   return {
@@ -32,6 +32,11 @@ export function toInvoiceView(
     totalTtc: row.total_ttc,
     tvaGroups: toTvaGroups(lines),
     status: row.status,
+    invoiceType: row.invoice_type,
+    sourceInvoiceId: row.source_invoice_id,
+    sourceInvoiceNumber: opts?.sourceInvoiceNumber ?? null,
+    situationNumber: row.situation_number,
+    avoirId: row.avoir_id,
     pdfUrl: row.pdf_url,
     sentAt: row.sent_at?.toISOString() ?? null,
     paidAt: row.paid_at?.toISOString() ?? null,

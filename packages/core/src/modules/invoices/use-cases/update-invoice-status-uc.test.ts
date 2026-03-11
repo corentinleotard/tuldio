@@ -178,7 +178,33 @@ describe('updateInvoiceStatusUc', () => {
     expect(result.pdfUrl).toBe('/files/pdfs/frozen.pdf');
   });
 
-  it('rejects cancellation of a paid invoice', async () => {
+  it('cancels a paid invoice and creates avoir automatically', async () => {
+    const teamId = generateId();
+    const clientId = generateId();
+    await seedTeamAndClient(teamId, clientId);
+    const userId = generateId();
+    await query(
+      `INSERT INTO users (id, team_id, email, name) VALUES ($1, $2, $3, 'Test')`,
+      [userId, teamId, `user-${userId}@test.com`],
+    );
+    const invoiceId = await insertInvoice({ teamId, clientId, status: 'paid' });
+
+    const result = await updateInvoiceStatusUc({ teamId, userId, invoiceId, status: 'cancelled' });
+
+    // Returns the cancelled source invoice
+    expect(result.status).toBe('cancelled');
+    expect(result.id).toBe(invoiceId);
+
+    // Avoir was created as a side-effect
+    const avoirRows = await query(
+      "SELECT id, invoice_type, source_invoice_id FROM invoices WHERE team_id = $1 AND invoice_type = 'avoir'",
+      [teamId],
+    );
+    expect(avoirRows.rows).toHaveLength(1);
+    expect(avoirRows.rows[0]!.source_invoice_id).toBe(invoiceId);
+  });
+
+  it('rejects cancellation of a paid invoice without userId', async () => {
     const teamId = generateId();
     const clientId = generateId();
     await seedTeamAndClient(teamId, clientId);
@@ -186,7 +212,7 @@ describe('updateInvoiceStatusUc', () => {
 
     await expect(
       updateInvoiceStatusUc({ teamId, invoiceId, status: 'cancelled' }),
-    ).rejects.toThrow('Transition de statut invalide');
+    ).rejects.toThrow();
 
     const invoiceRows = await query('SELECT status FROM invoices WHERE id = $1', [invoiceId]);
     expect(invoiceRows.rows[0]!.status).toBe('paid');

@@ -8,6 +8,7 @@ export const teamSchema = z.object({
   quote_last_number: z.number().int(),
   quote_validity_days: z.number().int(),
   invoice_last_number: z.number().int(),
+  avoir_last_number: z.number().int(),
   invoice_payment_delay_days: z.number().int(),
   terms_accepted_at: z.date().nullable(),
   stripe_customer_id: z.string().nullable(),

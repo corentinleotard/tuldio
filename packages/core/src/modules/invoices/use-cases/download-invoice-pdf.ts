@@ -17,10 +17,18 @@ export async function downloadInvoicePdf(input: {
   const invoice = await findInvoiceById(input);
   if (!invoice) throw new HandledError(errorCodes.invoiceNotFound);
 
-  const fileName = `facture-${invoice.number}.pdf`;
+  const filePrefix = invoice.invoice_type === 'avoir' ? 'avoir' : 'facture';
+  const fileName = `${filePrefix}-${invoice.number}.pdf`;
 
   if (invoice.pdf_url) {
     return { type: 'file', filePath: getFilePath(invoice.pdf_url), fileName };
+  }
+
+  // Resolve source invoice number for avoir PDF
+  let sourceInvoiceNumber: string | null = null;
+  if (invoice.invoice_type === 'avoir' && invoice.source_invoice_id) {
+    const sourceInv = await findInvoiceById({ teamId: input.teamId, invoiceId: invoice.source_invoice_id });
+    sourceInvoiceNumber = sourceInv?.number ?? null;
   }
 
   const lineViews = toLineViews(invoice.lines);
@@ -38,6 +46,9 @@ export async function downloadInvoicePdf(input: {
     createdAt: invoice.created_at,
     dueDate: invoice.due_date,
     prestationDate: invoice.prestation_date,
+    invoiceType: invoice.invoice_type,
+    sourceInvoiceNumber,
+    situationNumber: invoice.situation_number,
   });
 
   const buffer = await generatePdfToBuffer(pdfInput);

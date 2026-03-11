@@ -17,6 +17,9 @@ export interface GeneratePdfInput {
   dueDate?: Date | null;
   validUntil?: Date | null;
   prestationDate?: Date | null;
+  invoiceType?: string;
+  sourceInvoiceNumber?: string | null;
+  situationNumber?: number | null;
 }
 
 function buildHtml(input: GeneratePdfInput & { team: PdfTeam }): string {
@@ -43,6 +46,9 @@ function buildHtml(input: GeneratePdfInput & { team: PdfTeam }): string {
         createdAt: input.createdAt,
         dueDate: input.dueDate ?? null,
         prestationDate: input.prestationDate ?? null,
+        invoiceType: input.invoiceType,
+        sourceInvoiceNumber: input.sourceInvoiceNumber,
+        situationNumber: input.situationNumber,
       });
 }
 
@@ -51,7 +57,7 @@ export async function generatePdf(input: GeneratePdfInput): Promise<string> {
   const team = await resolveLogoDataUri(input.team);
   const html = buildHtml({ ...input, team });
 
-  const prefix = input.type === 'quote' ? 'devis' : 'facture';
+  const prefix = input.type === 'quote' ? 'devis' : input.invoiceType === 'avoir' ? 'avoir' : 'facture';
   const fileName = `${prefix}-${input.id}.pdf`;
 
   return renderPdf({ html, fileName });

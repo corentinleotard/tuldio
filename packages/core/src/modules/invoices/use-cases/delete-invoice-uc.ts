@@ -3,6 +3,7 @@ import { errorCodes } from '../../../lib/errors/error-codes.js';
 import { logger } from '../../../lib/infra/logger.js';
 import { findInvoiceById } from '../repository/find-invoice-by-id.js';
 import { deleteInvoice } from '../repository/delete-invoice.js';
+import { updateInvoiceAvoirId } from '../repository/update-invoice-avoir-id.js';
 
 export async function deleteInvoiceUc(input: {
   teamId: string;
@@ -15,6 +16,11 @@ export async function deleteInvoiceUc(input: {
 
   if (invoice.status !== 'draft') {
     throw new HandledError(errorCodes.invoiceNotDraft);
+  }
+
+  // If deleting an avoir draft, clear the back-reference on the source invoice BEFORE deleting (FK constraint)
+  if (invoice.invoice_type === 'avoir' && invoice.source_invoice_id) {
+    await updateInvoiceAvoirId({ teamId: input.teamId, invoiceId: invoice.source_invoice_id, avoirId: null });
   }
 
   const deleted = await deleteInvoice({ teamId: input.teamId, invoiceId: input.invoiceId });

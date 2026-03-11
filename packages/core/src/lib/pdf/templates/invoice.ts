@@ -31,6 +31,9 @@ export function renderInvoiceHtml(input: {
   createdAt: Date;
   dueDate: Date | null;
   prestationDate: Date | null;
+  invoiceType?: string;
+  sourceInvoiceNumber?: string | null;
+  situationNumber?: number | null;
 }): string {
   const { team, client, number, lines, totalHt, totalTtc, tvaGroups, createdAt, dueDate, prestationDate } = input;
   const f = team.fields;
@@ -76,7 +79,16 @@ export function renderInvoiceHtml(input: {
     </div>
 
     <div class="doc-col">
-      <div class="doc-title">FACTURE</div>
+      <div class="doc-title">${(() => {
+        switch (input.invoiceType) {
+          case 'acompte': return "FACTURE D'ACOMPTE";
+          case 'solde': return 'FACTURE DE SOLDE';
+          case 'avoir': return 'AVOIR';
+          case 'situation': return `FACTURE DE SITUATION N°${input.situationNumber ?? ''}`;
+          default: return 'FACTURE';
+        }
+      })()}</div>
+      ${input.invoiceType === 'avoir' && input.sourceInvoiceNumber ? `<div class="doc-meta">Avoir sur facture N° ${esc(input.sourceInvoiceNumber)}</div>` : ''}
       <div class="doc-meta">N\u00B0 ${esc(number)}</div>
       <div class="doc-meta">Date : ${formatDate(createdAt)}</div>
       ${prestationDate && !isSameDay(prestationDate, createdAt) ? `<div class="doc-meta">Date de prestation : ${formatDate(prestationDate)}</div>` : ''}

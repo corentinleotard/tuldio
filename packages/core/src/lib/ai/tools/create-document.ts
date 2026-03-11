@@ -12,7 +12,12 @@ export const createDocumentTool = defineTool({
     `Create a new quote or invoice for the active client. Requires an active client in state.
 All lines must have unitPrice set (in euro cents: 4500 = 45.00€). TVA rate is in basis points (1000 = 10%, 2000 = 20%).
 To create an invoice from the active quote, set fromActiveQuote to true — lines are copied automatically, no need to pass lines.
-After creation, the document becomes the active document in state.`,
+After creation, the document becomes the active document in state.
+
+Invoice types:
+- To invoice a quote fully: fromActiveQuote + no invoiceType. The system auto-decides: if no prior acomptes → standard invoice; if acomptes exist → solde (final invoice with deductions).
+- acompte: deposit invoice from a quote. Use fromActiveQuote + invoiceType 'acompte' + depositPercent (e.g. 30 for 30%). Cannot total 100% of quote — remaining must exist for solde.
+- To cancel/reverse an invoice, use update_document with status 'cancelled' instead — the system creates an avoir automatically.`,
   schema: z.object({
     type: z.enum(['quote', 'invoice']).describe('Document type'),
     title: z.string().max(255).optional().describe('Document title'),
@@ -22,9 +27,18 @@ After creation, the document becomes the active document in state.`,
     lines: z.array(lineSchema).min(1).max(50).optional().describe(
       'Document lines — required unless using fromActiveQuote',
     ),
+    prestationDate: z.string().optional().describe(
+      'Service/prestation date as ISO string (YYYY-MM-DD). Only for invoices. Defaults to today if omitted.',
+    ),
+    invoiceType: z.enum(['acompte']).optional().describe(
+      'Only set for acompte (deposit). For standard/solde, omit — the system auto-decides.',
+    ),
+    depositPercent: z.number().int().min(1).max(99).optional().describe(
+      'Deposit percentage for acompte invoices (e.g. 30 for 30%)',
+    ),
   }),
   handler: async (args, ctx): Promise<ToolResult> => {
-    // Invoice from active quote
+    // Invoice from active quote (standard, acompte, or solde — auto-decided)
     if (args.fromActiveQuote) {
       if (args.type !== 'invoice') {
         throw new HandledError(errorCodes.invalidInput);
@@ -38,6 +52,9 @@ After creation, the document becomes the active document in state.`,
         userId: ctx.userId,
         quoteId: activeDoc.id,
         title: args.title,
+        prestationDate: args.prestationDate ? new Date(args.prestationDate) : undefined,
+        invoiceType: args.invoiceType === 'acompte' ? 'acompte' : undefined,
+        depositPercent: args.depositPercent,
       });
       return {
         result: invoice,
@@ -85,6 +102,7 @@ After creation, the document becomes the active document in state.`,
       clientId: ctx.demandState.client.id,
       title: args.title,
       lines: resolvedLines,
+      prestationDate: args.prestationDate ? new Date(args.prestationDate) : undefined,
     });
     return {
       result: invoice,

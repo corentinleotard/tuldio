@@ -163,6 +163,8 @@ export interface CreateQuoteRequest {
 }
 
 // Invoices
+export type InvoiceType = 'standard' | 'acompte' | 'solde' | 'situation' | 'avoir';
+
 export interface InvoiceView {
   id: string;
   number: string;
@@ -176,6 +178,11 @@ export interface InvoiceView {
   totalTtc: number;
   tvaGroups: TvaGroupView[];
   status: 'draft' | 'sent' | 'paid' | 'overdue' | 'cancelled';
+  invoiceType: InvoiceType;
+  sourceInvoiceId: string | null;
+  sourceInvoiceNumber: string | null;
+  situationNumber: number | null;
+  avoirId: string | null;
   pdfUrl: string | null;
   sentAt: string | null;
   paidAt: string | null;

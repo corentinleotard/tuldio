@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import type { QuoteView, InvoiceView } from '@tuldio/types';
 import { Download, ChevronDown } from 'lucide-react';
-import { cn, formatCurrency, formatDate, formatShortDate } from '@/lib/utils';
+import { cn, formatCurrency, formatDate, formatShortDate, isSameDay } from '@/lib/utils';
 import { viewDocument } from '@/lib/share-document';
 import {
   statusConfig,
@@ -21,8 +21,8 @@ interface DocumentDetailProps {
 
 export function DocumentDetail({ document: doc, type, onStatusChange }: DocumentDetailProps) {
   const badge = statusConfig[doc.status] ?? { ...defaultStatus, label: doc.status };
-  const typeLabel = type === 'quote' ? 'Devis' : 'Facture';
-
+  const invoiceType = type === 'invoice' ? (doc as InvoiceView).invoiceType : undefined;
+  const typeLabel = type === 'quote' ? 'Devis' : invoiceType === 'avoir' ? 'Avoir' : invoiceType === 'acompte' ? "Facture d'acompte" : invoiceType === 'solde' ? 'Facture de solde' : 'Facture';
 
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -39,7 +39,8 @@ export function DocumentDetail({ document: doc, type, onStatusChange }: Document
     }
   }, [dropdownOpen]);
 
-  const transitions = type === 'quote' ? quoteTransitions : invoiceTransitions;
+  const avoirTransitions: Record<string, string[]> = { draft: ['sent'], sent: [], paid: [], overdue: [], cancelled: [] };
+  const transitions = type === 'quote' ? quoteTransitions : invoiceType === 'avoir' ? avoirTransitions : invoiceTransitions;
   const nextStatuses = transitions[doc.status as keyof typeof transitions] ?? [];
   const allStatuses = getOrderedStatuses(type);
   const hasTransitions = nextStatuses.length > 0;
@@ -122,8 +123,15 @@ export function DocumentDetail({ document: doc, type, onStatusChange }: Document
           </div>
         </div>
 
-        {/* Client / Date grid */}
-        <div className="mb-6 grid grid-cols-2 gap-4">
+        {/* Source invoice reference for avoir */}
+        {type === 'invoice' && (doc as InvoiceView).sourceInvoiceNumber && (
+          <p className="mb-4 text-sm text-muted-foreground">
+            Réf. facture {(doc as InvoiceView).sourceInvoiceNumber}
+          </p>
+        )}
+
+        {/* Metadata row */}
+        <div className="mb-6 flex flex-wrap gap-x-8 gap-y-3">
           <div>
             <p className="mb-1 text-xs text-muted-foreground">Client</p>
             <p className="text-[15px] font-semibold">{doc.clientName ?? 'Client inconnu'}</p>
@@ -131,15 +139,41 @@ export function DocumentDetail({ document: doc, type, onStatusChange }: Document
               <p className="text-[13px] text-muted-foreground">{doc.clientEmail}</p>
             )}
           </div>
-          <div>
-            <p className="mb-1 text-xs text-muted-foreground">Date</p>
-            <p className="text-[15px] font-semibold">{formatDate(doc.createdAt)}</p>
-            {doc.sentAt && (
-              <p className="text-[13px] text-muted-foreground">
-                Envoyé le {formatShortDate(doc.sentAt)}
-              </p>
-            )}
-          </div>
+          {type === 'quote' && doc.sentAt && (
+            <div>
+              <p className="mb-1 text-xs text-muted-foreground">Envoyé le</p>
+              <p className="text-[15px] font-semibold">{formatDate(doc.sentAt)}</p>
+            </div>
+          )}
+          {type === 'invoice' && (
+            <div>
+              <p className="mb-1 text-xs text-muted-foreground">Date</p>
+              <p className="text-[15px] font-semibold">{formatDate(doc.createdAt)}</p>
+              {doc.sentAt && !isSameDay(doc.sentAt, doc.createdAt) && (
+                <p className="text-[13px] text-muted-foreground">
+                  Envoyé le {formatShortDate(doc.sentAt)}
+                </p>
+              )}
+            </div>
+          )}
+          {type === 'invoice' && (doc as InvoiceView).prestationDate && !isSameDay((doc as InvoiceView).prestationDate!, doc.createdAt) && (
+            <div>
+              <p className="mb-1 text-xs text-muted-foreground">Prestation</p>
+              <p className="text-[15px] font-semibold">{formatDate((doc as InvoiceView).prestationDate!)}</p>
+            </div>
+          )}
+          {type === 'invoice' && (doc as InvoiceView).dueDate && (
+            <div>
+              <p className="mb-1 text-xs text-muted-foreground">Échéance</p>
+              <p className="text-[15px] font-semibold">{formatDate((doc as InvoiceView).dueDate!)}</p>
+            </div>
+          )}
+          {type === 'quote' && (doc as QuoteView).validUntil && (
+            <div>
+              <p className="mb-1 text-xs text-muted-foreground">Valide jusqu'au</p>
+              <p className="text-[15px] font-semibold">{formatDate((doc as QuoteView).validUntil!)}</p>
+            </div>
+          )}
         </div>
 
         {/* Lines table */}
@@ -205,16 +239,14 @@ export function DocumentDetail({ document: doc, type, onStatusChange }: Document
 
         {/* Actions */}
         <div className="flex gap-2.5">
-          {doc.pdfUrl && (
-            <button
-              type="button"
-              onClick={() => viewDocument({ pdfUrl: doc.pdfUrl! })}
-              className="inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
-            >
-              <Download className="h-4 w-4" />
-              Télécharger PDF
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={() => viewDocument({ pdfUrl: doc.pdfUrl ?? `/api/${type === 'quote' ? 'quotes' : 'invoices'}/${doc.id}/pdf` })}
+            className="inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
+          >
+            <Download className="h-4 w-4" />
+            Télécharger PDF
+          </button>
         </div>
       </div>
     </div>

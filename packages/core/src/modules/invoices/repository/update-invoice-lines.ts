@@ -10,6 +10,7 @@ export async function updateInvoiceLines(input: {
   totalHt: number;
   totalTtc: number;
   title?: string | null;
+  prestationDate?: Date;
 }): Promise<InvoiceRow | null> {
   await query('BEGIN');
 
@@ -22,11 +23,16 @@ export async function updateInvoiceLines(input: {
       params.push(input.title);
     }
 
+    if (input.prestationDate !== undefined) {
+      setClauses.push(`prestation_date = $${params.length + 1}`);
+      params.push(input.prestationDate);
+    }
+
     const result = await query<InvoiceRow>(
       `UPDATE invoices
        SET ${setClauses.join(', ')}
        WHERE id = $3 AND team_id = $4 AND status = 'draft'
-       RETURNING id, team_id, created_by, client_id, quote_id, number, title, total_ht, total_ttc, status, pdf_url, sent_at, paid_at, cancelled_at, due_date, prestation_date, created_at`,
+       RETURNING id, team_id, created_by, client_id, quote_id, number, title, total_ht, total_ttc, status, invoice_type, source_invoice_id, situation_number, avoir_id, pdf_url, sent_at, paid_at, cancelled_at, due_date, prestation_date, created_at`,
       params,
     );
 

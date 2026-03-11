@@ -24,6 +24,9 @@ export const invoiceLineSchema = z.object({
 
 export type InvoiceLineRow = z.infer<typeof invoiceLineSchema>;
 
+export const invoiceTypeEnum = z.enum(['standard', 'acompte', 'solde', 'situation', 'avoir']);
+export type InvoiceType = z.infer<typeof invoiceTypeEnum>;
+
 export const invoiceSchema = z.object({
   id: z.string().uuid(),
   team_id: z.string().uuid(),
@@ -35,6 +38,10 @@ export const invoiceSchema = z.object({
   total_ht: z.number().int(),
   total_ttc: z.number().int(),
   status: z.enum(['draft', 'sent', 'paid', 'overdue', 'cancelled']),
+  invoice_type: invoiceTypeEnum,
+  source_invoice_id: z.string().uuid().nullable(),
+  situation_number: z.number().int().nullable(),
+  avoir_id: z.string().uuid().nullable(),
   pdf_url: z.string().nullable(),
   sent_at: z.date().nullable(),
   paid_at: z.date().nullable(),

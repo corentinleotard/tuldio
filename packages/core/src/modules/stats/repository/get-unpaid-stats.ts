@@ -12,7 +12,8 @@ export async function getUnpaidStats(teamId: string): Promise<UnpaidStats> {
        COUNT(*)::text AS count
      FROM invoices
      WHERE team_id = $1
-       AND status IN ('sent', 'overdue')`,
+       AND status IN ('sent', 'overdue')
+       AND invoice_type != 'avoir'`,
     [teamId],
   );
 

@@ -164,6 +164,26 @@ export const errorCodes = {
     statusCode: 400,
     message: 'Certaines lignes n\'ont pas de prix unitaire',
   },
+  invoiceAlreadyHasAvoir: {
+    code: 'INVOICE_ALREADY_HAS_AVOIR',
+    statusCode: 409,
+    message: 'Cette facture a déjà un avoir',
+  },
+  avoirNotEditable: {
+    code: 'AVOIR_NOT_EDITABLE',
+    statusCode: 409,
+    message: 'Les lignes d\'un avoir ne peuvent pas être modifiées',
+  },
+  acompteExceedsQuote: {
+    code: 'ACOMPTE_EXCEEDS_QUOTE',
+    statusCode: 409,
+    message: 'Le total des acomptes dépasse le montant du devis',
+  },
+  soldeAlreadyExists: {
+    code: 'SOLDE_ALREADY_EXISTS',
+    statusCode: 409,
+    message: 'Une facture de solde existe déjà pour ce devis',
+  },
 } as const;
 
 export type ErrorCode = (typeof errorCodes)[keyof typeof errorCodes];

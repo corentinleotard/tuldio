@@ -5,6 +5,7 @@ import { insertClient } from '../repository/insert-client.js';
 import { findClientByEmail } from '../repository/find-client-by-email.js';
 import { findClientByPhone } from '../repository/find-client-by-phone.js';
 import { toClientView, type ClientView } from '../domain/client.view.js';
+import { normalizeEmail, isValidEmail } from '../domain/normalize-email.js';
 
 export async function createClient(input: {
   teamId: string;
@@ -14,7 +15,12 @@ export async function createClient(input: {
   phone?: string;
   address?: string;
 }): Promise<ClientView> {
-  const { teamId, email, phone } = input;
+  const { teamId, phone } = input;
+  const email = input.email ? normalizeEmail(input.email) : undefined;
+
+  if (email && !isValidEmail(email)) {
+    throw new HandledError(errorCodes.invalidEmail);
+  }
 
   // Dedup guard: email uniqueness
   if (email) {
@@ -32,7 +38,7 @@ export async function createClient(input: {
     }
   }
 
-  const client = await insertClient(input);
+  const client = await insertClient({ ...input, email });
 
   logger.info('client.created', { teamId: input.teamId, clientId: client.id });
 

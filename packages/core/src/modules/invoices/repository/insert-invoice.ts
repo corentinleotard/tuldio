@@ -1,6 +1,6 @@
 import { query } from '../../../lib/database/db.js';
 import { generateId } from '../../../lib/infra/id.js';
-import type { InvoiceRow } from '../domain/invoice.entity.js';
+import type { InvoiceRow, InvoiceType } from '../domain/invoice.entity.js';
 import type { InsertDocumentLine } from '../../shared/domain/document-validators.js';
 
 export type { InsertDocumentLine as InsertInvoiceLine };
@@ -17,15 +17,21 @@ export async function insertInvoice(input: {
   totalHt: number;
   totalTtc: number;
   dueDate?: Date;
+  invoiceType?: InvoiceType;
+  sourceInvoiceId?: string;
+  situationNumber?: number;
 }): Promise<InvoiceRow> {
   const id = generateId();
   const year = new Date().getFullYear();
-  const prefix = `FAC-${year}-`;
+  const invoiceType = input.invoiceType ?? 'standard';
+  const isAvoir = invoiceType === 'avoir';
+  const prefix = isAvoir ? `AVO-${year}-` : `FAC-${year}-`;
+  const lockKey = isAvoir ? 'avoir' : 'invoice';
 
   await query('BEGIN');
 
   try {
-    await query(`SELECT pg_advisory_xact_lock(hashtext($1 || 'invoice'))`, [input.teamId]);
+    await query(`SELECT pg_advisory_xact_lock(hashtext($1 || $2))`, [input.teamId, lockKey]);
 
     const seqResult = await query<{ next_num: number }>(
       `SELECT GREATEST(COALESCE(MAX(CAST(SPLIT_PART(number, '-', 3) AS INTEGER)), 0), $3) + 1 AS next_num
@@ -38,10 +44,10 @@ export async function insertInvoice(input: {
     const number = `${prefix}${String(nextNum).padStart(4, '0')}`;
 
     const result = await query<InvoiceRow>(
-      `INSERT INTO invoices (id, team_id, created_by, client_id, quote_id, number, title, total_ht, total_ttc, due_date, prestation_date)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-       RETURNING id, team_id, created_by, client_id, quote_id, number, title, total_ht, total_ttc, status, pdf_url, sent_at, paid_at, cancelled_at, due_date, prestation_date, created_at`,
-      [id, input.teamId, input.createdBy, input.clientId, input.quoteId ?? null, number, input.title ?? null, input.totalHt, input.totalTtc, input.dueDate ?? null, input.prestationDate ?? new Date()],
+      `INSERT INTO invoices (id, team_id, created_by, client_id, quote_id, number, title, total_ht, total_ttc, due_date, prestation_date, invoice_type, source_invoice_id, situation_number)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+       RETURNING id, team_id, created_by, client_id, quote_id, number, title, total_ht, total_ttc, status, invoice_type, source_invoice_id, situation_number, avoir_id, pdf_url, sent_at, paid_at, cancelled_at, due_date, prestation_date, created_at`,
+      [id, input.teamId, input.createdBy, input.clientId, input.quoteId ?? null, number, input.title ?? null, input.totalHt, input.totalTtc, input.dueDate ?? null, input.prestationDate ?? new Date(), invoiceType, input.sourceInvoiceId ?? null, input.situationNumber ?? null],
     );
 
     if (input.lines.length > 0) {

@@ -19,7 +19,7 @@ export async function insertTeam(input: {
   const result = await query<TeamRow>(
     `INSERT INTO teams (id, name, trial_ends_at, subscription_status)
      VALUES ($1, $2, $3, 'trial')
-     RETURNING id, name, logo_url, original_document_url, terms_accepted_at, stripe_customer_id, trial_ends_at, subscription_status, created_at`,
+     RETURNING id, name, logo_url, original_document_url, quote_last_number, quote_validity_days, invoice_last_number, avoir_last_number, invoice_payment_delay_days, terms_accepted_at, stripe_customer_id, trial_ends_at, subscription_status, created_at`,
     [id, validated.name, trialEndsAt],
   );
 

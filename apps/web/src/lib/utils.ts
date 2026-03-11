@@ -35,6 +35,14 @@ export function formatMonthYear(iso: string): string {
   }).format(new Date(iso));
 }
 
+export function isSameDay(a: string, b: string): boolean {
+  const da = new Date(a);
+  const db = new Date(b);
+  return da.getFullYear() === db.getFullYear() &&
+    da.getMonth() === db.getMonth() &&
+    da.getDate() === db.getDate();
+}
+
 export function getInitials(name: string): string {
   return name
     .split(/\s+/)

@@ -48,7 +48,7 @@ export function getStatusCssVar(variant: StatusVariant): string {
 }
 
 export const quoteTransitions: Record<QuoteView['status'], QuoteView['status'][]> = {
-  draft: ['sent', 'accepted', 'cancelled'],
+  draft: ['sent', 'accepted', 'refused', 'cancelled'],
   sent: ['accepted', 'refused', 'cancelled'],
   accepted: [],
   refused: [],
@@ -56,9 +56,9 @@ export const quoteTransitions: Record<QuoteView['status'], QuoteView['status'][]
 };
 
 export const invoiceTransitions: Record<InvoiceView['status'], InvoiceView['status'][]> = {
-  draft: ['sent', 'cancelled'],
+  draft: ['sent', 'paid', 'cancelled'],
   sent: ['paid', 'overdue', 'cancelled'],
-  paid: [],
+  paid: ['cancelled'],
   overdue: ['paid', 'cancelled'],
   cancelled: [],
 };

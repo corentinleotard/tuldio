@@ -16,8 +16,16 @@ export async function getInvoice(input: {
 
   const client = await findClientById({ teamId: input.teamId, clientId: invoice.client_id });
 
+  // Resolve source invoice number for avoir
+  let sourceInvoiceNumber: string | undefined;
+  if (invoice.source_invoice_id) {
+    const sourceInv = await findInvoiceById({ teamId: input.teamId, invoiceId: invoice.source_invoice_id });
+    sourceInvoiceNumber = sourceInv?.number;
+  }
+
   return toInvoiceView(invoice, {
     clientName: client ? `${client.first_name} ${client.last_name}` : undefined,
     clientEmail: client?.email ?? undefined,
+    sourceInvoiceNumber,
   });
 }

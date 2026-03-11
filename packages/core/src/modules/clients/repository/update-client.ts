@@ -1,4 +1,6 @@
 import { query } from '../../../lib/database/db.js';
+import { HandledError } from '../../../lib/errors/handled-error.js';
+import { errorCodes } from '../../../lib/errors/error-codes.js';
 import type { ClientRow } from '../domain/client.entity.js';
 
 export async function updateClient(input: {
@@ -54,12 +56,25 @@ export async function updateClient(input: {
   params.push(input.teamId);
   const teamIdIdx = idx;
 
-  const result = await query<ClientRow>(
-    `UPDATE clients SET ${fields.join(', ')}
-     WHERE id = $${clientIdIdx} AND team_id = $${teamIdIdx}
-     RETURNING id, team_id, first_name, last_name, email, phone, address, notes, created_at`,
-    params,
-  );
+  try {
+    const result = await query<ClientRow>(
+      `UPDATE clients SET ${fields.join(', ')}
+       WHERE id = $${clientIdIdx} AND team_id = $${teamIdIdx}
+       RETURNING id, team_id, first_name, last_name, email, phone, address, notes, created_at`,
+      params,
+    );
 
-  return result.rows[0]!;
+    return result.rows[0]!;
+  } catch (err: unknown) {
+    const pgError = err as { code?: string; constraint?: string };
+    if (pgError.code === '23505') {
+      if (pgError.constraint === 'idx_clients_team_email') {
+        throw new HandledError(errorCodes.clientDuplicateEmail);
+      }
+      if (pgError.constraint === 'idx_clients_team_phone') {
+        throw new HandledError(errorCodes.clientDuplicatePhone);
+      }
+    }
+    throw err;
+  }
 }

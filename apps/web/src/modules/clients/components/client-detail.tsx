@@ -1,12 +1,15 @@
-import { useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { Mail, Phone, MapPin, FileText } from 'lucide-react';
+import { useState, useMemo, useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { Mail, Phone, MapPin, FileText, Pencil, Check, X } from 'lucide-react';
 import type { ClientView, QuoteView, InvoiceView } from '@tuldio/types';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { cn, formatCurrency, formatMonthYear, formatDate } from '@/lib/utils';
 import { Avatar } from '@/components/ui/avatar';
 import { fetchQuotes, fetchInvoices } from '@/modules/documents/api/documents.api.js';
 import { statusConfig, defaultStatus } from '@/modules/documents/components/status-config.js';
+import { updateClient } from '../api/clients.api.js';
 
 interface ClientDetailProps {
   client: ClientView;
@@ -15,8 +18,53 @@ interface ClientDetailProps {
 type Document = (QuoteView | InvoiceView) & { _type: 'quote' | 'invoice' };
 
 export function ClientDetail({ client }: ClientDetailProps) {
+  const queryClient = useQueryClient();
   const fullName = `${client.firstName} ${client.lastName}`;
-  const hasContact = client.email || client.phone || client.address;
+
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState({
+    firstName: client.firstName,
+    lastName: client.lastName,
+    email: client.email ?? '',
+    phone: client.phone ?? '',
+    address: client.address ?? '',
+  });
+
+  useEffect(() => {
+    setEditing(false);
+  }, [client.id]);
+
+  function startEditing() {
+    setForm({
+      firstName: client.firstName,
+      lastName: client.lastName,
+      email: client.email ?? '',
+      phone: client.phone ?? '',
+      address: client.address ?? '',
+    });
+    setEditing(true);
+  }
+
+  async function handleSave() {
+    setSaving(true);
+    try {
+      await updateClient({
+        id: client.id,
+        firstName: form.firstName,
+        lastName: form.lastName,
+        email: form.email || undefined,
+        phone: form.phone || undefined,
+        address: form.address || undefined,
+      });
+      queryClient.invalidateQueries({ queryKey: ['clients'] });
+      setEditing(false);
+    } catch {
+      // ignore
+    } finally {
+      setSaving(false);
+    }
+  }
 
   const quotesQuery = useQuery({ queryKey: ['quotes'], queryFn: fetchQuotes });
   const invoicesQuery = useQuery({ queryKey: ['invoices'], queryFn: fetchInvoices });
@@ -50,24 +98,105 @@ export function ClientDetail({ client }: ClientDetailProps) {
     .filter(Boolean)
     .join(' · ');
 
+  const hasContact = client.email || client.phone || client.address;
+
   return (
     <div className="flex flex-col items-center p-5 md:p-8">
       <div className="w-full max-w-[560px] rounded-xl bg-card p-6 shadow-sm md:p-8">
         {/* Profile header */}
         <div className="mb-6 flex flex-col items-center gap-2 border-b border-border pb-6">
+          <div className="flex w-full items-start justify-end">
+            {!editing && (
+              <button
+                type="button"
+                onClick={startEditing}
+                className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+              >
+                <Pencil className="h-4 w-4" />
+              </button>
+            )}
+          </div>
           <Avatar
             name={fullName}
             size="lg"
             className="h-[72px] w-[72px] bg-primary/10 text-2xl font-bold text-primary"
           />
-          <h2 className="text-[22px] font-bold tracking-tight">{fullName}</h2>
+          {editing ? (
+            <div className="flex w-full max-w-[320px] gap-2">
+              <Input
+                value={form.firstName}
+                onChange={(e) => setForm((f) => ({ ...f, firstName: e.target.value }))}
+                placeholder="Prenom"
+                className="h-9 rounded-lg text-center text-sm"
+              />
+              <Input
+                value={form.lastName}
+                onChange={(e) => setForm((f) => ({ ...f, lastName: e.target.value }))}
+                placeholder="Nom"
+                className="h-9 rounded-lg text-center text-sm"
+              />
+            </div>
+          ) : (
+            <h2 className="text-[22px] font-bold tracking-tight">{fullName}</h2>
+          )}
           <p className="text-[13px] text-muted-foreground">
             Client depuis {formatMonthYear(client.createdAt)}
           </p>
         </div>
 
         {/* Contact info */}
-        {hasContact && (
+        {editing ? (
+          <div className="mb-6 flex flex-col gap-3 border-b border-border pb-6">
+            <div className="flex items-center gap-3">
+              <Mail className="h-4 w-4 shrink-0 text-muted-foreground" />
+              <Input
+                type="email"
+                value={form.email}
+                onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+                placeholder="Email"
+                className="h-9 rounded-lg text-sm"
+              />
+            </div>
+            <div className="flex items-center gap-3">
+              <Phone className="h-4 w-4 shrink-0 text-muted-foreground" />
+              <Input
+                type="tel"
+                value={form.phone}
+                onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
+                placeholder="Telephone"
+                className="h-9 rounded-lg text-sm"
+              />
+            </div>
+            <div className="flex items-center gap-3">
+              <MapPin className="h-4 w-4 shrink-0 text-muted-foreground" />
+              <Input
+                value={form.address}
+                onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))}
+                placeholder="Adresse"
+                className="h-9 rounded-lg text-sm"
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                className="gap-1"
+                onClick={() => setEditing(false)}
+                disabled={saving}
+              >
+                <X className="h-3.5 w-3.5" /> Annuler
+              </Button>
+              <Button
+                size="sm"
+                className="gap-1"
+                onClick={handleSave}
+                disabled={saving || !form.firstName.trim() || !form.lastName.trim()}
+              >
+                <Check className="h-3.5 w-3.5" /> Enregistrer
+              </Button>
+            </div>
+          </div>
+        ) : hasContact ? (
           <div className="mb-6 flex flex-col gap-3 border-b border-border pb-6">
             {client.email && (
               <div className="flex items-center gap-3">
@@ -88,7 +217,7 @@ export function ClientDetail({ client }: ClientDetailProps) {
               </div>
             )}
           </div>
-        )}
+        ) : null}
 
         {/* Notes */}
         {client.notes.length > 0 && (

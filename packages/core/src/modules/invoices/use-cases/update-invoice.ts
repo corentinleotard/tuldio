@@ -23,6 +23,7 @@ export async function updateInvoice(input: {
   invoiceId: string;
   lines: UpdateInvoiceLineInput[];
   title?: string;
+  prestationDate?: Date;
 }): Promise<InvoiceView> {
   const existing = await findInvoiceById({ teamId: input.teamId, invoiceId: input.invoiceId });
   if (!existing) throw new HandledError(errorCodes.invoiceNotFound);
@@ -67,6 +68,7 @@ export async function updateInvoice(input: {
     totalHt,
     totalTtc,
     title: input.title,
+    prestationDate: input.prestationDate,
   });
 
   if (!row) throw new HandledError(errorCodes.invoiceNotFound);
