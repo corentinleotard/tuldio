@@ -1,4 +1,4 @@
-import { useRef, useEffect, useLayoutEffect } from 'react';
+import { useRef, useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
 import type {
   Message,
@@ -31,77 +31,48 @@ export function ChatMessageList({
   isSending,
 }: ChatMessageListProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const sentinelRef = useRef<HTMLDivElement>(null);
   const lastMessageIdRef = useRef<string | null>(null);
-  const hasScrolledInitially = useRef(false);
-  const prevScrollHeightRef = useRef<number>(0);
 
+  // column-reverse: scrollTop = 0 is the bottom
   function scrollToBottom() {
     const el = scrollRef.current;
-    if (el) el.scrollTop = el.scrollHeight;
+    if (el) el.scrollTop = 0;
   }
 
-  const firstMessageId = messages.length > 0 ? messages[0]!.id : null;
-  const prevFirstMessageIdRef = useRef<string | null>(null);
-
-  useLayoutEffect(() => {
-    const el = scrollRef.current;
-    if (!el || messages.length === 0) return;
-
-    const lastMessage = messages[messages.length - 1]!;
-    const lastIdChanged = lastMessage.id !== lastMessageIdRef.current;
-    const firstIdChanged = firstMessageId !== prevFirstMessageIdRef.current;
-
-    prevFirstMessageIdRef.current = firstMessageId;
-    lastMessageIdRef.current = lastMessage.id;
-
-    if (!hasScrolledInitially.current) {
-      // Initial load → scroll to bottom
-      hasScrolledInitially.current = true;
-      scrollToBottom();
-    } else if (firstIdChanged && prevScrollHeightRef.current > 0) {
-      // Older messages prepended → restore scroll position
-      // (takes priority even if lastId also changed due to page refetch)
-      const addedHeight = el.scrollHeight - prevScrollHeightRef.current;
-      el.scrollTop += addedHeight;
-    } else if (lastIdChanged) {
-      // New message appended at the bottom → scroll to bottom
+  // Scroll to bottom when a new message is appended (sent or received)
+  useEffect(() => {
+    if (messages.length === 0) return;
+    const lastId = messages[messages.length - 1]!.id;
+    if (lastId !== lastMessageIdRef.current) {
+      lastMessageIdRef.current = lastId;
       scrollToBottom();
     }
-  }, [messages, firstMessageId]);
+  }, [messages]);
 
-  // Scroll to bottom when sending starts
+  // Scroll to bottom when sending starts (typing indicator appears)
   useEffect(() => {
-    if (!isSending) return;
-    scrollToBottom();
+    if (isSending) scrollToBottom();
   }, [isSending]);
 
-  // Detect scroll to top to load older messages
-  const onLoadOlderRef = useRef(onLoadOlder);
+  // IntersectionObserver on sentinel at visual top — triggers loading older messages
   useEffect(() => {
-    onLoadOlderRef.current = onLoadOlder;
-  }, [onLoadOlder]);
+    const sentinel = sentinelRef.current;
+    const container = scrollRef.current;
+    if (!sentinel || !container) return;
 
-  useEffect(() => {
-    const el = scrollRef.current;
-    if (!el) return;
-
-    let ticking = false;
-
-    function handleScroll() {
-      if (ticking) return;
-      ticking = true;
-      requestAnimationFrame(() => {
-        ticking = false;
-        if (el && el.scrollTop < 200) {
-          prevScrollHeightRef.current = el.scrollHeight;
-          onLoadOlderRef.current();
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry?.isIntersecting) {
+          onLoadOlder();
         }
-      });
-    }
+      },
+      { root: container, rootMargin: '200px' },
+    );
 
-    el.addEventListener('scroll', handleScroll, { passive: true });
-    return () => el.removeEventListener('scroll', handleScroll);
-  }, []);
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [onLoadOlder]);
 
   function handleClientSelect(client: ClientView) {
     onSendMessage(`C'est ${client.firstName} ${client.lastName}`, {
@@ -109,15 +80,11 @@ export function ChatMessageList({
     });
   }
 
+  // column-reverse: first DOM child = visual bottom, last DOM child = visual top
   return (
-    <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto">
-      <div className="mx-auto flex w-full max-w-2xl min-h-full flex-col justify-end">
-        {isLoadingOlder && (
-          <div className="flex justify-center py-4">
-            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-          </div>
-        )}
-
+    <div ref={scrollRef} className="flex min-h-0 flex-1 flex-col-reverse overflow-y-auto">
+      {/* First in DOM = bottom visually — messages + typing indicator */}
+      <div className="mx-auto w-full max-w-2xl">
         {messages.map((msg, i) => (
           <div
             key={msg.id}
@@ -133,8 +100,17 @@ export function ChatMessageList({
             <TypingIndicator />
           </div>
         )}
-
       </div>
+
+      {/* Sentinel — second in DOM = above messages visually */}
+      <div ref={sentinelRef} className="h-px shrink-0" />
+
+      {/* Loading spinner — last in DOM = visual top */}
+      {isLoadingOlder && (
+        <div className="flex justify-center py-4">
+          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+        </div>
+      )}
     </div>
   );
 }
