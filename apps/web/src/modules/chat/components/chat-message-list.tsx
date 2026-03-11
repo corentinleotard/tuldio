@@ -34,23 +34,15 @@ export function ChatMessageList({
   const lastMessageIdRef = useRef<string | null>(null);
   const hasScrolledInitially = useRef(false);
   const prevScrollHeightRef = useRef<number>(0);
-  const isRestoringScrollRef = useRef(false);
 
   function scrollToBottom() {
     const el = scrollRef.current;
-    if (!el) return;
-    // Defer to next frame so the browser has finished layout —
-    // on mobile, scrollHeight isn't final until after paint.
-    requestAnimationFrame(() => {
-      el.scrollTop = el.scrollHeight;
-    });
+    if (el) el.scrollTop = el.scrollHeight;
   }
 
-  // Snapshot scrollHeight before DOM updates so we can restore position after prepend
   const firstMessageId = messages.length > 0 ? messages[0]!.id : null;
   const prevFirstMessageIdRef = useRef<string | null>(null);
 
-  // Detect when older messages were prepended (first message ID changed but last didn't)
   useLayoutEffect(() => {
     const el = scrollRef.current;
     if (!el || messages.length === 0) return;
@@ -62,42 +54,20 @@ export function ChatMessageList({
     prevFirstMessageIdRef.current = firstMessageId;
     lastMessageIdRef.current = lastMessage.id;
 
-    if (!hasScrolledInitially.current || lastIdChanged) {
-      // New messages at the bottom or initial load → scroll to bottom
+    if (!hasScrolledInitially.current) {
+      // Initial load → scroll to bottom
       hasScrolledInitially.current = true;
       scrollToBottom();
     } else if (firstIdChanged && prevScrollHeightRef.current > 0) {
       // Older messages prepended → restore scroll position
+      // (takes priority even if lastId also changed due to page refetch)
       const addedHeight = el.scrollHeight - prevScrollHeightRef.current;
       el.scrollTop += addedHeight;
-      isRestoringScrollRef.current = true;
-      requestAnimationFrame(() => {
-        isRestoringScrollRef.current = false;
-      });
+    } else if (lastIdChanged) {
+      // New message appended at the bottom → scroll to bottom
+      scrollToBottom();
     }
   }, [messages, firstMessageId]);
-
-  // Re-scroll when content size changes (e.g. images loading)
-  useEffect(() => {
-    const el = scrollRef.current;
-    if (!el) return;
-
-    const observer = new ResizeObserver(() => {
-      if (isRestoringScrollRef.current) return;
-      const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
-      // Generous threshold for mobile viewports where small content
-      // changes can easily push past a tight threshold
-      if (distanceFromBottom < 300) {
-        el.scrollTop = el.scrollHeight;
-      }
-    });
-
-    for (const child of el.children) {
-      observer.observe(child);
-    }
-
-    return () => observer.disconnect();
-  }, [messages]);
 
   // Scroll to bottom when sending starts
   useEffect(() => {
@@ -118,11 +88,11 @@ export function ChatMessageList({
     let ticking = false;
 
     function handleScroll() {
-      if (ticking || isRestoringScrollRef.current) return;
+      if (ticking) return;
       ticking = true;
       requestAnimationFrame(() => {
         ticking = false;
-        if (el && el.scrollTop < 200 && !isRestoringScrollRef.current) {
+        if (el && el.scrollTop < 200) {
           prevScrollHeightRef.current = el.scrollHeight;
           onLoadOlderRef.current();
         }
