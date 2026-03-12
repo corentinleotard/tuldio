@@ -9,8 +9,8 @@ import { findClientById } from '../../clients/repository/find-client-by-id.js';
 import { findTeamById } from '../../teams/repository/find-team-by-id.js';
 import { isFieldTrue } from '../../teams/domain/team-field.entity.js';
 import { findTeamFieldByKey } from '../../teams/repository/find-team-field-by-key.js';
-import { computeDueDate, buildAcompteLine, computeInvoiceTotals, buildSoldeLines } from '../domain/validators.js';
-import { computeLineTotal, resolveTvaRate } from '../../shared/domain/document-math.js';
+import { computeDueDate, buildAcompteLines, computeInvoiceTotals, buildSoldeLines } from '../domain/validators.js';
+import { computeLineTotal, resolveTvaRate, groupByTva } from '../../shared/domain/document-math.js';
 import { insertInvoice } from '../repository/insert-invoice.js';
 import { findInvoiceById } from '../repository/find-invoice-by-id.js';
 import { findInvoicesByQuote } from '../repository/find-invoices-by-quote.js';
@@ -80,25 +80,29 @@ export async function createInvoiceFromQuote(input: {
 
     const tvaExemptField = await findTeamFieldByKey({ teamId: input.teamId, key: 'tva_exempt' });
     const tvaExempt = isFieldTrue(tvaExemptField);
-    const baseTvaRate = quote.lines[0]?.tva_rate ?? 2000;
-    const tvaRate = resolveTvaRate({ requestedRate: baseTvaRate, tvaExempt });
 
-    const acompteLine = buildAcompteLine({
+    // Group quote lines by TVA rate to prorate acompte across all rates
+    const quoteLinesForGrouping = quote.lines.map((l) => ({
+      quantity: Number(l.quantity),
+      unitPrice: l.unit_price,
+      tvaRate: resolveTvaRate({ requestedRate: l.tva_rate, tvaExempt }),
+    }));
+    const tvaGroups = groupByTva(quoteLinesForGrouping);
+
+    const acompteLinesList = buildAcompteLines({
       quoteTitle: quote.title,
-      quoteTotalHt: quote.total_ht,
       percentage: percent,
-      tvaRate,
+      tvaGroups,
     });
 
-    const lineTotal = computeLineTotal({ quantity: acompteLine.quantity, unitPrice: acompteLine.unitPrice });
-    insertLines = [{
-      description: acompteLine.description,
-      quantity: acompteLine.quantity,
-      unit: acompteLine.unit,
-      unitPrice: acompteLine.unitPrice,
-      tvaRate: acompteLine.tvaRate,
-      totalHt: lineTotal,
-    }];
+    insertLines = acompteLinesList.map((l) => ({
+      description: l.description,
+      quantity: l.quantity,
+      unit: l.unit,
+      unitPrice: l.unitPrice,
+      tvaRate: l.tvaRate,
+      totalHt: computeLineTotal({ quantity: l.quantity, unitPrice: l.unitPrice }),
+    }));
 
     const totals = computeInvoiceTotals(insertLines);
     totalHt = totals.totalHt;

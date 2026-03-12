@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
-  buildAcompteLine,
+  buildAcompteLines,
   buildAvoirLines,
   buildSoldeLines,
   canCancelInvoice,
@@ -176,43 +176,62 @@ describe('isOverdue', () => {
   });
 });
 
-describe('buildAcompteLine', () => {
-  it('builds an acompte line with title', () => {
-    const line = buildAcompteLine({
+describe('buildAcompteLines', () => {
+  it('builds acompte lines with title — single TVA rate', () => {
+    const lines = buildAcompteLines({
       quoteTitle: 'Rénovation SDB',
-      quoteTotalHt: 100000,
       percentage: 30,
-      tvaRate: 1000,
+      tvaGroups: [{ tvaRate: 1000, baseHt: 100000 }],
     });
 
-    expect(line.description).toBe('Acompte 30% — Rénovation SDB');
-    expect(line.unitPrice).toBe(30000);
-    expect(line.quantity).toBe(1);
-    expect(line.unit).toBe('forfait');
-    expect(line.tvaRate).toBe(1000);
+    expect(lines).toHaveLength(1);
+    expect(lines[0]!.description).toBe('Acompte 30% — Rénovation SDB');
+    expect(lines[0]!.unitPrice).toBe(30000);
+    expect(lines[0]!.quantity).toBe(1);
+    expect(lines[0]!.unit).toBe('forfait');
+    expect(lines[0]!.tvaRate).toBe(1000);
   });
 
-  it('builds an acompte line without title', () => {
-    const line = buildAcompteLine({
+  it('builds acompte lines without title', () => {
+    const lines = buildAcompteLines({
       quoteTitle: null,
-      quoteTotalHt: 50000,
       percentage: 50,
-      tvaRate: 2000,
+      tvaGroups: [{ tvaRate: 2000, baseHt: 50000 }],
     });
 
-    expect(line.description).toBe('Acompte 50%');
-    expect(line.unitPrice).toBe(25000);
+    expect(lines).toHaveLength(1);
+    expect(lines[0]!.description).toBe('Acompte 50%');
+    expect(lines[0]!.unitPrice).toBe(25000);
   });
 
   it('rounds to nearest cent', () => {
-    const line = buildAcompteLine({
+    const lines = buildAcompteLines({
       quoteTitle: null,
-      quoteTotalHt: 33333,
       percentage: 30,
-      tvaRate: 1000,
+      tvaGroups: [{ tvaRate: 1000, baseHt: 33333 }],
     });
 
-    expect(line.unitPrice).toBe(10000); // 33333 * 30 / 100 = 9999.9 → 10000
+    expect(lines[0]!.unitPrice).toBe(10000); // 33333 * 30 / 100 = 9999.9 → 10000
+  });
+
+  it('prorates across multiple TVA rates', () => {
+    const lines = buildAcompteLines({
+      quoteTitle: 'Rénovation',
+      percentage: 30,
+      tvaGroups: [
+        { tvaRate: 550, baseHt: 20000 },   // 200€ HT @5.5%
+        { tvaRate: 2000, baseHt: 50000 },   // 500€ HT @20%
+      ],
+    });
+
+    expect(lines).toHaveLength(2);
+    // 30% of 20000 = 6000
+    expect(lines[0]!.unitPrice).toBe(6000);
+    expect(lines[0]!.tvaRate).toBe(550);
+    // 30% of 50000 = 15000
+    expect(lines[1]!.unitPrice).toBe(15000);
+    expect(lines[1]!.tvaRate).toBe(2000);
+    // Total HT = 6000 + 15000 = 21000 = 30% of 70000 ✓
   });
 });
 
@@ -330,7 +349,7 @@ describe('buildSoldeLines', () => {
     expect(lines[1]!.unitPrice).toBe(8000);
   });
 
-  it('adds negative deduction line per acompte', () => {
+  it('adds negative deduction line per acompte line', () => {
     const acompteInvoices = [{
       number: 'FAC-2026-0001',
       total_ht: 21000, // 30% of 70000
@@ -367,6 +386,36 @@ describe('buildSoldeLines', () => {
     expect(lines).toHaveLength(4); // 2 quote + 2 deductions
     expect(lines[2]!.unitPrice).toBe(-21000);
     expect(lines[3]!.unitPrice).toBe(-14000);
+  });
+
+  it('creates deduction lines per TVA rate for multi-rate acompte', () => {
+    const mixedQuoteLines = [
+      { description: 'Pose', quantity: 10, unit: 'm²', unit_price: 5000, tva_rate: 2000, total_ht: 50000, prestation_id: null },
+      { description: 'Fourniture', quantity: 2, unit: 'm²', unit_price: 10000, tva_rate: 550, total_ht: 20000, prestation_id: null },
+    ];
+
+    const acompteInvoices = [{
+      number: 'FAC-2026-0001',
+      total_ht: 21000, // 30% of 70000
+      lines: [
+        { id: 'l1', invoice_id: 'i1', prestation_id: null, sort_order: 1, description: 'Acompte 30%', quantity: 1, unit: 'forfait', unit_price: 15000, tva_rate: 2000, total_ht: 15000 },
+        { id: 'l2', invoice_id: 'i1', prestation_id: null, sort_order: 2, description: 'Acompte 30%', quantity: 1, unit: 'forfait', unit_price: 6000, tva_rate: 550, total_ht: 6000 },
+      ] as InvoiceLineRow[],
+    }];
+
+    const lines = buildSoldeLines({ quoteLines: mixedQuoteLines, acompteInvoices });
+
+    expect(lines).toHaveLength(4); // 2 quote + 2 deductions (one per TVA rate)
+    // Deduction @20%
+    expect(lines[2]!.unitPrice).toBe(-15000);
+    expect(lines[2]!.tvaRate).toBe(2000);
+    // Deduction @5.5%
+    expect(lines[3]!.unitPrice).toBe(-6000);
+    expect(lines[3]!.tvaRate).toBe(550);
+
+    // Remaining HT = 70000 - 21000 = 49000
+    const totalHt = lines.reduce((sum, l) => sum + l.totalHt, 0);
+    expect(totalHt).toBe(49000);
   });
 
   it('solde totals equal remaining after acompte deductions', () => {

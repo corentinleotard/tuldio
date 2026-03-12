@@ -26,7 +26,7 @@ export async function updateQuoteLines(input: {
     const result = await query<QuoteRow>(
       `UPDATE quotes
        SET ${setClauses.join(', ')}
-       WHERE id = $3 AND team_id = $4 AND status IN ('draft', 'sent')
+       WHERE id = $3 AND team_id = $4 AND status = 'draft'
        RETURNING id, team_id, created_by, client_id, number, title, total_ht, total_ttc, status, pdf_url, valid_until, sent_at, accepted_at, refused_at, cancelled_at, created_at`,
       params,
     );

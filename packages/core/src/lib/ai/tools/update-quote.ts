@@ -16,7 +16,7 @@ For line changes use delta operations:
   - updatedLines: partial field updates on existing lines (by lineId)
 You can combine operations in a single call (e.g. add + remove + update).
 For status changes: provide status only, no other fields. Invalid transitions will be rejected.
-  - sent → accepted / refused. Cancelled from any state.
+  - sent → accepted / refused / cancelled.
 To delete a draft quote, use delete_document instead.`,
   schema: z.object({
     ref: z.string().describe('Quote ref (from current conversation tool results only, e.g. d0, d1)'),

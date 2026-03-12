@@ -58,15 +58,15 @@ describe('updateQuote', () => {
     expect(result.totalHt).toBe(83000);
   });
 
-  it('updates lines on a sent quote without linked invoices', async () => {
+  it('rejects editing a sent quote (frozen after send)', async () => {
     const teamId = generateId();
     const clientId = generateId();
     await seedTeamAndClient(teamId, clientId);
     const quoteId = await insertQuote({ teamId, clientId, status: 'sent' });
 
-    const result = await updateQuote({ teamId, quoteId, lines: newLines });
-
-    expect(result.lines).toHaveLength(2);
+    await expect(
+      updateQuote({ teamId, quoteId, lines: newLines }),
+    ).rejects.toThrow('Ce devis ne peut plus être modifié');
   });
 
   it('rejects editing an accepted quote', async () => {

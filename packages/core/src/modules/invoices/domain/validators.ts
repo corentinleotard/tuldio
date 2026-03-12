@@ -56,17 +56,22 @@ export function isOverdue(input: { dueDate: Date | null; status: string; now: Da
   return input.now > input.dueDate;
 }
 
-export function buildAcompteLine(input: {
+export function buildAcompteLines(input: {
   quoteTitle: string | null;
-  quoteTotalHt: number;
   percentage: number;
-  tvaRate: number;
-}): { description: string; quantity: number; unit: string; unitPrice: number; tvaRate: number } {
-  const amount = Math.round(input.quoteTotalHt * input.percentage / 100);
+  tvaGroups: Array<{ tvaRate: number; baseHt: number }>;
+}): Array<{ description: string; quantity: number; unit: string; unitPrice: number; tvaRate: number }> {
   const label = input.quoteTitle
     ? `Acompte ${input.percentage}% — ${input.quoteTitle}`
     : `Acompte ${input.percentage}%`;
-  return { description: label, quantity: 1, unit: 'forfait', unitPrice: amount, tvaRate: input.tvaRate };
+
+  return input.tvaGroups.map((group) => ({
+    description: label,
+    quantity: 1,
+    unit: 'forfait',
+    unitPrice: Math.round(group.baseHt * input.percentage / 100),
+    tvaRate: group.tvaRate,
+  }));
 }
 
 export function computeRemaining(input: {
@@ -133,19 +138,19 @@ export function buildSoldeLines(input: {
     });
   }
 
-  // Deduction line per acompte (negative)
+  // Deduction lines per acompte — one per TVA rate to preserve correct TVA breakdown
   for (const acompte of input.acompteInvoices) {
-    // Use the first line's tva_rate as the acompte rate (acompte has a single line)
-    const tvaRate = acompte.lines[0]?.tva_rate ?? 0;
-    lines.push({
-      description: `Déduction acompte ${acompte.number}`,
-      quantity: 1,
-      unit: 'forfait',
-      unitPrice: -acompte.total_ht,
-      tvaRate,
-      totalHt: -acompte.total_ht,
-      prestationId: null,
-    });
+    for (const line of acompte.lines) {
+      lines.push({
+        description: `Déduction acompte ${acompte.number}`,
+        quantity: 1,
+        unit: 'forfait',
+        unitPrice: -line.total_ht,
+        tvaRate: line.tva_rate,
+        totalHt: -line.total_ht,
+        prestationId: null,
+      });
+    }
   }
 
   return lines;

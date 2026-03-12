@@ -83,8 +83,8 @@ describe('validateQuoteStatusTransition', () => {
     expect(validateQuoteStatusTransition({ from: 'draft', to: 'refused' })).toBe(true);
   });
 
-  it('allows draft → cancelled', () => {
-    expect(validateQuoteStatusTransition({ from: 'draft', to: 'cancelled' })).toBe(true);
+  it('rejects draft → cancelled (no cancel for drafts)', () => {
+    expect(validateQuoteStatusTransition({ from: 'draft', to: 'cancelled' })).toBe(false);
   });
 
   it('allows sent → cancelled', () => {

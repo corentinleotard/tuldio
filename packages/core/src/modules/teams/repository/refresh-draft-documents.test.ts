@@ -248,12 +248,12 @@ describe('refreshDraftDocuments — quoteValidityDays', () => {
     await refreshDraftDocuments({ teamId, quoteValidityDays: 15 });
 
     const quote = await getQuote(quoteId);
-    // valid_until should be created_at + 15 days
-    const createdResult = await query<{ created_at: Date }>('SELECT created_at FROM quotes WHERE id = $1', [quoteId]);
-    const createdAt = createdResult.rows[0]!.created_at;
-    const diffMs = quote.valid_until.getTime() - createdAt.getTime();
-    const diffDays = Math.round(diffMs / 86400000);
-    expect(diffDays).toBe(15);
+    // Ask PostgreSQL what the expected date is (same computation as refreshDraftDocuments)
+    const expectedResult = await query<{ expected: Date }>(
+      `SELECT (created_at + make_interval(days => 15))::date AS expected FROM quotes WHERE id = $1`,
+      [quoteId],
+    );
+    expect(quote.valid_until.toISOString().slice(0, 10)).toBe(expectedResult.rows[0]!.expected.toISOString().slice(0, 10));
   });
 
   it('does NOT touch sent quotes', async () => {

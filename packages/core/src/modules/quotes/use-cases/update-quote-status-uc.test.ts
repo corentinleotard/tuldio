@@ -139,15 +139,14 @@ describe('updateQuoteStatusUc', () => {
     ).rejects.toThrow('Transition de statut invalide');
   });
 
-  it('rejects sent → cancelled (no cancel for quotes)', async () => {
+  it('allows sent → cancelled (withdraw sent quote)', async () => {
     const teamId = generateId();
     const clientId = generateId();
     await seedTeamAndClient(teamId, clientId);
-    const quoteId = await insertQuote({ teamId, clientId, status: 'sent' });
+    const quoteId = await insertQuote({ teamId, clientId, status: 'sent', pdfUrl: '/files/pdfs/frozen.pdf' });
 
-    await expect(
-      updateQuoteStatusUc({ teamId, quoteId, status: 'cancelled' }),
-    ).rejects.toThrow('Transition de statut invalide');
+    const result = await updateQuoteStatusUc({ teamId, quoteId, status: 'cancelled' });
+    expect(result.status).toBe('cancelled');
   });
 
   it('throws when quote not found', async () => {
