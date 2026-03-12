@@ -1,12 +1,13 @@
 import { useRef, useState, type FormEvent } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { Loader2, FileText, PenLine, ChevronRight, ChevronLeft, Download, LogOut } from 'lucide-react';
+import { Loader2, FileText, PenLine, ChevronRight, ChevronLeft, ExternalLink, LogOut } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
-import { updateTeam, acceptTerms, uploadDocument, downloadPreviewPdf } from '../api/onboarding.api';
+import { updateTeam, acceptTerms, uploadDocument } from '../api/onboarding.api';
+import { viewDocument } from '@/lib/share-document';
 import { updateTeamField } from '@/modules/settings/api/fields.api';
 import { cn } from '@/lib/utils';
 
@@ -179,10 +180,10 @@ export function OnboardingPage() {
     }
   }
 
-  async function handleDownloadPreview(type: 'quote' | 'invoice') {
+  async function handleViewPreview(type: 'quote' | 'invoice') {
     setDownloading(type);
     try {
-      await downloadPreviewPdf(type);
+      await viewDocument({ pdfUrl: `/api/teams/me/preview-pdf?type=${type}` });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur lors du telechargement');
     } finally {
@@ -452,7 +453,7 @@ export function OnboardingPage() {
           <button
             type="button"
             disabled={downloading === 'quote'}
-            onClick={() => handleDownloadPreview('quote')}
+            onClick={() => handleViewPreview('quote')}
             className="flex flex-1 items-center gap-3 rounded-xl border border-primary bg-primary-lightest p-4 text-left transition-colors hover:bg-primary-lightest/80 disabled:opacity-60"
           >
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] bg-primary text-primary-foreground">
@@ -461,20 +462,20 @@ export function OnboardingPage() {
             <div className="flex-1">
               <div className="text-sm font-semibold text-primary">Modele de devis</div>
               <div className="text-xs text-muted-foreground">
-                Telecharger l&apos;apercu PDF
+                Voir l&apos;apercu PDF
               </div>
             </div>
             {downloading === 'quote' ? (
               <Loader2 className="h-[18px] w-[18px] shrink-0 animate-spin text-primary" />
             ) : (
-              <Download className="h-[18px] w-[18px] shrink-0 text-primary" />
+              <ExternalLink className="h-[18px] w-[18px] shrink-0 text-primary" />
             )}
           </button>
 
           <button
             type="button"
             disabled={downloading === 'invoice'}
-            onClick={() => handleDownloadPreview('invoice')}
+            onClick={() => handleViewPreview('invoice')}
             className="flex flex-1 items-center gap-3 rounded-xl border border-primary bg-primary-lightest p-4 text-left transition-colors hover:bg-primary-lightest/80 disabled:opacity-60"
           >
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] bg-primary text-primary-foreground">
@@ -483,13 +484,13 @@ export function OnboardingPage() {
             <div className="flex-1">
               <div className="text-sm font-semibold text-primary">Modele de facture</div>
               <div className="text-xs text-muted-foreground">
-                Telecharger l&apos;apercu PDF
+                Voir l&apos;apercu PDF
               </div>
             </div>
             {downloading === 'invoice' ? (
               <Loader2 className="h-[18px] w-[18px] shrink-0 animate-spin text-primary" />
             ) : (
-              <Download className="h-[18px] w-[18px] shrink-0 text-primary" />
+              <ExternalLink className="h-[18px] w-[18px] shrink-0 text-primary" />
             )}
           </button>
         </div>

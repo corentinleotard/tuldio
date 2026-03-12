@@ -16,7 +16,7 @@ export async function handlePreviewPdf(req: Request, res: Response): Promise<voi
   const filename = type === 'quote' ? 'apercu-devis.pdf' : 'apercu-facture.pdf';
 
   res.setHeader('Content-Type', 'application/pdf');
-  res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+  res.setHeader('Content-Disposition', `inline; filename="${filename}"`);
   res.setHeader('Content-Length', buffer.length);
   res.end(buffer);
 }

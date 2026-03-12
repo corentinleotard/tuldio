@@ -28,7 +28,7 @@ import {
   deleteLogo,
   updateTeamSettings,
 } from '../api/fields.api';
-import { downloadPreviewPdf } from '@/modules/onboarding/api/onboarding.api';
+import { viewDocument } from '@/lib/share-document';
 
 type Tab = 'company' | 'quote' | 'invoice';
 
@@ -200,7 +200,7 @@ export function CompanyPage() {
   const handleDownload = useCallback(async (type: 'quote' | 'invoice') => {
     setDownloading(type);
     try {
-      await downloadPreviewPdf(type);
+      await viewDocument({ pdfUrl: `/api/teams/me/preview-pdf?type=${type}` });
     } catch {
       // ignore
     } finally {
