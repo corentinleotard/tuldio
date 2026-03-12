@@ -1,5 +1,7 @@
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, Cpu, Zap, Hash, Coins, Database } from 'lucide-react';
+import type { AiCallView } from '@tuldio/types';
+import { ArrowLeft, Cpu, Zap, Hash, Coins, Database, X, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { fetchAiCosts } from '../api/settings.api';
 
@@ -31,6 +33,7 @@ function formatPercent(ratio: number): string {
 
 export function AiCostsPage() {
   const navigate = useNavigate();
+  const [selectedCall, setSelectedCall] = useState<AiCallView | null>(null);
   const { data, isLoading } = useQuery({
     queryKey: ['ai-costs'],
     queryFn: fetchAiCosts,
@@ -121,13 +124,15 @@ export function AiCostsPage() {
                       <th className="px-4 py-3 text-right">Cache</th>
                       <th className="px-4 py-3 text-right">Cout</th>
                       <th className="px-4 py-3 text-right">Duree</th>
+                      <th className="w-8" />
                     </tr>
                   </thead>
                   <tbody>
                     {data.calls.map((call) => (
                       <tr
                         key={call.id}
-                        className="border-b last:border-0 transition-colors hover:bg-secondary/50"
+                        onClick={() => call.promptText ? setSelectedCall(call) : undefined}
+                        className={`border-b last:border-0 transition-colors hover:bg-secondary/50 ${call.promptText ? 'cursor-pointer' : ''}`}
                       >
                         <td className="whitespace-nowrap px-4 py-3 text-muted-foreground">
                           {formatDate(call.createdAt)}
@@ -154,6 +159,9 @@ export function AiCostsPage() {
                             ? `${call.durationMs}ms`
                             : `${(call.durationMs / 1000).toFixed(1)}s`}
                         </td>
+                        <td className="px-2 py-3 text-muted-foreground">
+                          {call.promptText && <ChevronRight className="h-4 w-4" />}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -163,6 +171,88 @@ export function AiCostsPage() {
           )}
         </>
       )}
+
+      {selectedCall && (
+        <PromptDetailPanel call={selectedCall} onClose={() => setSelectedCall(null)} />
+      )}
+    </div>
+  );
+}
+
+function PromptDetailPanel(props: { call: AiCallView; onClose: () => void }) {
+  const { call, onClose } = props;
+  const [tab, setTab] = useState<'prompt' | 'response'>('prompt');
+
+  const formatJson = (raw: string | null): string | null => {
+    if (!raw) return null;
+    try {
+      return JSON.stringify(JSON.parse(raw), null, 2);
+    } catch {
+      return raw;
+    }
+  };
+
+  const promptFormatted = formatJson(call.promptText);
+  const responseFormatted = formatJson(call.responseText);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/50 p-4 pt-16" onClick={onClose}>
+      <div
+        className="max-h-[80vh] w-full max-w-4xl overflow-hidden rounded-2xl border bg-card shadow-lg"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between border-b px-4 py-3">
+          <div className="flex items-center gap-3">
+            <PurposeBadge purpose={call.purpose} />
+            <span className="text-sm text-muted-foreground">{formatDate(call.createdAt)}</span>
+            <span className="font-mono text-xs text-muted-foreground">
+              {formatNumber(call.inputTokens)} in / {formatNumber(call.outputTokens)} out
+            </span>
+          </div>
+          <button type="button" onClick={onClose} className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-secondary">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        {/* Tabs */}
+        <div className="flex gap-1 border-b px-4">
+          <button
+            type="button"
+            onClick={() => setTab('prompt')}
+            className={`px-3 py-2 text-sm font-medium transition-colors ${tab === 'prompt' ? 'border-b-2 border-primary text-primary' : 'text-muted-foreground hover:text-foreground'}`}
+          >
+            Prompt
+          </button>
+          <button
+            type="button"
+            onClick={() => setTab('response')}
+            className={`px-3 py-2 text-sm font-medium transition-colors ${tab === 'response' ? 'border-b-2 border-primary text-primary' : 'text-muted-foreground hover:text-foreground'}`}
+          >
+            Response
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="overflow-auto p-4" style={{ maxHeight: 'calc(80vh - 110px)' }}>
+          {tab === 'prompt' && promptFormatted && (
+            <pre className="whitespace-pre-wrap break-words text-xs leading-relaxed">
+              {promptFormatted}
+            </pre>
+          )}
+          {tab === 'response' && responseFormatted && (
+            <pre className="whitespace-pre-wrap break-words text-xs leading-relaxed">
+              {responseFormatted}
+            </pre>
+          )}
+          {tab === 'prompt' && !promptFormatted && (
+            <p className="text-sm text-muted-foreground">Pas de donnees (disponible en mode dev uniquement).</p>
+          )}
+          {tab === 'response' && !responseFormatted && (
+            <p className="text-sm text-muted-foreground">Pas de donnees (disponible en mode dev uniquement).</p>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

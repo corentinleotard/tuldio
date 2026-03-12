@@ -311,6 +311,8 @@ export interface AiCallView {
   cacheCreationTokens: number;
   costCents: number;
   durationMs: number;
+  promptText: string | null;
+  responseText: string | null;
   createdAt: string;
 }
 
@@ -324,7 +326,7 @@ export interface AiCostsSummary {
   calls: AiCallView[];
 }
 
-// Demand State
+// Demand State (legacy alias)
 export interface DemandClient {
   id: string;
   name: string;
@@ -333,12 +335,19 @@ export interface DemandClient {
 export interface DemandActiveDocument {
   id: string;
   type: 'quote' | 'invoice';
+  number?: string;
 }
 
 export interface DemandState {
   client: DemandClient | null;
   document: DemandActiveDocument | null;
   pendingCandidates?: DemandClient[] | null;
+}
+
+// Active State (new, simplified — replaces DemandState in AI layer)
+export interface ActiveState {
+  client: { id: string; name: string } | null;
+  document: { id: string; type: 'quote' | 'invoice'; number: string } | null;
 }
 
 // Pagination

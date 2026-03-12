@@ -1,11 +1,20 @@
 import { z } from 'zod';
-import type { DemandState } from '@tuldio/types';
+import type { ActiveState } from '@tuldio/types';
+import type { EntityType } from '../ref-map.js';
 
-export type ToolResult = { result: unknown; richCard?: { type: string; data: unknown }; quickReplies?: string[]; stateUpdate?: StateUpdate };
+export type ToolResult = {
+  result: unknown;
+  richCard?: { type: string; data: unknown };
+  quickReplies?: string[];
+  activeStateUpdate?: Partial<ActiveState> | null;
+};
 
-export type StateUpdate = Partial<DemandState> | 'clear' | null;
-
-export type ToolContext = { teamId: string; userId: string; demandState: DemandState };
+export type ToolContext = {
+  teamId: string;
+  userId: string;
+  resolveRef: (ref: string, expectedType?: EntityType) => string;
+  registerRef: (type: EntityType, id: string) => string;
+};
 
 /** Type-erased tool definition used in the registry array/map */
 export interface AnyToolDefinition {
@@ -13,7 +22,6 @@ export interface AnyToolDefinition {
   description: string;
   schema: z.ZodType;
   handler: (args: unknown, ctx: ToolContext) => Promise<ToolResult>;
-  stateUpdate?: (result: unknown, ctx: ToolContext) => StateUpdate;
 }
 
 /** Typed tool definition — R is inferred from the handler's result field */
@@ -21,15 +29,14 @@ interface ToolDefinition<T extends z.ZodType, R> {
   name: string;
   description: string;
   schema: T;
-  handler: (args: z.infer<T>, ctx: ToolContext) => Promise<{ result: R; richCard?: { type: string; data: unknown }; quickReplies?: string[]; stateUpdate?: StateUpdate }>;
-  stateUpdate?: (result: R, ctx: ToolContext) => StateUpdate;
+  handler: (args: z.infer<T>, ctx: ToolContext) => Promise<{ result: R; richCard?: { type: string; data: unknown }; quickReplies?: string[]; activeStateUpdate?: Partial<ActiveState> | null }>;
 }
 
 export function defineTool<T extends z.ZodType, R>(def: ToolDefinition<T, R>): AnyToolDefinition {
   return def as AnyToolDefinition;
 }
 
-/** Shared line schema used by create_document and update_document */
+/** Shared line schema used by create_document, update_quote, and update_invoice */
 export const lineSchema = z.object({
   description: z.string().min(1).max(500).describe('Line item description'),
   quantity: z.number().positive().max(100_000).describe('Quantity'),

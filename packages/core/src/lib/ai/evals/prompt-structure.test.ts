@@ -50,13 +50,14 @@ describe('system prompt structure', () => {
 });
 
 describe('tool descriptions', () => {
-  it('every ID parameter includes "tool results" constraint', () => {
+  it('every ref/ID parameter includes "tool results" constraint', () => {
     for (const tool of chatTools) {
       const schema = tool.input_schema as { properties?: Record<string, { description?: string }> };
       if (!schema.properties) continue;
 
       for (const [paramName, paramSchema] of Object.entries(schema.properties)) {
-        if (paramName.endsWith('Id') && paramSchema.description) {
+        const isRefParam = paramName === 'ref' || paramName.endsWith('Ref') || paramName.endsWith('Id');
+        if (isRefParam && paramSchema.description) {
           expect(
             paramSchema.description.toLowerCase(),
             `${tool.name}.${paramName} must include "tool results" constraint`,

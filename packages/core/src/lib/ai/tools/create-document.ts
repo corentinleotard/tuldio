@@ -3,29 +3,31 @@ import { defineTool, lineSchema, type ToolResult } from './define-tool.js';
 import { HandledError } from '../../errors/handled-error.js';
 import { errorCodes } from '../../errors/error-codes.js';
 import { createQuote } from '../../../modules/quotes/index.js';
-import { createInvoice, createInvoiceFromQuote } from '../../../modules/invoices/index.js';
-import { resolveUnit } from '../../../modules/units/index.js';
+import { createInvoice, createInvoiceFromQuote, updateInvoiceStatusUc } from '../../../modules/invoices/index.js';
+import { resolveLines } from './line-deltas.js';
 
 export const createDocumentTool = defineTool({
   name: 'create_document',
   description:
-    `Create a new quote or invoice for the active client. Requires an active client in state.
+    `Create a new quote or invoice. Requires a clientRef.
 All lines must have unitPrice set (in euro cents: 4500 = 45.00€). TVA rate is in basis points (1000 = 10%, 2000 = 20%).
-To create an invoice from the active quote, set fromActiveQuote to true — lines are copied automatically, no need to pass lines.
-After creation, the document becomes the active document in state.
+To create an invoice from an existing quote, set sourceQuoteRef to the quote's ref — lines are copied automatically, no need to pass lines.
+After creation, the document becomes the active document.
 
 Invoice types:
-- To invoice a quote fully: fromActiveQuote + no invoiceType. The system auto-decides: if no prior acomptes → standard invoice; if acomptes exist → solde (final invoice with deductions).
-- acompte: deposit invoice from a quote. Use fromActiveQuote + invoiceType 'acompte' + depositPercent (e.g. 30 for 30%). Cannot total 100% of quote — remaining must exist for solde.
-- To cancel/reverse an invoice, use update_document with status 'cancelled' instead — the system creates an avoir automatically.`,
+- To invoice a quote fully: sourceQuoteRef + no invoiceType. The system auto-decides: if no prior acomptes → standard invoice; if acomptes exist → solde (final invoice with deductions).
+- acompte: deposit invoice from a quote. Use sourceQuoteRef + invoiceType 'acompte' + depositPercent (e.g. 30 for 30%). Cannot total 100% of quote — remaining must exist for solde.
+- To cancel/reverse an invoice, use update_invoice with status 'cancelled' instead — the system creates an avoir automatically.
+- initialStatus: set to 'sent' or 'paid' to skip the draft stage (invoices only). Use when the client has already paid or the invoice should be sent immediately.`,
   schema: z.object({
     type: z.enum(['quote', 'invoice']).describe('Document type'),
+    clientRef: z.string().describe('Client ref (from current conversation tool results only, e.g. c0, c1)'),
     title: z.string().max(255).optional().describe('Document title'),
-    fromActiveQuote: z.boolean().optional().describe(
-      'Create invoice from the active quote in state. Only valid when type is invoice and active document is a quote.',
+    sourceQuoteRef: z.string().optional().describe(
+      'Quote ref to create invoice from (from current conversation tool results only, e.g. d0, d1). Only valid when type is invoice.',
     ),
     lines: z.array(lineSchema).min(1).max(50).optional().describe(
-      'Document lines — required unless using fromActiveQuote',
+      'Document lines — required unless using sourceQuoteRef',
     ),
     prestationDate: z.string().optional().describe(
       'Service/prestation date as ISO string (YYYY-MM-DD). Only for invoices. Defaults to today if omitted.',
@@ -36,78 +38,92 @@ Invoice types:
     depositPercent: z.number().int().min(1).max(99).optional().describe(
       'Deposit percentage for acompte invoices (e.g. 30 for 30%)',
     ),
+    initialStatus: z.enum(['sent', 'paid']).optional().describe(
+      'Skip draft — transition invoice to this status immediately after creation. Invoices only.',
+    ),
   }),
   handler: async (args, ctx): Promise<ToolResult> => {
-    // Invoice from active quote (standard, acompte, or solde — auto-decided)
-    if (args.fromActiveQuote) {
+    const clientId = ctx.resolveRef(args.clientRef, 'client');
+
+    // Reject initialStatus on quotes
+    if (args.initialStatus && args.type === 'quote') {
+      throw new HandledError(errorCodes.invalidInput);
+    }
+
+    // Invoice from source quote
+    if (args.sourceQuoteRef) {
       if (args.type !== 'invoice') {
         throw new HandledError(errorCodes.invalidInput);
       }
-      const activeDoc = ctx.demandState.document;
-      if (!activeDoc || activeDoc.type !== 'quote') {
-        throw new HandledError(errorCodes.noDocumentPrepared);
-      }
-      const invoice = await createInvoiceFromQuote({
+      const quoteId = ctx.resolveRef(args.sourceQuoteRef, 'quote');
+      let invoice = await createInvoiceFromQuote({
         teamId: ctx.teamId,
         userId: ctx.userId,
-        quoteId: activeDoc.id,
+        quoteId,
         title: args.title,
         prestationDate: args.prestationDate ? new Date(args.prestationDate) : undefined,
         invoiceType: args.invoiceType === 'acompte' ? 'acompte' : undefined,
         depositPercent: args.depositPercent,
       });
+      if (args.initialStatus) {
+        invoice = await updateInvoiceStatusUc({ teamId: ctx.teamId, userId: ctx.userId, invoiceId: invoice.id, status: args.initialStatus });
+      }
+      const ref = ctx.registerRef('invoice', invoice.id);
       return {
-        result: invoice,
+        result: { ref, type: 'invoice', number: invoice.number, status: invoice.status, totalTtc: invoice.totalTtc },
         richCard: { type: 'invoice', data: invoice },
-        stateUpdate: {
+        activeStateUpdate: {
           client: { id: invoice.clientId, name: invoice.clientName ?? '' },
-          document: { id: invoice.id, type: 'invoice' as const },
+          document: { id: invoice.id, type: 'invoice' as const, number: invoice.number },
         },
       };
     }
 
-    // Standalone document — requires active client and lines
-    if (!ctx.demandState.client) {
-      throw new HandledError(errorCodes.noActiveClient);
-    }
+    // Standalone document — requires lines
     if (!args.lines?.length) {
       throw new HandledError(errorCodes.invalidInput);
     }
 
-    const resolvedLines = await Promise.all(
-      args.lines.map(async (l) => {
-        const resolved = await resolveUnit({ teamId: ctx.teamId, raw: l.unit });
-        return { ...l, unit: resolved.label };
-      }),
-    );
+    const resolvedLines = await resolveLines({ teamId: ctx.teamId, lines: args.lines });
 
     if (args.type === 'quote') {
       const quote = await createQuote({
         teamId: ctx.teamId,
         userId: ctx.userId,
-        clientId: ctx.demandState.client.id,
+        clientId,
         title: args.title,
         lines: resolvedLines,
       });
+      const ref = ctx.registerRef('quote', quote.id);
       return {
-        result: quote,
+        result: { ref, type: 'quote', number: quote.number },
         richCard: { type: 'quote', data: quote },
-        stateUpdate: { document: { id: quote.id, type: 'quote' as const } },
+        activeStateUpdate: {
+          client: { id: clientId, name: quote.clientName ?? '' },
+          document: { id: quote.id, type: 'quote' as const, number: quote.number },
+        },
       };
     }
 
-    const invoice = await createInvoice({
+    let invoice = await createInvoice({
       teamId: ctx.teamId,
       userId: ctx.userId,
-      clientId: ctx.demandState.client.id,
+      clientId,
       title: args.title,
       lines: resolvedLines,
       prestationDate: args.prestationDate ? new Date(args.prestationDate) : undefined,
     });
+    if (args.initialStatus) {
+      invoice = await updateInvoiceStatusUc({ teamId: ctx.teamId, userId: ctx.userId, invoiceId: invoice.id, status: args.initialStatus });
+    }
+    const ref = ctx.registerRef('invoice', invoice.id);
     return {
-      result: invoice,
+      result: { ref, type: 'invoice', number: invoice.number, status: invoice.status, totalTtc: invoice.totalTtc },
       richCard: { type: 'invoice', data: invoice },
-      stateUpdate: { document: { id: invoice.id, type: 'invoice' as const } },
+      activeStateUpdate: {
+        client: { id: clientId, name: invoice.clientName ?? '' },
+        document: { id: invoice.id, type: 'invoice' as const, number: invoice.number },
+      },
     };
   },
 });

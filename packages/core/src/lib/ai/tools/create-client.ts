@@ -23,10 +23,12 @@ Requires first name and last name. Sets as active client and clears any active d
       phone: args.phone,
       address: args.address,
     });
+    const name = `${client.firstName} ${client.lastName}`;
+    const ref = ctx.registerRef('client', client.id);
     return {
-      result: client,
-      stateUpdate: {
-        client: { id: client.id, name: `${client.firstName} ${client.lastName}` },
+      result: { ref, name },
+      activeStateUpdate: {
+        client: { id: client.id, name },
         document: null,
       },
     };

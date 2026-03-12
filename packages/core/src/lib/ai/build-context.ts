@@ -1,14 +1,15 @@
 import type Anthropic from '@anthropic-ai/sdk';
-import type { DemandState, Message } from '@tuldio/types';
+import type { ActiveState, Message } from '@tuldio/types';
+import { migrateStoredToolCall, type StoredRef } from './ref-map.js';
 
 const RECENT_MESSAGES_COUNT = 8;
-export const DETECTION_MESSAGES_COUNT = 5;
 
 export type StoredToolCall = {
   toolUseId: string;
   name: string;
   input: unknown;
   result: unknown;
+  refs?: StoredRef[];
 };
 
 /** Stored as `toolCalls` on assistant messages — array of rounds, each round is an array of tool calls */
@@ -18,11 +19,10 @@ export type StoredToolRounds = StoredToolCall[][];
  * Build the Claude message array from the last N stored messages.
  * For assistant messages that have tool rounds, reconstruct the full
  * tool_use / tool_result exchange so Claude sees structured tool data.
+ * Old-format tool calls are migrated on the fly via migrateStoredToolCall.
  */
-export function buildClaudeMessages(allMessages: Message[], options?: { limit?: number }): Anthropic.MessageParam[] {
-  const count = options?.limit ?? RECENT_MESSAGES_COUNT;
-  // Take the last N messages, ensuring the slice starts with a user message
-  // to avoid orphaned tool_result blocks after tool round expansion.
+/** Compute the start index for the recent message window (last N, starting from a user message). */
+function getRecentWindowStart(allMessages: Message[], count: number): number {
   let startIndex = Math.max(0, allMessages.length - count);
   while (startIndex > 0 && allMessages[startIndex]!.role !== 'user') {
     startIndex--;
@@ -31,7 +31,12 @@ export function buildClaudeMessages(allMessages: Message[], options?: { limit?: 
   while (startIndex < allMessages.length && allMessages[startIndex]!.role !== 'user') {
     startIndex++;
   }
-  const recent = allMessages.slice(startIndex);
+  return startIndex;
+}
+
+export function buildClaudeMessages(allMessages: Message[], options?: { limit?: number }): Anthropic.MessageParam[] {
+  const count = options?.limit ?? RECENT_MESSAGES_COUNT;
+  const recent = allMessages.slice(getRecentWindowStart(allMessages, count));
 
   const claudeMessages: Anthropic.MessageParam[] = [];
 
@@ -54,8 +59,15 @@ export function buildClaudeMessages(allMessages: Message[], options?: { limit?: 
     for (const round of toolRounds) {
       if (round.length === 0) continue;
 
+      // Migrate old-format tool calls on the fly
+      const migratedRound = round.map(migrateStoredToolCall);
+
+      // Skip rounds with only obsolete tools
+      const validCalls = migratedRound.filter((tc) => tc.name !== 'detect_client');
+      if (validCalls.length === 0) continue;
+
       // Assistant message with tool_use blocks
-      const toolUseBlocks: Anthropic.ContentBlockParam[] = round.map((tc) => ({
+      const toolUseBlocks: Anthropic.ContentBlockParam[] = validCalls.map((tc) => ({
         type: 'tool_use' as const,
         id: tc.toolUseId,
         name: tc.name,
@@ -64,7 +76,7 @@ export function buildClaudeMessages(allMessages: Message[], options?: { limit?: 
       claudeMessages.push({ role: 'assistant', content: toolUseBlocks });
 
       // User message with tool_result blocks
-      const toolResultBlocks: Anthropic.ToolResultBlockParam[] = round.map((tc) => ({
+      const toolResultBlocks: Anthropic.ToolResultBlockParam[] = validCalls.map((tc) => ({
         type: 'tool_result' as const,
         tool_use_id: tc.toolUseId,
         content: JSON.stringify(tc.result),
@@ -82,40 +94,51 @@ export function buildClaudeMessages(allMessages: Message[], options?: { limit?: 
 }
 
 /**
- * Build a synthetic context message pair for the dynamic state.
- * Injected at the start of the conversation AFTER delimiting,
- * so it is NOT wrapped in <user_message> tags.
+ * Extract stored tool calls from the same message window Claude sees.
+ * Returns a flat array in chronological order.
+ */
+export function extractStoredToolCalls(allMessages: Message[]): StoredToolCall[] {
+  const recent = allMessages.slice(getRecentWindowStart(allMessages, RECENT_MESSAGES_COUNT));
+  const result: StoredToolCall[] = [];
+  for (const msg of recent) {
+    if (msg.role !== 'assistant') continue;
+    const toolRounds = msg.toolCalls as StoredToolRounds | null;
+    if (!toolRounds) continue;
+    for (const round of toolRounds) {
+      for (const tc of round) {
+        result.push(migrateStoredToolCall(tc));
+      }
+    }
+  }
+  return result;
+}
+
+/**
+ * Build lightweight active state context lines.
+ * Injected as a synthetic user+assistant pair at the start of conversation.
  */
 export function buildContextMessages(input: {
-  demandState: DemandState;
-  clientNotFound: string | null;
+  activeState: ActiveState;
+  clientRef: string | null;
+  documentRef: string | null;
 }): Anthropic.MessageParam[] {
-  const { client, document: docPointer, pendingCandidates } = input.demandState;
+  const { client, document: doc } = input.activeState;
 
   let context = '';
 
-  if (client) {
-    context += `Client actif : ${client.name}\n`;
+  if (client && input.clientRef) {
+    context += `Client actif : ${input.clientRef} = ${client.name}\n`;
   }
 
-  if (docPointer) {
-    const typeLabel = docPointer.type === 'quote' ? 'Devis' : 'Facture';
-    context += `Document actif : ${typeLabel} (${docPointer.type}). Utilise get_active_document pour voir les lignes.\n`;
+  if (doc && input.documentRef) {
+    const typeLabel = doc.type === 'quote' ? 'Devis' : 'Facture';
+    context += `Document actif : ${input.documentRef} = ${typeLabel} ${doc.number}\n`;
   }
 
-  if (pendingCandidates && pendingCandidates.length > 0) {
-    context += 'Candidats en attente (demande au user de choisir) :\n';
-    for (const c of pendingCandidates) {
-      context += `- ${c.name}\n`;
-    }
-  }
-
-  if (input.clientNotFound) {
-    context += `Client introuvable : "${input.clientNotFound}" n'existe pas. Si le user veut agir pour cette personne, appelle create_client directement sans confirmation.\n`;
-  }
+  if (!context) return [];
 
   return [
-    { role: 'user', content: `<context>\n${context.trim()}\n</context>` },
+    { role: 'user', content: context.trim() },
     { role: 'assistant', content: 'Compris.' },
   ];
 }

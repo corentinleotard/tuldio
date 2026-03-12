@@ -12,13 +12,10 @@ import type { Message, MessageMetadata } from '@tuldio/types';
 
 /** Map mutating tool names to React Query keys that should be invalidated */
 const TOOL_INVALIDATIONS: Record<string, string[][]> = {
-  mark_as_paid: [['invoices'], ['stats']],
-  cancel_invoice: [['invoices'], ['stats']],
-  generate_invoice: [['invoices'], ['stats']],
-  invoice_from_quote: [['invoices'], ['quotes'], ['stats']],
-  update_invoice: [['invoices']],
-  generate_quote: [['quotes'], ['stats']],
-  update_quote: [['quotes']],
+  create_document: [['quotes'], ['invoices'], ['stats']],
+  update_quote: [['quotes'], ['stats']],
+  update_invoice: [['invoices'], ['stats']],
+  delete_document: [['quotes'], ['invoices'], ['stats']],
   create_client: [['clients']],
   update_client: [['clients']],
 };

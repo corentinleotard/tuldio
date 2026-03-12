@@ -10,6 +10,8 @@ interface AiCallRow {
   cache_creation_tokens: number;
   cost_cents: number;
   duration_ms: number;
+  prompt_text: string | null;
+  response_text: string | null;
   created_at: Date;
 }
 
@@ -38,7 +40,7 @@ export async function findAiCalls(input: { teamId: string; limit?: number }) {
       [input.teamId],
     ),
     query<AiCallRow>(
-      `SELECT id, model, purpose, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_cents, duration_ms, created_at
+      `SELECT id, model, purpose, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_cents, duration_ms, prompt_text, response_text, created_at
        FROM ai_calls WHERE team_id = $1
        ORDER BY created_at DESC LIMIT $2`,
       [input.teamId, limit],
@@ -64,6 +66,8 @@ export async function findAiCalls(input: { teamId: string; limit?: number }) {
       cacheCreationTokens: row.cache_creation_tokens,
       costCents: Number(row.cost_cents),
       durationMs: row.duration_ms,
+      promptText: row.prompt_text,
+      responseText: row.response_text,
       createdAt: row.created_at.toISOString(),
     })),
   };

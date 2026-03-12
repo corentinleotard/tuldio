@@ -1,37 +1,37 @@
 import type Anthropic from '@anthropic-ai/sdk';
 import { zodToJsonSchema } from 'zod-to-json-schema';
-import type { DemandState } from '@tuldio/types';
 import { logger } from '../infra/logger.js';
-import type { AnyToolDefinition, ToolResult, StateUpdate } from './tools/define-tool.js';
+import type { AnyToolDefinition, ToolResult, ToolContext } from './tools/define-tool.js';
+import type { StoredRef, RefMap } from './ref-map.js';
+import { getRefEntry } from './ref-map.js';
 
-import { resolveClientTool } from './tools/resolve-client.js';
+import { findClientsTool } from './tools/find-clients.js';
 import { createClientTool } from './tools/create-client.js';
 import { updateClientTool } from './tools/update-client.js';
 import { addClientNoteTool } from './tools/add-client-note.js';
 import { searchPastPricingTool } from './tools/search-past-pricing.js';
 import { createDocumentTool } from './tools/create-document.js';
-import { updateDocumentTool } from './tools/update-document.js';
-import { listDocumentsTool } from './tools/list-documents.js';
+import { updateQuoteTool } from './tools/update-quote.js';
+import { updateInvoiceTool } from './tools/update-invoice.js';
+import { findDocumentsTool } from './tools/list-documents.js';
 import { deleteDocumentTool } from './tools/delete-document.js';
-import { openDocumentTool } from './tools/open-document.js';
+import { getDocumentTool } from './tools/get-document.js';
 import { getStatsTool } from './tools/get-stats.js';
-import { getActiveDocumentTool } from './tools/get-active-document.js';
-import { detectClientTool } from './tools/detect-client.js';
 
-export type { ToolResult, StateUpdate };
+export type { ToolResult };
 
 const allTools: AnyToolDefinition[] = [
-  resolveClientTool,
+  findClientsTool,
   createClientTool,
   updateClientTool,
   addClientNoteTool,
   searchPastPricingTool,
   createDocumentTool,
-  updateDocumentTool,
+  updateQuoteTool,
+  updateInvoiceTool,
   deleteDocumentTool,
-  listDocumentsTool,
-  openDocumentTool,
-  getActiveDocumentTool,
+  findDocumentsTool,
+  getDocumentTool,
   getStatsTool,
 ];
 
@@ -49,45 +49,56 @@ export const chatTools: Anthropic.Tool[] = allTools.map((t) => {
   };
 });
 
-/** detect_client tool definition — used only in the pre-processing round, not in chatTools */
-export const detectClientTools: Anthropic.Tool[] = (() => {
-  const { $schema: _, ...jsonSchema } = zodToJsonSchema(detectClientTool.schema, { target: 'jsonSchema7' });
-  return [{
-    name: detectClientTool.name,
-    description: detectClientTool.description,
-    input_schema: jsonSchema as Anthropic.Tool['input_schema'],
-  }];
-})();
-
 /** Execute a tool by name — validates input with zod, then runs handler */
 export async function executeTool(input: {
   toolName: string;
   toolInput: Record<string, unknown>;
-  teamId: string;
-  userId: string;
-  demandState: DemandState;
-}): Promise<{ toolResult: ToolResult; stateUpdate: StateUpdate }> {
+  ctx: ToolContext;
+  refMap: RefMap;
+}): Promise<{
+  toolResult: ToolResult;
+  refs: StoredRef[];
+}> {
   const tool = toolMap.get(input.toolName);
 
   if (!tool) {
-    return { toolResult: { result: { error: `Unknown tool: ${input.toolName}` } }, stateUpdate: null };
+    return { toolResult: { result: { error: `Unknown tool: ${input.toolName}` } }, refs: [] };
   }
 
   const args = tool.schema.parse(input.toolInput);
-  const ctx = { teamId: input.teamId, userId: input.userId, demandState: input.demandState };
 
   const start = Date.now();
-  logger.info(`tool.start ${input.toolName}`, { teamId: input.teamId, userId: input.userId });
+  logger.info(`tool.start ${input.toolName}`, { teamId: input.ctx.teamId, userId: input.ctx.userId });
 
-  const toolResult = await tool.handler(args, ctx);
+  // Track all refs used during this tool execution (both resolved and registered)
+  const collectedRefs: StoredRef[] = [];
+  const seenIds = new Set<string>();
+  const wrappedCtx: ToolContext = {
+    ...input.ctx,
+    resolveRef: (ref, expectedType) => {
+      const id = input.ctx.resolveRef(ref, expectedType);
+      if (!seenIds.has(id)) {
+        seenIds.add(id);
+        const entry = getRefEntry({ refMap: input.refMap, ref });
+        const type = entry?.type ?? expectedType ?? 'client';
+        collectedRefs.push({ ref, type, id });
+      }
+      return id;
+    },
+    registerRef: (type, id) => {
+      const ref = input.ctx.registerRef(type, id);
+      if (!seenIds.has(id)) {
+        seenIds.add(id);
+        collectedRefs.push({ ref, type, id });
+      }
+      return ref;
+    },
+  };
 
-  // Handler-returned stateUpdate takes precedence over the callback
-  const stateUpdate = toolResult.stateUpdate !== undefined
-    ? toolResult.stateUpdate
-    : (tool.stateUpdate ? tool.stateUpdate(toolResult.result, ctx) : null);
+  const toolResult = await tool.handler(args, wrappedCtx);
 
   const duration = Date.now() - start;
-  logger.info(`tool.end ${input.toolName} ${duration}ms`, { teamId: input.teamId });
+  logger.info(`tool.end ${input.toolName} ${duration}ms`, { teamId: input.ctx.teamId });
 
-  return { toolResult, stateUpdate };
+  return { toolResult, refs: collectedRefs };
 }

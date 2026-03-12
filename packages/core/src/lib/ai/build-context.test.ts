@@ -45,9 +45,10 @@ describe('buildClaudeMessages', () => {
       [
         {
           toolUseId: 'tu-1',
-          name: 'resolve_client',
+          name: 'find_clients',
           input: { search: 'Martin' },
-          result: { status: 'exact_match', client: { id: 'abc-123', name: 'Martin Jean' } },
+          result: { clients: [{ ref: 'c1', name: 'Martin Jean' }] },
+          refs: [{ ref: 'c1', type: 'client', id: 'abc-123' }],
         },
       ],
     ];
@@ -73,7 +74,7 @@ describe('buildClaudeMessages', () => {
     expect(result[1]!.role).toBe('assistant');
     const assistantContent = result[1]!.content as Array<{ type: string; name?: string }>;
     expect(assistantContent[0]!.type).toBe('tool_use');
-    expect(assistantContent[0]!.name).toBe('resolve_client');
+    expect(assistantContent[0]!.name).toBe('find_clients');
 
     // User with tool_result block
     expect(result[2]!.role).toBe('user');
@@ -88,8 +89,8 @@ describe('buildClaudeMessages', () => {
 
   it('handles multi-round tool calls', () => {
     const toolRounds: StoredToolRounds = [
-      [{ toolUseId: 'tu-1', name: 'resolve_client', input: { search: 'Martin' }, result: { id: 'abc' } }],
-      [{ toolUseId: 'tu-2', name: 'generate_quote', input: { clientId: 'abc' }, result: { quoteId: 'q-1' } }],
+      [{ toolUseId: 'tu-1', name: 'find_clients', input: { search: 'Martin' }, result: { clients: [{ ref: 'c1', name: 'Martin' }] }, refs: [{ ref: 'c1', type: 'client', id: 'abc' }] }],
+      [{ toolUseId: 'tu-2', name: 'create_document', input: { clientRef: 'c1', type: 'quote' }, result: { ref: 'd1', number: 'D-2026-001' }, refs: [{ ref: 'd1', type: 'quote', id: 'q-1' }] }],
     ];
 
     const messages = [

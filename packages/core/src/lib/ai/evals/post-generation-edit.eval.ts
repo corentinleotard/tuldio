@@ -1,7 +1,7 @@
 /**
  * Eval: Post-creation edit — after creating a document, the user wants to add/modify lines.
  *
- * The AI must use update_document (not create_document again).
+ * The AI must use update_quote (not create_document again).
  * This was a real production bug: generation cleared state and the AI lost context.
  *
  * Run with: pnpm eval
@@ -23,7 +23,7 @@ describe('post-creation edit evals', () => {
     await sleep(RATE_LIMIT_DELAY);
   });
 
-  it('calls update_document (not create_document) when user wants to add a line after creation', async () => {
+  it('calls update_quote (not create_document) when user wants to add a line after creation', async () => {
     const createRounds: StoredToolRounds = [[
       {
         toolUseId: 'tu-create',
@@ -34,18 +34,18 @@ describe('post-creation edit evals', () => {
     ]];
 
     const scenario: EvalScenario = {
-      name: 'add line after creation uses update_document',
+      name: 'add line after creation uses update_quote',
       history: [
         userMsg('Fais un devis pour Léotard, 30m de terrassement à 45€/m'),
         assistantMsg('Voilà le devis #1 pour Titi Léotard : 30m de terrassement à 45€/m = 1 350€ HT.', createRounds),
       ],
-      demandState: {
+      activeState: {
         client: { id: 'c-leo', name: 'Titi Léotard' },
-        document: { id: 'aaaaaaaa-0001-4000-8000-000000000001', type: 'quote' },
+        document: { id: 'aaaaaaaa-0001-4000-8000-000000000001', type: 'quote', number: 'D-2026-001' },
       },
       userMessage: 'Attends j\'ai oublié, ajoute 25m2 de polyane à 8€/m2',
       expectToolCall: {
-        name: 'update_document',
+        name: 'update_quote',
       },
     };
 
@@ -60,7 +60,7 @@ describe('post-creation edit evals', () => {
     expect(descriptions.some((d) => d.includes('polyane'))).toBe(true);
   }, TIMEOUT);
 
-  it('calls update_document or get_active_document when user wants to change a price after creation', async () => {
+  it('calls update_quote or get_document when user wants to change a price after creation', async () => {
     const createRounds: StoredToolRounds = [[
       {
         toolUseId: 'tu-create',
@@ -71,29 +71,29 @@ describe('post-creation edit evals', () => {
     ]];
 
     const scenario: EvalScenario = {
-      name: 'price change after creation uses update_document',
+      name: 'price change after creation uses update_quote',
       history: [
         userMsg('Devis pour Martin, 30m terrassement à 45€ et 25m2 polyane à 50€'),
         assistantMsg('Devis #2 créé : terrassement 30m à 45€ + polyane 25m² à 50€ = 2 600€ HT.', createRounds),
       ],
-      demandState: {
+      activeState: {
         client: { id: 'c-martin', name: 'Jean Martin' },
-        document: { id: 'aaaaaaaa-0002-4000-8000-000000000002', type: 'quote' },
+        document: { id: 'aaaaaaaa-0002-4000-8000-000000000002', type: 'quote', number: 'D-2026-002' },
       },
       userMessage: 'Finalement mets le polyane à 8€/m2',
       expectToolCall: {
-        // AI may call get_active_document first to see line IDs, or update_document directly
+        // AI may call get_document first to see line IDs, or update_quote directly
         // if create_document result with line IDs is still in the message window
-        name: 'update_document',
+        name: 'update_quote',
       },
     };
 
     const result = await runEval(scenario);
-    // Accept either update_document or get_active_document as first call
+    // Accept either update_quote or get_document as first call
     const firstName = result.toolCalls[0]?.name;
     expect(
-      firstName === 'update_document' || firstName === 'get_active_document',
-      `Expected update_document or get_active_document, got ${firstName}`,
+      firstName === 'update_quote' || firstName === 'get_document',
+      `Expected update_quote or get_document, got ${firstName}`,
     ).toBe(true);
   }, TIMEOUT);
 
@@ -113,13 +113,13 @@ describe('post-creation edit evals', () => {
         userMsg('Devis pour Léotard, pose carrelage 15m2 à 62€'),
         assistantMsg('Devis #3 créé pour Titi Léotard : pose carrelage 15m² à 62€ = 930€ HT.', createRounds),
       ],
-      demandState: {
+      activeState: {
         client: { id: 'c-leo', name: 'Titi Léotard' },
-        document: { id: 'aaaaaaaa-0003-4000-8000-000000000003', type: 'quote' },
+        document: { id: 'aaaaaaaa-0003-4000-8000-000000000003', type: 'quote', number: 'D-2026-003' },
       },
       userMessage: 'Ajoute aussi la fourniture carrelage 15m2 à 35€/m2',
       expectToolCall: {
-        name: 'update_document',
+        name: 'update_quote',
       },
     };
 

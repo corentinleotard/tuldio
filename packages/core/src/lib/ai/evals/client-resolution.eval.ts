@@ -27,7 +27,7 @@ describe('client resolution evals', () => {
       name: 'basic client search',
       userMessage: 'Fais un devis pour Dupont',
       expectToolCall: {
-        name: 'resolve_client',
+        name: 'find_clients',
         inputContains: { search: 'Dupont' },
       },
     };
@@ -40,7 +40,7 @@ describe('client resolution evals', () => {
     // Simulate: previous turn resolved "Martin" with clientId "aaa-111"
     const martinRounds: StoredToolRounds = [[{
       toolUseId: 'tu-prev',
-      name: 'resolve_client',
+      name: 'find_clients',
       input: { search: 'Martin' },
       result: { status: 'exact_match', client: { id: 'aaa-111', firstName: 'Jean', lastName: 'Martin' } },
     }]];
@@ -53,7 +53,7 @@ describe('client resolution evals', () => {
       ],
       userMessage: 'Non finalement, fais un devis pour Dupont',
       expectToolCall: {
-        name: 'resolve_client',
+        name: 'find_clients',
         inputContains: { search: 'Dupont' },
       },
     };
@@ -67,7 +67,7 @@ describe('client resolution evals', () => {
     // AI MUST search for Dupont first, not use Martin's ID
     const martinRounds: StoredToolRounds = [[{
       toolUseId: 'tu-prev',
-      name: 'resolve_client',
+      name: 'find_clients',
       input: { search: 'Martin' },
       result: { status: 'exact_match', client: { id: 'aaa-111', firstName: 'Jean', lastName: 'Martin' } },
     }]];
@@ -81,7 +81,7 @@ describe('client resolution evals', () => {
       userMessage: 'Fais un devis pour Dupont aussi, 5m2 de peinture a 30 euros',
       expectToolCall: {
         // Must search for Dupont, not jump to generate_quote with Martin's ID
-        name: 'resolve_client',
+        name: 'find_clients',
         inputContains: { search: 'Dupont' },
       },
     };
@@ -95,7 +95,7 @@ describe('client resolution evals', () => {
       name: 'strip civilities',
       userMessage: 'Fais un devis pour Madame Lefebvre',
       expectToolCall: {
-        name: 'resolve_client',
+        name: 'find_clients',
         inputContains: { search: 'Lefebvre' },
       },
     };

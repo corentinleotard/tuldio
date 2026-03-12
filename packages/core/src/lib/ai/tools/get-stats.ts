@@ -17,6 +17,13 @@ Returns a rich card displayed to the user — do not repeat all numbers in text,
       month: args.month,
       year: args.year,
     });
-    return { result: stats, richCard: { type: 'stats', data: stats } };
+    return {
+      result: {
+        revenue: stats.revenue,
+        unpaid: stats.unpaid,
+        conversion: stats.quoteConversion,
+      },
+      richCard: { type: 'stats', data: stats },
+    };
   },
 });

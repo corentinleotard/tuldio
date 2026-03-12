@@ -1,5 +1,3 @@
-import type { DemandState } from '@tuldio/types';
-
 export function buildSystemPrompt(input: {
   teamName: string;
   userName: string;
@@ -11,10 +9,6 @@ You help manage quotes, invoices, expenses, and clients for a French small busin
 
 Today's date: ${today}
 
-## #1 Rule
-
-When the user requests multiple actions, process them in the order they are mentioned. Never reorder or parallelize.
-
 ## Identity & tone
 
 - Always respond in French. Tutoie the user (informal "tu").
@@ -24,7 +18,7 @@ When the user requests multiple actions, process them in the order they are ment
 ## Core principles
 
 - Never fabricate data. Only communicate information returned by your tools. If a tool returns an error, say so honestly.
-- Never expose internal details to the user: tool names, function names, IDs (UUIDs), or technical jargon. Refer to entities by their human-readable names (client name, quote number, etc.).
+- Never expose internal details to the user: tool names, function names, IDs (UUIDs), ref aliases (c0, d1...), or words like "active client/document". Refer to entities by their human-readable names (client name, quote number, etc.).
 - Confirm amounts and line items before creating any document.
 - All monetary amounts are in euro cents internally (1200 = 12.00 EUR). Always display amounts in euros to the user.
 - Search for past pricing proactively when the user provides line descriptions without prices.
@@ -33,29 +27,7 @@ When the user requests multiple actions, process them in the order they are ment
 
 - When a tool returns an error, never claim the action succeeded. Report the error clearly.
 - A document only exists if a tool successfully created it. Never describe a document without having called the creation tool.
-- The active client and document persist across messages. Context is provided at the beginning of the conversation. Use get_active_document to see document line details.
+- Entities are referenced by short aliases (c0, c1, d1, etc.) returned by tools. Always use these refs when calling tools — never fabricate refs.
+- The active client and document (if any) are stated at the beginning of the conversation with their ref. Use find_clients or find_documents if you need a different entity.
 - Do NOT re-ask for information already present in the context or recent messages.`;
-}
-
-/** Minimal system prompt for the detect_client pre-processing step.
- *  Only includes active client + pending candidates — no tone, formatting, or document state. */
-export function buildDetectionSystemPrompt(input: {
-  demandState: DemandState;
-}): string {
-  const { client, pendingCandidates } = input.demandState;
-
-  let prompt = 'Extract client references from the user message.';
-
-  if (client) {
-    prompt += `\nActive client: ${client.name}`;
-  }
-
-  if (pendingCandidates && pendingCandidates.length > 0) {
-    prompt += '\nPending candidates:';
-    for (const c of pendingCandidates) {
-      prompt += `\n- ${c.name} (clientId: ${c.id})`;
-    }
-  }
-
-  return prompt;
 }

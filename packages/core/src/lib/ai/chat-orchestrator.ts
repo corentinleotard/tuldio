@@ -1,146 +1,44 @@
 import type Anthropic from '@anthropic-ai/sdk';
-import type { DemandState } from '@tuldio/types';
+import type { ActiveState } from '@tuldio/types';
 import { callClaude } from './claude-client.js';
-import { buildSystemPrompt, buildDetectionSystemPrompt } from './system-prompt.js';
-import { buildClaudeMessages, buildContextMessages, DETECTION_MESSAGES_COUNT, type StoredToolCall } from './build-context.js';
-import { chatTools, detectClientTools, executeTool, type StateUpdate } from './tool-registry.js';
+import { buildSystemPrompt } from './system-prompt.js';
+import { buildClaudeMessages, buildContextMessages, extractStoredToolCalls, type StoredToolCall } from './build-context.js';
+import { chatTools, executeTool } from './tool-registry.js';
+import { buildRefMap, registerRef, resolveRef, findRefByEntityId } from './ref-map.js';
 import { createMessage, listMessages } from '../../modules/messages/index.js';
 import { getCurrentUser } from '../../modules/users/index.js';
 import { getTeam } from '../../modules/teams/index.js';
 import { getDemandState, upsertDemandState, clearDemandState } from '../../modules/demands/index.js';
 import { findClientById } from '../../modules/clients/repository/find-client-by-id.js';
-import { resolveClient } from '../../modules/clients/index.js';
+import { getQuote } from '../../modules/quotes/index.js';
+import { getInvoice } from '../../modules/invoices/index.js';
 import { logger } from '../infra/logger.js';
 import type { Message, MessageMetadata, DebugTrace, DebugTraceRound, DebugTraceToolCall } from '@tuldio/types';
 
 const MAX_TOOL_ROUNDS = 10;
 
-function applyStateUpdate(current: DemandState, update: StateUpdate): DemandState | null {
-  if (update === null) return null; // no change
-  if (update === 'clear') return { client: null, document: null, pendingCandidates: null };
+async function fetchDocumentNumber(input: { teamId: string; docId: string; docType: 'quote' | 'invoice' }): Promise<string> {
+  if (input.docType === 'quote') {
+    const quote = await getQuote({ teamId: input.teamId, quoteId: input.docId });
+    return quote.number;
+  }
+  const invoice = await getInvoice({ teamId: input.teamId, invoiceId: input.docId });
+  return invoice.number;
+}
 
+/** Convert ActiveState to the DemandState shape used by the DB layer */
+function toDbState(activeState: ActiveState): { client: { id: string; name: string } | null; document: { id: string; type: 'quote' | 'invoice'; number: string } | null } {
+  return {
+    client: activeState.client,
+    document: activeState.document ? { id: activeState.document.id, type: activeState.document.type, number: activeState.document.number } : null,
+  };
+}
+
+function applyActiveStateUpdate(current: ActiveState, update: Partial<ActiveState>): ActiveState {
   return {
     client: update.client !== undefined ? update.client : current.client,
     document: update.document !== undefined ? update.document : current.document,
-    pendingCandidates: update.pendingCandidates !== undefined ? update.pendingCandidates : current.pendingCandidates,
   };
-}
-
-interface DetectClientResult {
-  clientMentioned: boolean;
-  search?: string;
-  clientId?: string;
-}
-
-/** Pre-processing step: detect client mentions and resolve in code */
-async function preProcessClientDetection(input: {
-  currentState: DemandState;
-  allMessages: Message[];
-  teamId: string;
-  userId: string;
-}): Promise<{
-  currentState: DemandState;
-  richCard: { type: string; data: unknown } | null;
-  quickReplies: string[] | null;
-  clientNotFound: string | null;
-  traceRound: DebugTraceRound;
-}> {
-  const { teamId, userId, allMessages } = input;
-
-  // Minimal prompt: only active client + pending candidates
-  const systemPrompt = buildDetectionSystemPrompt({ demandState: input.currentState });
-  // Short message window: only last 3 messages (enough for anaphoric references)
-  const claudeMessages = buildClaudeMessages(allMessages, { limit: DETECTION_MESSAGES_COUNT });
-  let { currentState } = input;
-  let richCard: { type: string; data: unknown } | null = null;
-  const quickReplies: string[] | null = null;
-  let clientNotFound: string | null = null;
-
-  // Step 1: Force detect_client call
-  const detectResponse = await callClaude({
-    systemPrompt,
-    messages: claudeMessages,
-    tools: detectClientTools,
-    toolChoice: { type: 'tool', name: 'detect_client' },
-    teamId,
-    userId,
-    purpose: 'detect_client',
-  });
-
-  const detectToolUse = detectResponse.message.content.find(
-    (block): block is Anthropic.ToolUseBlock => block.type === 'tool_use' && block.name === 'detect_client',
-  );
-
-  const detection = detectToolUse?.input as DetectClientResult | undefined;
-
-  logger.info('detect_client', { teamId, userId, detection });
-
-  // Step 2: Process detection result in code
-  if (detection?.clientMentioned) {
-    if (detection.clientId) {
-      // Direct pick from pending candidates
-      const client = await findClientById({ teamId, clientId: detection.clientId });
-      if (client) {
-        const clientChanged = currentState.client?.id !== client.id;
-        currentState = {
-          ...currentState,
-          client: { id: client.id, name: `${client.first_name} ${client.last_name}` },
-          pendingCandidates: null,
-          ...(clientChanged ? { document: null } : {}),
-        };
-      } else {
-        // Invalid clientId — clear pending candidates
-        currentState = { ...currentState, pendingCandidates: null };
-      }
-    } else if (detection.search) {
-      // Fuzzy search
-      const resolution = await resolveClient({ teamId, search: detection.search });
-      logger.info('resolve_client', { teamId, userId, search: detection.search, status: resolution.status });
-
-      if (resolution.status === 'exact_match') {
-        const clientChanged = currentState.client?.id !== resolution.client.id;
-        currentState = {
-          ...currentState,
-          client: { id: resolution.client.id, name: `${resolution.client.firstName} ${resolution.client.lastName}` },
-          pendingCandidates: null,
-          ...(clientChanged ? { document: null } : {}),
-        };
-      } else if (resolution.status === 'ambiguous') {
-        const candidates = resolution.candidates.map((c) => ({
-          id: c.id,
-          name: `${c.firstName} ${c.lastName}`,
-        }));
-        currentState = { ...currentState, pendingCandidates: candidates };
-
-        if (resolution.candidates.length <= 3) {
-          richCard = { type: 'client_picker', data: resolution.candidates };
-        }
-      } else if (resolution.status === 'no_match') {
-        currentState = { ...currentState, pendingCandidates: null };
-        clientNotFound = detection.search;
-      }
-    }
-  } else {
-    // No client mentioned — clear stale pending candidates
-    if (currentState.pendingCandidates && currentState.pendingCandidates.length > 0) {
-      currentState = { ...currentState, pendingCandidates: null };
-    }
-  }
-
-  const traceRound: DebugTraceRound = {
-    inputTokens: detectResponse.meta.inputTokens,
-    outputTokens: detectResponse.meta.outputTokens,
-    costCents: detectResponse.meta.costCents,
-    durationMs: detectResponse.meta.durationMs,
-    toolCalls: [{
-      name: 'detect_client',
-      input: detection ?? {},
-      output: detection ?? {},
-      durationMs: 0,
-    }],
-  };
-
-  return { currentState, richCard, quickReplies, clientNotFound, traceRound };
 }
 
 export async function processMessage(input: {
@@ -151,67 +49,75 @@ export async function processMessage(input: {
 }): Promise<Message> {
   const { userId, teamId, content, metadata } = input;
 
-  // Save user message
+  // 1. Save user message
   await createMessage({ userId, teamId, role: 'user', content });
 
-  // Load context
+  // 2. Load context
   const [user, team, recentMessages, demandState] = await Promise.all([
     getCurrentUser(userId),
     getTeam(teamId),
-    listMessages({ userId, limit: 50 }),
+    // Fetch more than the 8-message window — the windowing logic may back up
+    // to find a user message boundary, so we need headroom.
+    listMessages({ userId, limit: 20 }),
     getDemandState({ userId }),
   ]);
 
-  // Handle client picker selection — set active client from metadata
-  let currentState = demandState;
+  // 3. Build active state from demand state
+  let activeState: ActiveState = {
+    client: demandState.client,
+    document: null,
+  };
+  if (demandState.document?.id) {
+    // Use persisted number if available, otherwise fetch from DB
+    const number = demandState.document.number;
+    if (number) {
+      activeState.document = { id: demandState.document.id, type: demandState.document.type, number };
+    } else {
+      try {
+        const docNumber = await fetchDocumentNumber({ teamId, docId: demandState.document.id, docType: demandState.document.type });
+        activeState.document = { id: demandState.document.id, type: demandState.document.type, number: docNumber };
+      } catch {
+        // Document no longer exists — clear stale reference
+        activeState.document = null;
+      }
+    }
+  }
 
   // Guard against old-format demand state (document without id)
-  if (currentState.document && !currentState.document.id) {
-    currentState = { ...currentState, document: null };
+  if (activeState.document && !activeState.document.id) {
+    activeState = { ...activeState, document: null };
     await clearDemandState({ userId });
   }
 
+  // 5. Handle client picker selection
   if (metadata?.selectedClientId) {
     const client = await findClientById({ teamId, clientId: metadata.selectedClientId });
-    const clientName = client ? `${client.first_name} ${client.last_name}` : '';
-    currentState = { ...currentState, client: { id: metadata.selectedClientId, name: clientName }, document: null, pendingCandidates: null };
-    await upsertDemandState({ userId, teamId, state: currentState });
+    if (client) {
+      const clientName = `${client.first_name} ${client.last_name}`;
+      activeState = { client: { id: metadata.selectedClientId, name: clientName }, document: null };
+      await upsertDemandState({ userId, teamId, state: toDbState(activeState) });
+    }
   }
 
-  // Static system prompt — same for all calls (enables prompt caching)
+  // 4. Build ref map from active state + recent messages' stored tool calls
+  const storedToolCalls = extractStoredToolCalls(recentMessages);
+  const { refMap, counters } = buildRefMap({
+    activeState,
+    recentToolCalls: storedToolCalls,
+  });
+
+  // 6. Build system prompt (static, cacheable)
   const systemPrompt = buildSystemPrompt({ teamName: team.name, userName: user.name });
 
+  // 7. Build Claude messages from recent messages + active state context
   const claudeMessages: Anthropic.MessageParam[] = buildClaudeMessages(recentMessages);
+  const getActiveRefs = () => ({
+    clientRef: activeState.client ? findRefByEntityId(refMap, 'client', activeState.client.id) : null,
+    documentRef: activeState.document ? findRefByEntityId(refMap, activeState.document.type, activeState.document.id) : null,
+  });
+  let contextMessages = buildContextMessages({ activeState, ...getActiveRefs() });
 
-  // --- Pre-processing: detect client mentions and resolve in code ---
-  const traceRounds: DebugTraceRound[] = [];
-  let richCard: { type: string; data: unknown } | null = null;
-  let quickReplies: string[] | null = null;
-  let clientNotFound: string | null = null;
-
-  // Skip detection if client was already selected via picker metadata
-  if (!metadata?.selectedClientId) {
-    const detection = await preProcessClientDetection({
-      currentState,
-      allMessages: recentMessages,
-      teamId,
-      userId,
-    });
-
-    currentState = detection.currentState;
-    richCard = detection.richCard;
-    quickReplies = detection.quickReplies;
-    clientNotFound = detection.clientNotFound;
-    traceRounds.push(detection.traceRound);
-
-    // Persist state if it changed
-    await upsertDemandState({ userId, teamId, state: currentState });
-  }
-
-  // Build context messages from dynamic state
-  let contextMessages = buildContextMessages({ demandState: currentState, clientNotFound });
-
-  // --- Main agent call ---
+  // 8. Call Claude — NO pre-processing step
   let { message: response, meta } = await callClaude({
     systemPrompt,
     messages: claudeMessages,
@@ -222,9 +128,13 @@ export async function processMessage(input: {
     purpose: 'chat',
   });
 
+  const traceRounds: DebugTraceRound[] = [];
   const toolRounds: StoredToolCall[][] = [];
+  let richCard: { type: string; data: unknown } | null = null;
+  let quickReplies: string[] | null = null;
+  let stateChanged = false;
 
-  // Handle tool use loop
+  // 9. Tool use loop
   let rounds = 0;
   while (response.stop_reason === 'tool_use' && rounds < MAX_TOOL_ROUNDS) {
     rounds++;
@@ -240,25 +150,22 @@ export async function processMessage(input: {
     for (const toolUse of toolUseBlocks) {
       const toolStart = Date.now();
       try {
-        const { toolResult: result, stateUpdate } = await executeTool({
+        const { toolResult: result, refs } = await executeTool({
           toolName: toolUse.name,
           toolInput: toolUse.input as Record<string, unknown>,
-          teamId,
-          userId,
-          demandState: currentState,
+          refMap,
+          ctx: {
+            teamId,
+            userId,
+            resolveRef: (ref, expectedType) => resolveRef({ refMap, ref, expectedType }),
+            registerRef: (type, id) => registerRef({ refMap, type, id, counters }),
+          },
         });
 
-        // Apply state update
-        if (stateUpdate !== null) {
-          const newState = applyStateUpdate(currentState, stateUpdate);
-          if (newState) {
-            currentState = newState;
-            if (newState.client === null && newState.document === null && !newState.pendingCandidates) {
-              await clearDemandState({ userId });
-            } else {
-              await upsertDemandState({ userId, teamId, state: currentState });
-            }
-          }
+        // Apply active state update
+        if (result.activeStateUpdate) {
+          activeState = applyActiveStateUpdate(activeState, result.activeStateUpdate);
+          stateChanged = true;
         }
 
         if (result.richCard) {
@@ -280,6 +187,7 @@ export async function processMessage(input: {
           name: toolUse.name,
           input: toolUse.input,
           result: result.result,
+          refs,
         });
 
         toolResults.push({
@@ -337,10 +245,7 @@ export async function processMessage(input: {
     claudeMessages.push({ role: 'user', content: toolResults });
 
     // Rebuild context messages with updated state
-    contextMessages = buildContextMessages({
-      demandState: currentState,
-      clientNotFound: currentState.client ? null : clientNotFound,
-    });
+    contextMessages = buildContextMessages({ activeState, ...getActiveRefs() });
 
     ({ message: response, meta } = await callClaude({
       systemPrompt,
@@ -366,6 +271,16 @@ export async function processMessage(input: {
     toolCalls: [],
   });
 
+  // 10. Persist active state if changed
+  if (stateChanged) {
+    const dbState = toDbState(activeState);
+    if (dbState.client === null && dbState.document === null) {
+      await clearDemandState({ userId });
+    } else {
+      await upsertDemandState({ userId, teamId, state: dbState });
+    }
+  }
+
   // Build debug trace
   const debugTrace: DebugTrace = {
     rounds: traceRounds,
@@ -374,13 +289,13 @@ export async function processMessage(input: {
     totalDurationMs: traceRounds.reduce((s, r) => s + r.durationMs, 0),
   };
 
-  // Extract final text response
+  // 11. Extract final text response
   const textContent = response.content
     .filter((block): block is Anthropic.TextBlock => block.type === 'text')
     .map((block) => block.text)
     .join('\n');
 
-  // Save assistant message
+  // 12. Save assistant message
   const assistantMessage = await createMessage({
     userId,
     teamId,

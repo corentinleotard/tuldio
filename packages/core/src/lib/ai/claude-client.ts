@@ -86,22 +86,6 @@ function delimitUserMessages(messages: Anthropic.MessageParam[]): Anthropic.Mess
   });
 }
 
-function extractTextFromMessages(messages: Anthropic.MessageParam[]): string {
-  const parts: string[] = [];
-  for (const msg of messages) {
-    if (typeof msg.content === 'string') {
-      parts.push(msg.content);
-    } else if (Array.isArray(msg.content)) {
-      for (const block of msg.content) {
-        if ('text' in block && typeof block.text === 'string') {
-          parts.push(block.text);
-        }
-      }
-    }
-  }
-  return parts.join('\n');
-}
-
 // --- System prompt hardening ---
 const SECURITY_SUFFIX = `
 
@@ -198,17 +182,13 @@ export async function callClaude(input: {
 
   // Log cost to database (fire and forget)
   if (input.teamId) {
-    const isDev = process.env.NODE_ENV === 'development';
-    const userText = isDev
-      ? extractTextFromMessages(input.messages).slice(0, 5000)
-      : null;
-    const responseText = isDev
-      ? response.content
-          .filter((b): b is Anthropic.TextBlock => b.type === 'text')
-          .map((b) => b.text)
-          .join('\n')
-          .slice(0, 5000)
-      : null;
+    const isProd = process.env.NODE_ENV === 'production';
+    const userText = isProd
+      ? null
+      : JSON.stringify({ system, messages: allMessages, tools: tools ?? null }).slice(0, 50000);
+    const responseText = isProd
+      ? null
+      : JSON.stringify(response.content).slice(0, 10000);
 
     query(
       `INSERT INTO ai_calls (team_id, user_id, model, purpose, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_cents, prompt_text, response_text, duration_ms)
