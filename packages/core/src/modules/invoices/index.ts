@@ -6,3 +6,4 @@ export { getInvoice } from './use-cases/get-invoice.js';
 export { updateInvoiceStatusUc } from './use-cases/update-invoice-status-uc.js';
 export { deleteInvoiceUc } from './use-cases/delete-invoice-uc.js';
 export { downloadInvoicePdf } from './use-cases/download-invoice-pdf.js';
+export { markOverdueInvoices } from './use-cases/mark-overdue-invoices.js';

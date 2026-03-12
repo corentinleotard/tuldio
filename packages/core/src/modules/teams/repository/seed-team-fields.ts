@@ -10,9 +10,9 @@ export async function seedTeamFields(teamId: string): Promise<void> {
   let idx = 1;
 
   for (const field of SYSTEM_FIELDS) {
-    values.push(`($${idx}, $${idx + 1}, $${idx + 2}, $${idx + 3}, '', $${idx + 4}, $${idx + 5}, $${idx + 6}, $${idx + 7}, $${idx + 8}, true)`);
-    params.push(generateId(), teamId, field.key, field.label, field.zone, field.scope, field.showQuote, field.showInvoice, field.sortOrder);
-    idx += 9;
+    values.push(`($${idx}, $${idx + 1}, $${idx + 2}, $${idx + 3}, $${idx + 4}, $${idx + 5}, $${idx + 6}, $${idx + 7}, $${idx + 8}, $${idx + 9}, true)`);
+    params.push(generateId(), teamId, field.key, field.label, field.defaultValue ?? '', field.zone, field.scope, field.showQuote, field.showInvoice, field.sortOrder);
+    idx += 10;
   }
 
   await query(

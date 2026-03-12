@@ -67,11 +67,18 @@ export async function processTeamDocument(input: {
   const fieldRows = await findTeamFields(input.teamId);
   const fieldByKey = new Map(fieldRows.map((f) => [f.key, f]));
 
-  // 1. Reset all field values to empty
+  // Build set of extracted DB keys
+  const extractedDbKeys = new Set<string>();
+  for (const camelKey of Object.keys(extractedFields)) {
+    const dbKey = EXTRACTION_KEY_MAP[camelKey];
+    if (dbKey) extractedDbKeys.add(dbKey);
+  }
+
+  // 1. Reset only fields that were extracted (preserve defaults for unextracted fields)
   for (const row of fieldRows) {
     if (row.key === 'original_document_url') continue;
-    const resetValue = row.key === 'tva_exempt' ? '' : '';
-    await upsertTeamField({ teamId: input.teamId, fieldId: row.id, value: resetValue });
+    if (!extractedDbKeys.has(row.key)) continue;
+    await upsertTeamField({ teamId: input.teamId, fieldId: row.id, value: '' });
   }
 
   // 2. Update team name if extracted

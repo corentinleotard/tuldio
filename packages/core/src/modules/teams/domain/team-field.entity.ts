@@ -27,6 +27,7 @@ export interface SystemFieldDef {
   showQuote: boolean;
   showInvoice: boolean;
   sortOrder: number;
+  defaultValue?: string;
 }
 
 /** Parse a field value as boolean (stored as 'true' / '' in team_fields) */
@@ -50,9 +51,9 @@ export const SYSTEM_FIELDS: SystemFieldDef[] = [
   { key: 'deposit_percent', label: 'Acompte (%)', zone: 'payment', scope: 'quote', showQuote: true, showInvoice: false, sortOrder: 1 },
   { key: 'iban', label: 'IBAN', zone: 'payment', scope: 'invoice', showQuote: false, showInvoice: true, sortOrder: 2 },
   // legal — bottom footer mentions on PDF
-  { key: 'early_payment_discount', label: 'Escompte', zone: 'legal', scope: 'invoice', showQuote: false, showInvoice: true, sortOrder: 0 },
-  { key: 'late_penalty_rate', label: 'Penalites de retard', zone: 'legal', scope: 'invoice', showQuote: false, showInvoice: true, sortOrder: 1 },
-  { key: 'recovery_fee', label: 'Indemnite de recouvrement', zone: 'legal', scope: 'invoice', showQuote: false, showInvoice: true, sortOrder: 2 },
+  { key: 'early_payment_discount', label: 'Escompte', zone: 'legal', scope: 'invoice', showQuote: false, showInvoice: true, sortOrder: 0, defaultValue: "Pas d'escompte pour paiement anticipe" },
+  { key: 'late_penalty_rate', label: 'Penalites de retard', zone: 'legal', scope: 'invoice', showQuote: false, showInvoice: true, sortOrder: 1, defaultValue: 'Penalites de retard : 3 fois le taux d\'interet legal' },
+  { key: 'recovery_fee', label: 'Indemnite de recouvrement', zone: 'legal', scope: 'invoice', showQuote: false, showInvoice: true, sortOrder: 2, defaultValue: '4000' },
   { key: 'insurance_company', label: 'Assurance', zone: 'legal', scope: 'both', showQuote: true, showInvoice: true, sortOrder: 3 },
   { key: 'insurance_policy_number', label: 'N police assurance', zone: 'legal', scope: 'both', showQuote: true, showInvoice: true, sortOrder: 4 },
   { key: 'insurance_coverage_zone', label: 'Zone couverture assurance', zone: 'legal', scope: 'both', showQuote: true, showInvoice: true, sortOrder: 5 },
