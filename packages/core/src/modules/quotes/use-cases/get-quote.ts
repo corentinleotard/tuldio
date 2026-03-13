@@ -3,7 +3,8 @@ import { HandledError } from '../../../lib/errors/handled-error.js';
 import { errorCodes } from '../../../lib/errors/error-codes.js';
 import { findQuoteById } from '../repository/find-quote-by-id.js';
 import { findClientById } from '../../clients/repository/find-client-by-id.js';
-import { toLineViews, toTvaGroups } from '../../shared/domain/to-line-views.js';
+import { getClientDisplayName } from '../../clients/domain/get-client-display-name.js';
+import { toLineViews, toTvaGroups } from '../../documents/domain/to-line-views.js';
 
 export async function getQuote(input: {
   teamId: string;
@@ -20,7 +21,7 @@ export async function getQuote(input: {
     id: row.id,
     number: row.number,
     clientId: row.client_id,
-    clientName: client ? `${client.first_name} ${client.last_name}` : undefined,
+    clientName: client ? getClientDisplayName(client) : undefined,
     clientEmail: client?.email ?? undefined,
     title: row.title,
     lines: toLineViews(row.lines),

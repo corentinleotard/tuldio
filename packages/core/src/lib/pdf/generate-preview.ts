@@ -5,6 +5,8 @@ import { resolveLogoDataUri, type PdfTeam } from './templates/shared.js';
 
 const SAMPLE_CLIENT = {
   name: 'Martin Jean',
+  siret: null,
+  tvaNumber: null,
   email: 'martin.jean@example.com',
   phone: '06 98 76 54 32',
   address: '45 avenue de la Republique, 69003 Lyon',

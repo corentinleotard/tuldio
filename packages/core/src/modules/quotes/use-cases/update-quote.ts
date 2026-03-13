@@ -6,9 +6,9 @@ import { updateQuoteLines } from '../repository/update-quote-lines.js';
 import { HandledError } from '../../../lib/errors/handled-error.js';
 import { errorCodes } from '../../../lib/errors/error-codes.js';
 import { logger } from '../../../lib/infra/logger.js';
-import { computeLineTotal, resolveTvaRate } from '../../shared/domain/document-math.js';
+import { computeLineTotal, resolveTvaRate } from '../../documents/domain/document-math.js';
 import { findTeamFieldByKey } from '../../teams/repository/find-team-field-by-key.js';
-import { toLineViews, toTvaGroups } from '../../shared/domain/to-line-views.js';
+import { toLineViews, toTvaGroups } from '../../documents/domain/to-line-views.js';
 import { query } from '../../../lib/database/db.js';
 
 interface UpdateQuoteLineInput {

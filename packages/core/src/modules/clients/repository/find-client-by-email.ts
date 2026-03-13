@@ -6,7 +6,7 @@ export async function findClientByEmail(input: {
   email: string;
 }): Promise<ClientRow | null> {
   const result = await query<ClientRow>(
-    `SELECT id, team_id, first_name, last_name, email, phone, address, notes, created_at FROM clients WHERE team_id = $1 AND email = $2 LIMIT 1`,
+    `SELECT id, team_id, first_name, last_name, company_name, siret, tva_number, email, phone, address, notes, created_at FROM clients WHERE team_id = $1 AND email = $2 LIMIT 1`,
     [input.teamId, input.email],
   );
 

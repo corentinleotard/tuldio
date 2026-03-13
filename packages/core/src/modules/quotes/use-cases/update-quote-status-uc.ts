@@ -3,13 +3,16 @@ import { HandledError } from '../../../lib/errors/handled-error.js';
 import { errorCodes } from '../../../lib/errors/error-codes.js';
 import { logger } from '../../../lib/infra/logger.js';
 import { validateQuoteStatusTransition } from '../domain/validators.js';
+import { validateDocumentReady } from '../../documents/domain/validate-document-ready.js';
+import { fetchDocumentContext } from '../../documents/repository/fetch-document-context.js';
 import { findQuoteById } from '../repository/find-quote-by-id.js';
 import { updateQuoteStatus } from '../repository/update-quote-status.js';
 import { updateQuotePdfUrl } from '../repository/update-quote-pdf-url.js';
 import { generatePdf } from '../../../lib/pdf/generate-pdf.js';
 import { buildDocumentPdfInput } from '../../../lib/pdf/build-document-pdf-input.js';
 import { findClientById } from '../../clients/repository/find-client-by-id.js';
-import { toLineViews, toTvaGroups } from '../../shared/domain/to-line-views.js';
+import { getClientDisplayName } from '../../clients/domain/get-client-display-name.js';
+import { toLineViews, toTvaGroups } from '../../documents/domain/to-line-views.js';
 
 export async function updateQuoteStatusUc(input: {
   teamId: string;
@@ -30,6 +33,25 @@ export async function updateQuoteStatusUc(input: {
   });
   if (!isValid) {
     throw new HandledError(errorCodes.invalidStatusTransition);
+  }
+
+  // Validate document readiness when leaving draft
+  if (current.status === 'draft') {
+    const { team, client: clientRow, teamFields } = await fetchDocumentContext({
+      teamId: input.teamId,
+      clientId: current.client_id,
+    });
+
+    const readinessErrors = validateDocumentReady({
+      documentType: 'quote',
+      team: { name: team.name },
+      teamFields,
+      client: { firstName: clientRow.first_name, lastName: clientRow.last_name, companyName: clientRow.company_name, siret: clientRow.siret, address: clientRow.address },
+      lines: current.lines,
+    });
+    if (readinessErrors.length > 0) {
+      throw new HandledError(errorCodes.documentNotReady, readinessErrors[0]!.message, readinessErrors);
+    }
   }
 
   // Freeze PDF when leaving draft
@@ -63,7 +85,7 @@ export async function updateQuoteStatusUc(input: {
     id: row.id,
     number: row.number,
     clientId: row.client_id,
-    clientName: client ? `${client.first_name} ${client.last_name}` : undefined,
+    clientName: client ? getClientDisplayName(client) : undefined,
     clientEmail: client?.email ?? undefined,
     title: row.title,
     lines: toLineViews(current.lines),

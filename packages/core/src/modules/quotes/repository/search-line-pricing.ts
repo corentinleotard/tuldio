@@ -30,7 +30,7 @@ export async function searchLinePricing(input: {
         ql.total_ht,
         'quote' AS document_type,
         q.number AS document_number,
-        c.first_name || ' ' || c.last_name AS client_name,
+        COALESCE(c.company_name, COALESCE(c.first_name, '') || ' ' || COALESCE(c.last_name, '')) AS client_name,
         q.created_at::text AS created_at,
         similarity(ql.description, $2) AS score
       FROM quote_lines ql
@@ -50,7 +50,7 @@ export async function searchLinePricing(input: {
         il.total_ht,
         'invoice' AS document_type,
         i.number AS document_number,
-        c.first_name || ' ' || c.last_name AS client_name,
+        COALESCE(c.company_name, COALESCE(c.first_name, '') || ' ' || COALESCE(c.last_name, '')) AS client_name,
         i.created_at::text AS created_at,
         similarity(il.description, $2) AS score
       FROM invoice_lines il

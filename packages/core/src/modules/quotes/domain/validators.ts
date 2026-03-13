@@ -3,8 +3,8 @@ import {
   computeDocumentLineTotals,
   validateStatusTransition,
   type DocumentLineInput,
-} from '../../shared/domain/document-validators.js';
-import type { DocumentTotals } from '../../shared/domain/document-math.js';
+} from '../../documents/domain/document-validators.js';
+import type { DocumentTotals } from '../../documents/domain/document-math.js';
 
 export type { DocumentLineInput as QuoteLineInput };
 

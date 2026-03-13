@@ -6,8 +6,15 @@ import { updateQuoteStatusUc } from './update-quote-status-uc.js';
 async function seedTeamAndClient(teamId: string, clientId: string) {
   await query(`INSERT INTO teams (id, name) VALUES ($1, 'Test SARL')`, [teamId]);
   await query(
-    `INSERT INTO clients (id, team_id, first_name, last_name) VALUES ($1, $2, 'Jean', 'Martin')`,
+    `INSERT INTO clients (id, team_id, first_name, last_name, address) VALUES ($1, $2, 'Jean', 'Martin', '2 rue du Moulin, 69001 Lyon')`,
     [clientId, teamId],
+  );
+  // Seed required team fields for document readiness validation
+  await query(
+    `INSERT INTO team_fields (id, team_id, key, label, value, zone, scope, show_quote, show_invoice, sort_order, is_system)
+     VALUES ($1, $2, 'siret', 'SIRET', '12345678901234', 'identity', 'both', true, true, 0, true),
+            ($3, $2, 'address', 'Adresse', '1 rue de Paris, 75001 Paris', 'identity', 'both', true, true, 1, true)`,
+    [generateId(), teamId, generateId()],
   );
 }
 

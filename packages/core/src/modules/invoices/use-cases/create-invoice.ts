@@ -4,10 +4,11 @@ import { computeDueDate, computeInvoiceTotals, validateInvoiceLine } from '../do
 import { insertInvoice } from '../repository/insert-invoice.js';
 import { findInvoiceById } from '../repository/find-invoice-by-id.js';
 import { findClientById } from '../../clients/repository/find-client-by-id.js';
-import { computeLineTotal, resolveTvaRate } from '../../shared/domain/document-math.js';
+import { computeLineTotal, resolveTvaRate } from '../../documents/domain/document-math.js';
 import { findTeamFieldByKey } from '../../teams/repository/find-team-field-by-key.js';
 import { findTeamById } from '../../teams/repository/find-team-by-id.js';
-import { toLineViews, toTvaGroups } from '../../shared/domain/to-line-views.js';
+import { toLineViews, toTvaGroups } from '../../documents/domain/to-line-views.js';
+import { getClientDisplayName } from '../../clients/domain/get-client-display-name.js';
 import { HandledError } from '../../../lib/errors/handled-error.js';
 import { errorCodes } from '../../../lib/errors/error-codes.js';
 import { logger } from '../../../lib/infra/logger.js';
@@ -114,7 +115,7 @@ export async function createInvoice(input: {
   const full = await findInvoiceById({ teamId: input.teamId, invoiceId: invoice.id });
 
   return toInvoiceView(full!, {
-    clientName: client ? `${client.first_name} ${client.last_name}` : undefined,
+    clientName: client ? getClientDisplayName(client) : undefined,
     clientEmail: client?.email ?? undefined,
   });
 }

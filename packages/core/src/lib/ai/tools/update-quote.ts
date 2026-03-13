@@ -33,7 +33,7 @@ To delete a draft quote, use delete_document instead.`,
     if (args.status) {
       const quote = await updateQuoteStatusUc({ teamId: ctx.teamId, quoteId, status: args.status });
       return {
-        result: { ref: args.ref, type: 'quote', number: quote.number, status: quote.status, totalTtc: quote.totalTtc },
+        result: { ref: args.ref, type: 'quote', number: quote.number, status: quote.status, totalHt: quote.totalHt, totalTtc: quote.totalTtc },
         richCard: { type: 'quote', data: quote },
         activeStateUpdate: {
           document: { id: quoteId, type: 'quote' as const, number: quote.number },
@@ -65,7 +65,7 @@ To delete a draft quote, use delete_document instead.`,
       lines: resolvedLines,
     });
     return {
-      result: { ref: args.ref, type: 'quote', number: quote.number },
+      result: { ref: args.ref, type: 'quote', number: quote.number, totalHt: quote.totalHt, totalTtc: quote.totalTtc },
       richCard: { type: 'quote', data: quote },
       activeStateUpdate: {
         document: { id: quoteId, type: 'quote' as const, number: quote.number },

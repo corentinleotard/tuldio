@@ -4,7 +4,7 @@ import { getFilePath } from '../../../lib/storage/get-file-path.js';
 import { generatePdfToBuffer } from '../../../lib/pdf/generate-pdf.js';
 import { buildDocumentPdfInput } from '../../../lib/pdf/build-document-pdf-input.js';
 import { findInvoiceById } from '../repository/find-invoice-by-id.js';
-import { toLineViews, toTvaGroups } from '../../shared/domain/to-line-views.js';
+import { toLineViews, toTvaGroups } from '../../documents/domain/to-line-views.js';
 
 type DownloadResult =
   | { type: 'file'; filePath: string; fileName: string }

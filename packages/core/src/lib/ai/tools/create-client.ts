@@ -6,10 +6,14 @@ export const createClientTool = defineTool({
   name: 'create_client',
   description:
     `Create a new client when a client is not found. When the user's message clearly requests an action for this client, call directly — do not ask for confirmation. The user naming a client in an action request is implicit consent to create them.
-Requires first name and last name. Sets as active client and clears any active document.`,
+For individual (B2C): provide firstName and lastName. For company (B2B): provide companyName (and optionally siret, tvaNumber). Contact person firstName/lastName are optional for B2B.
+Sets as active client and clears any active document.`,
   schema: z.object({
-    firstName: z.string().min(1).max(100).describe('Client first name'),
-    lastName: z.string().min(1).max(100).describe('Client last name'),
+    firstName: z.string().min(1).max(100).optional().describe('Client first name (required for B2C, optional contact for B2B)'),
+    lastName: z.string().min(1).max(100).optional().describe('Client last name (required for B2C, optional contact for B2B)'),
+    companyName: z.string().min(1).max(255).optional().describe('Company name (B2B client). If set, client is treated as a company.'),
+    siret: z.string().max(14).optional().describe('Company SIRET number (B2B only, 14 digits)'),
+    tvaNumber: z.string().max(20).optional().describe('Company TVA intracommunautaire number (B2B only)'),
     email: z.string().email().optional().describe('Client email'),
     phone: z.string().max(30).optional().describe('Client phone'),
     address: z.string().max(500).optional().describe('Client full address'),
@@ -19,11 +23,14 @@ Requires first name and last name. Sets as active client and clears any active d
       teamId: ctx.teamId,
       firstName: args.firstName,
       lastName: args.lastName,
+      companyName: args.companyName,
+      siret: args.siret,
+      tvaNumber: args.tvaNumber,
       email: args.email,
       phone: args.phone,
       address: args.address,
     });
-    const name = `${client.firstName} ${client.lastName}`;
+    const name = client.displayName;
     const ref = ctx.registerRef('client', client.id);
     return {
       result: { ref, name },

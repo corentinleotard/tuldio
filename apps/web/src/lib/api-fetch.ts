@@ -3,12 +3,16 @@ export const API_URL =
   `${window.location.protocol}//${window.location.hostname}:3003`;
 
 export class ApiError extends Error {
+  public details: Array<{ code: string; message: string }> | null;
+
   constructor(
     public code: string,
     message: string,
+    details?: Array<{ code: string; message: string }>,
   ) {
     super(message);
     this.name = 'ApiError';
+    this.details = details ?? null;
   }
 }
 
@@ -67,7 +71,7 @@ export async function apiFetch<T>(path: string, options?: RequestInit): Promise<
   if (!res.ok) {
     const body = await res.json().catch(() => null);
     if (body?.error?.code && body?.error?.message) {
-      throw new ApiError(body.error.code, body.error.message);
+      throw new ApiError(body.error.code, body.error.message, body.error.details);
     }
     throw new ApiError('UNKNOWN', 'Une erreur est survenue');
   }

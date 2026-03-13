@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Mail, Phone, MapPin, FileText, Pencil, Check, X } from 'lucide-react';
+import { Mail, Phone, MapPin, FileText, Pencil, Check, X, Building2 } from 'lucide-react';
 import type { ClientView, QuoteView, InvoiceView } from '@tuldio/types';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -19,13 +19,16 @@ type Document = (QuoteView | InvoiceView) & { _type: 'quote' | 'invoice' };
 
 export function ClientDetail({ client }: ClientDetailProps) {
   const queryClient = useQueryClient();
-  const fullName = `${client.firstName} ${client.lastName}`;
+  const fullName = client.displayName;
 
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
-    firstName: client.firstName,
-    lastName: client.lastName,
+    firstName: client.firstName ?? '',
+    lastName: client.lastName ?? '',
+    companyName: client.companyName ?? '',
+    siret: client.siret ?? '',
+    tvaNumber: client.tvaNumber ?? '',
     email: client.email ?? '',
     phone: client.phone ?? '',
     address: client.address ?? '',
@@ -37,8 +40,11 @@ export function ClientDetail({ client }: ClientDetailProps) {
 
   function startEditing() {
     setForm({
-      firstName: client.firstName,
-      lastName: client.lastName,
+      firstName: client.firstName ?? '',
+      lastName: client.lastName ?? '',
+      companyName: client.companyName ?? '',
+      siret: client.siret ?? '',
+      tvaNumber: client.tvaNumber ?? '',
       email: client.email ?? '',
       phone: client.phone ?? '',
       address: client.address ?? '',
@@ -51,8 +57,11 @@ export function ClientDetail({ client }: ClientDetailProps) {
     try {
       await updateClient({
         id: client.id,
-        firstName: form.firstName,
-        lastName: form.lastName,
+        firstName: form.firstName || undefined,
+        lastName: form.lastName || undefined,
+        companyName: form.companyName || undefined,
+        siret: form.siret || undefined,
+        tvaNumber: form.tvaNumber || undefined,
         email: form.email || undefined,
         phone: form.phone || undefined,
         address: form.address || undefined,
@@ -98,7 +107,7 @@ export function ClientDetail({ client }: ClientDetailProps) {
     .filter(Boolean)
     .join(' · ');
 
-  const hasContact = client.email || client.phone || client.address;
+  const hasContact = client.email || client.phone || client.address || client.siret || client.tvaNumber;
 
   return (
     <div className="flex flex-col items-center p-5 md:p-8">
@@ -122,19 +131,27 @@ export function ClientDetail({ client }: ClientDetailProps) {
             className="h-[72px] w-[72px] bg-primary/10 text-2xl font-bold text-primary"
           />
           {editing ? (
-            <div className="flex w-full max-w-[320px] gap-2">
+            <div className="flex w-full max-w-[320px] flex-col gap-2">
               <Input
-                value={form.firstName}
-                onChange={(e) => setForm((f) => ({ ...f, firstName: e.target.value }))}
-                placeholder="Prenom"
+                value={form.companyName}
+                onChange={(e) => setForm((f) => ({ ...f, companyName: e.target.value }))}
+                placeholder="Raison sociale (entreprise)"
                 className="h-9 rounded-lg text-center text-sm"
               />
-              <Input
-                value={form.lastName}
-                onChange={(e) => setForm((f) => ({ ...f, lastName: e.target.value }))}
-                placeholder="Nom"
-                className="h-9 rounded-lg text-center text-sm"
-              />
+              <div className="flex gap-2">
+                <Input
+                  value={form.firstName}
+                  onChange={(e) => setForm((f) => ({ ...f, firstName: e.target.value }))}
+                  placeholder="Prenom"
+                  className="h-9 rounded-lg text-center text-sm"
+                />
+                <Input
+                  value={form.lastName}
+                  onChange={(e) => setForm((f) => ({ ...f, lastName: e.target.value }))}
+                  placeholder="Nom"
+                  className="h-9 rounded-lg text-center text-sm"
+                />
+              </div>
             </div>
           ) : (
             <h2 className="text-[22px] font-bold tracking-tight">{fullName}</h2>
@@ -176,6 +193,25 @@ export function ClientDetail({ client }: ClientDetailProps) {
                 className="h-9 rounded-lg text-sm"
               />
             </div>
+            <div className="flex items-center gap-3">
+              <Building2 className="h-4 w-4 shrink-0 text-muted-foreground" />
+              <Input
+                value={form.siret}
+                onChange={(e) => setForm((f) => ({ ...f, siret: e.target.value }))}
+                placeholder="SIRET"
+                className="h-9 rounded-lg text-sm"
+                maxLength={14}
+              />
+            </div>
+            <div className="flex items-center gap-3">
+              <Building2 className="h-4 w-4 shrink-0 text-muted-foreground" />
+              <Input
+                value={form.tvaNumber}
+                onChange={(e) => setForm((f) => ({ ...f, tvaNumber: e.target.value }))}
+                placeholder="N° TVA intracommunautaire"
+                className="h-9 rounded-lg text-sm"
+              />
+            </div>
             <div className="flex justify-end gap-2">
               <Button
                 size="sm"
@@ -190,7 +226,7 @@ export function ClientDetail({ client }: ClientDetailProps) {
                 size="sm"
                 className="gap-1"
                 onClick={handleSave}
-                disabled={saving || !form.firstName.trim() || !form.lastName.trim()}
+                disabled={saving || (!form.firstName.trim() && !form.lastName.trim() && !form.companyName.trim())}
               >
                 <Check className="h-3.5 w-3.5" /> Enregistrer
               </Button>
@@ -214,6 +250,18 @@ export function ClientDetail({ client }: ClientDetailProps) {
               <div className="flex items-center gap-3">
                 <MapPin className="h-4 w-4 shrink-0 text-muted-foreground" />
                 <span className="text-sm">{client.address}</span>
+              </div>
+            )}
+            {client.siret && (
+              <div className="flex items-center gap-3">
+                <Building2 className="h-4 w-4 shrink-0 text-muted-foreground" />
+                <span className="text-sm">SIRET : {client.siret}</span>
+              </div>
+            )}
+            {client.tvaNumber && (
+              <div className="flex items-center gap-3">
+                <Building2 className="h-4 w-4 shrink-0 text-muted-foreground" />
+                <span className="text-sm">TVA : {client.tvaNumber}</span>
               </div>
             )}
           </div>

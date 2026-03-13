@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   buildAcompteLines,
+  buildAcompteLinesByAmount,
   buildAvoirLines,
   buildSoldeLines,
   canCancelInvoice,
@@ -232,6 +233,156 @@ describe('buildAcompteLines', () => {
     expect(lines[1]!.unitPrice).toBe(15000);
     expect(lines[1]!.tvaRate).toBe(2000);
     // Total HT = 6000 + 15000 = 21000 = 30% of 70000 ✓
+  });
+});
+
+describe('buildAcompteLines with remaining base', () => {
+  it('computes acompte on remaining balance (single TVA rate)', () => {
+    // Quote: 200000 HT (2000€), existing acomptes: 26000 (260€ = 13% of total)
+    // Remaining per group: 200000 - 26000 = 174000
+    // 13% of remaining: 174000 * 13 / 100 = 22620
+    const quoteTotalHt = 200000;
+    const existingAcomptesHt = 26000;
+    const tvaGroups = [{ tvaRate: 2000, baseHt: 200000 }];
+
+    const baseGroups = tvaGroups.map((g) => ({
+      ...g,
+      baseHt: g.baseHt - Math.round(existingAcomptesHt * g.baseHt / quoteTotalHt),
+    }));
+
+    const lines = buildAcompteLines({
+      quoteTitle: null,
+      percentage: 13,
+      tvaGroups: baseGroups,
+    });
+
+    expect(lines).toHaveLength(1);
+    expect(lines[0]!.unitPrice).toBe(22620); // 13% of 174000
+  });
+
+  it('computes acompte on remaining balance (multi TVA rate)', () => {
+    // Quote: 50000 @20% + 20000 @5.5% = 70000 HT
+    // Existing acompte: 21000 HT (30% of total)
+    // Remaining @20%: 50000 - round(21000 * 50000 / 70000) = 50000 - 15000 = 35000
+    // Remaining @5.5%: 20000 - round(21000 * 20000 / 70000) = 20000 - 6000 = 14000
+    // 30% of remaining @20%: round(35000 * 30 / 100) = 10500
+    // 30% of remaining @5.5%: round(14000 * 30 / 100) = 4200
+    const quoteTotalHt = 70000;
+    const existingAcomptesHt = 21000;
+    const tvaGroups = [
+      { tvaRate: 2000, baseHt: 50000 },
+      { tvaRate: 550, baseHt: 20000 },
+    ];
+
+    const baseGroups = tvaGroups.map((g) => ({
+      ...g,
+      baseHt: g.baseHt - Math.round(existingAcomptesHt * g.baseHt / quoteTotalHt),
+    }));
+
+    const lines = buildAcompteLines({
+      quoteTitle: 'Rénovation',
+      percentage: 30,
+      tvaGroups: baseGroups,
+    });
+
+    expect(lines).toHaveLength(2);
+    expect(lines[0]!.unitPrice).toBe(10500); // 30% of 35000
+    expect(lines[0]!.tvaRate).toBe(2000);
+    expect(lines[1]!.unitPrice).toBe(4200);  // 30% of 14000
+    expect(lines[1]!.tvaRate).toBe(550);
+  });
+
+  it('remaining base with no existing acomptes equals total base', () => {
+    const quoteTotalHt = 100000;
+    const existingAcomptesHt = 0;
+    const tvaGroups = [{ tvaRate: 2000, baseHt: 100000 }];
+
+    const baseGroups = tvaGroups.map((g) => ({
+      ...g,
+      baseHt: g.baseHt - Math.round(existingAcomptesHt * g.baseHt / quoteTotalHt),
+    }));
+
+    const linesRemaining = buildAcompteLines({ quoteTitle: null, percentage: 30, tvaGroups: baseGroups });
+    const linesTotal = buildAcompteLines({ quoteTitle: null, percentage: 30, tvaGroups });
+
+    expect(linesRemaining[0]!.unitPrice).toBe(linesTotal[0]!.unitPrice);
+  });
+});
+
+describe('buildAcompteLinesByAmount', () => {
+  it('builds acompte lines from fixed amount — single TVA rate', () => {
+    const lines = buildAcompteLinesByAmount({
+      quoteTitle: 'Rénovation SDB',
+      amountHt: 20000, // 200€
+      tvaGroups: [{ tvaRate: 2000, baseHt: 100000 }],
+    });
+
+    expect(lines).toHaveLength(1);
+    expect(lines[0]!.description).toBe('Acompte — Rénovation SDB');
+    expect(lines[0]!.unitPrice).toBe(20000);
+    expect(lines[0]!.quantity).toBe(1);
+    expect(lines[0]!.unit).toBe('forfait');
+    expect(lines[0]!.tvaRate).toBe(2000);
+  });
+
+  it('prorates across multiple TVA rates', () => {
+    // Quote: 50000 @20% + 20000 @5.5% = 70000 HT
+    // Amount: 21000 HT (300€)
+    // @20%: round(21000 * 50000 / 70000) = round(15000) = 15000
+    // @5.5%: 21000 - 15000 = 6000 (remainder)
+    const lines = buildAcompteLinesByAmount({
+      quoteTitle: null,
+      amountHt: 21000,
+      tvaGroups: [
+        { tvaRate: 2000, baseHt: 50000 },
+        { tvaRate: 550, baseHt: 20000 },
+      ],
+    });
+
+    expect(lines).toHaveLength(2);
+    expect(lines[0]!.unitPrice).toBe(15000);
+    expect(lines[0]!.tvaRate).toBe(2000);
+    expect(lines[1]!.unitPrice).toBe(6000);
+    expect(lines[1]!.tvaRate).toBe(550);
+    // Sum must equal the input amount
+    expect(lines[0]!.unitPrice + lines[1]!.unitPrice).toBe(21000);
+  });
+
+  it('last group absorbs rounding remainder', () => {
+    // 10000 split across 3 groups of 33333 each
+    // round(10000 * 33333 / 99999) = round(3333.3) = 3333
+    // round(10000 * 33333 / 99999) = 3333
+    // remainder: 10000 - 3333 - 3333 = 3334
+    const lines = buildAcompteLinesByAmount({
+      quoteTitle: null,
+      amountHt: 10000,
+      tvaGroups: [
+        { tvaRate: 2000, baseHt: 33333 },
+        { tvaRate: 1000, baseHt: 33333 },
+        { tvaRate: 550, baseHt: 33333 },
+      ],
+    });
+
+    expect(lines).toHaveLength(3);
+    expect(lines[0]!.unitPrice + lines[1]!.unitPrice + lines[2]!.unitPrice).toBe(10000);
+  });
+
+  it('returns empty array when quote has no lines', () => {
+    const lines = buildAcompteLinesByAmount({
+      quoteTitle: null,
+      amountHt: 20000,
+      tvaGroups: [],
+    });
+    expect(lines).toEqual([]);
+  });
+
+  it('builds label without title', () => {
+    const lines = buildAcompteLinesByAmount({
+      quoteTitle: null,
+      amountHt: 5000,
+      tvaGroups: [{ tvaRate: 2000, baseHt: 100000 }],
+    });
+    expect(lines[0]!.description).toBe('Acompte');
   });
 });
 

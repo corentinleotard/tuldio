@@ -12,6 +12,8 @@ export interface PdfTeam {
 
 export interface PdfClient {
   name: string;
+  siret: string | null;
+  tvaNumber: string | null;
   email: string | null;
   phone: string | null;
   address: string | null;

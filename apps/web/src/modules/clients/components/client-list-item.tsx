@@ -1,4 +1,4 @@
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, Building2 } from 'lucide-react';
 import type { ClientView } from '@tuldio/types';
 import { Avatar } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
@@ -10,7 +10,8 @@ interface ClientListItemProps {
 }
 
 export function ClientListItem({ client, isSelected, onClick }: ClientListItemProps) {
-  const fullName = `${client.lastName} ${client.firstName}`;
+  const fullName = client.displayName;
+  const isB2B = !!client.companyName;
   const subtitle = client.email ?? client.phone ?? '';
 
   return (
@@ -31,7 +32,10 @@ export function ClientListItem({ client, isSelected, onClick }: ClientListItemPr
         )}
       />
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-semibold">{fullName}</p>
+        <p className="flex items-center gap-1.5 truncate text-sm font-semibold">
+          {isB2B && <Building2 className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />}
+          {fullName}
+        </p>
         {subtitle && (
           <p className="truncate text-xs text-muted-foreground">{subtitle}</p>
         )}

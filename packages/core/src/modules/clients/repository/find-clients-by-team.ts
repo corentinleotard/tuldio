@@ -7,7 +7,7 @@ export async function findClientsByTeam(input: {
 }): Promise<ClientRow[]> {
   const limit = input.limit ?? 1000;
   const result = await query<ClientRow>(
-    'SELECT id, team_id, first_name, last_name, email, phone, address, notes, created_at FROM clients WHERE team_id = $1 ORDER BY last_name ASC, first_name ASC LIMIT $2',
+    'SELECT id, team_id, first_name, last_name, company_name, siret, tva_number, email, phone, address, notes, created_at FROM clients WHERE team_id = $1 ORDER BY COALESCE(company_name, last_name) ASC, first_name ASC LIMIT $2',
     [input.teamId, limit],
   );
 

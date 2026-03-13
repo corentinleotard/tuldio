@@ -21,7 +21,7 @@ export function RichCardClientPicker({ data, onSelect }: RichCardClientPickerPro
           </div>
           <div className="min-w-0 flex-1">
             <p className="text-sm font-medium">
-              {client.firstName} {client.lastName}
+              {client.displayName}
             </p>
             <div className="mt-1 flex flex-col gap-0.5">
               {client.phone && (

@@ -22,11 +22,16 @@ export function isValidTvaRate(rate: number): boolean {
   return (VALID_TVA_RATES as readonly number[]).includes(rate);
 }
 
+/** Round quantity to 2 decimal places to match DB NUMERIC(10,2) storage. */
+export function normalizeQuantity(quantity: number): number {
+  return Math.round(quantity * 100) / 100;
+}
+
 export function computeLineTotal(input: {
   quantity: number;
   unitPrice: number;
 }): number {
-  return Math.round(input.quantity * input.unitPrice);
+  return Math.round(normalizeQuantity(input.quantity) * input.unitPrice);
 }
 
 export function computeTva(input: {
@@ -58,6 +63,13 @@ export function resolveTvaRate(input: {
   tvaExempt: boolean;
 }): number {
   return input.tvaExempt ? 0 : input.requestedRate;
+}
+
+export function computeDeposit(input: {
+  totalTtc: number;
+  depositPercent: number;
+}): number {
+  return Math.round(input.totalTtc * input.depositPercent / 100);
 }
 
 export function computeDocumentTotals(lines: DocumentLine[]): DocumentTotals {

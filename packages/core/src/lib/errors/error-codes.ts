@@ -144,6 +144,11 @@ export const errorCodes = {
     statusCode: 409,
     message: 'Un client avec ce numéro de téléphone existe déjà',
   },
+  clientDuplicateSiret: {
+    code: 'CLIENT_DUPLICATE_SIRET',
+    statusCode: 409,
+    message: 'Un client avec ce SIRET existe déjà',
+  },
   invalidInput: {
     code: 'INVALID_INPUT',
     statusCode: 400,
@@ -183,6 +188,11 @@ export const errorCodes = {
     code: 'SOLDE_ALREADY_EXISTS',
     statusCode: 409,
     message: 'Une facture de solde existe déjà pour ce devis',
+  },
+  documentNotReady: {
+    code: 'DOCUMENT_NOT_READY',
+    statusCode: 422,
+    message: 'Le document ne peut pas être envoyé : informations obligatoires manquantes',
   },
 } as const;
 

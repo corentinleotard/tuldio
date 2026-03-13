@@ -8,6 +8,9 @@ export async function updateClient(input: {
   clientId: string;
   firstName?: string;
   lastName?: string;
+  companyName?: string;
+  siret?: string;
+  tvaNumber?: string;
   email?: string;
   phone?: string;
   address?: string;
@@ -16,15 +19,12 @@ export async function updateClient(input: {
   const params: unknown[] = [];
   let idx = 1;
 
-  if (
-    input.firstName === undefined &&
-    input.lastName === undefined &&
-    input.email === undefined &&
-    input.phone === undefined &&
-    input.address === undefined
-  ) {
+  const updatableKeys = ['firstName', 'lastName', 'companyName', 'siret', 'tvaNumber', 'email', 'phone', 'address'] as const;
+  const hasUpdate = updatableKeys.some((k) => input[k] !== undefined);
+
+  if (!hasUpdate) {
     const result = await query<ClientRow>(
-      `SELECT id, team_id, first_name, last_name, email, phone, address, notes, created_at FROM clients WHERE id = $1 AND team_id = $2`,
+      `SELECT id, team_id, first_name, last_name, company_name, siret, tva_number, email, phone, address, notes, created_at FROM clients WHERE id = $1 AND team_id = $2`,
       [input.clientId, input.teamId],
     );
     return result.rows[0]!;
@@ -37,6 +37,18 @@ export async function updateClient(input: {
   if (input.lastName !== undefined) {
     fields.push(`last_name = $${idx++}`);
     params.push(input.lastName);
+  }
+  if (input.companyName !== undefined) {
+    fields.push(`company_name = $${idx++}`);
+    params.push(input.companyName);
+  }
+  if (input.siret !== undefined) {
+    fields.push(`siret = $${idx++}`);
+    params.push(input.siret);
+  }
+  if (input.tvaNumber !== undefined) {
+    fields.push(`tva_number = $${idx++}`);
+    params.push(input.tvaNumber);
   }
   if (input.email !== undefined) {
     fields.push(`email = $${idx++}`);
@@ -60,7 +72,7 @@ export async function updateClient(input: {
     const result = await query<ClientRow>(
       `UPDATE clients SET ${fields.join(', ')}
        WHERE id = $${clientIdIdx} AND team_id = $${teamIdIdx}
-       RETURNING id, team_id, first_name, last_name, email, phone, address, notes, created_at`,
+       RETURNING id, team_id, first_name, last_name, company_name, siret, tva_number, email, phone, address, notes, created_at`,
       params,
     );
 
@@ -73,6 +85,9 @@ export async function updateClient(input: {
       }
       if (pgError.constraint === 'idx_clients_team_phone') {
         throw new HandledError(errorCodes.clientDuplicatePhone);
+      }
+      if (pgError.constraint === 'idx_clients_team_siret') {
+        throw new HandledError(errorCodes.clientDuplicateSiret);
       }
     }
     throw err;

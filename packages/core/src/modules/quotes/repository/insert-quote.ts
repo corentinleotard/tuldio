@@ -1,7 +1,7 @@
 import { query } from '../../../lib/database/db.js';
 import { generateId } from '../../../lib/infra/id.js';
 import type { QuoteRow } from '../domain/quote.entity.js';
-import type { InsertDocumentLine } from '../../shared/domain/document-validators.js';
+import type { InsertDocumentLine } from '../../documents/domain/document-validators.js';
 
 export type { InsertDocumentLine as InsertQuoteLine };
 

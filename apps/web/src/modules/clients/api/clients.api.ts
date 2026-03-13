@@ -17,6 +17,9 @@ export async function updateClient(input: {
   id: string;
   firstName?: string;
   lastName?: string;
+  companyName?: string;
+  siret?: string;
+  tvaNumber?: string;
   email?: string;
   phone?: string;
   address?: string;

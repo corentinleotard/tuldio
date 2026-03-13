@@ -5,12 +5,12 @@ import { resolveClient } from '../../../modules/clients/index.js';
 export const findClientsTool = defineTool({
   name: 'find_clients',
   description:
-    `Search for clients by name (fuzzy matching). Returns a list of matches with refs.
-Use this to find a client before performing actions on them. If the user mentions a client name, call this first to get the ref.
+    `Search for clients by name or company name (fuzzy matching). Returns a list of matches with refs.
+Use this to find a client before performing actions on them. If the user mentions a client name or company name, call this first to get the ref.
 If exactly one match is found, proceed with the action. If multiple matches, ask the user to pick.
 If no match is found and the user's intent is clear (e.g. "crée un devis pour X"), create the client directly with create_client and continue — do not ask for confirmation.`,
   schema: z.object({
-    search: z.string().min(1).max(200).describe('Client name or search term'),
+    search: z.string().min(1).max(200).describe('Client name, company name, or search term'),
   }),
   handler: async (args, ctx): Promise<ToolResult> => {
     const resolution = await resolveClient({ teamId: ctx.teamId, search: args.search });
@@ -21,7 +21,7 @@ If no match is found and the user's intent is clear (e.g. "crée un devis pour X
         result: {
           clients: [{
             ref,
-            name: `${resolution.client.firstName} ${resolution.client.lastName}`,
+            name: resolution.client.displayName,
             email: resolution.client.email,
             phone: resolution.client.phone,
           }],
@@ -30,11 +30,11 @@ If no match is found and the user's intent is clear (e.g. "crée un devis pour X
     }
 
     if (resolution.status === 'ambiguous' && resolution.candidates) {
-      const clients = resolution.candidates.map((c: { id: string; firstName: string; lastName: string; email: string | null; phone: string | null }) => {
+      const clients = resolution.candidates.map((c) => {
         const ref = ctx.registerRef('client', c.id);
         return {
           ref,
-          name: `${c.firstName} ${c.lastName}`,
+          name: c.displayName,
           email: c.email,
           phone: c.phone,
         };

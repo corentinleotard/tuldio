@@ -91,8 +91,12 @@ export interface ClientNote {
 
 export interface ClientView {
   id: string;
-  firstName: string;
-  lastName: string;
+  firstName: string | null;
+  lastName: string | null;
+  companyName: string | null;
+  siret: string | null;
+  tvaNumber: string | null;
+  displayName: string;
   email: string | null;
   phone: string | null;
   address: string | null;
@@ -101,8 +105,11 @@ export interface ClientView {
 }
 
 export interface CreateClientRequest {
-  firstName: string;
-  lastName: string;
+  firstName?: string;
+  lastName?: string;
+  companyName?: string;
+  siret?: string;
+  tvaNumber?: string;
   email?: string;
   phone?: string;
   address?: string;

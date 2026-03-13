@@ -3,6 +3,7 @@ import { HandledError } from '../../../lib/errors/handled-error.js';
 import { errorCodes } from '../../../lib/errors/error-codes.js';
 import { findInvoiceById } from '../repository/find-invoice-by-id.js';
 import { findClientById } from '../../clients/repository/find-client-by-id.js';
+import { getClientDisplayName } from '../../clients/domain/get-client-display-name.js';
 import { toInvoiceView } from './create-invoice.js';
 
 export async function getInvoice(input: {
@@ -24,7 +25,7 @@ export async function getInvoice(input: {
   }
 
   return toInvoiceView(invoice, {
-    clientName: client ? `${client.first_name} ${client.last_name}` : undefined,
+    clientName: client ? getClientDisplayName(client) : undefined,
     clientEmail: client?.email ?? undefined,
     sourceInvoiceNumber,
   });

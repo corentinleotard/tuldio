@@ -76,7 +76,6 @@ export async function processTeamDocument(input: {
 
   // 1. Reset only fields that were extracted (preserve defaults for unextracted fields)
   for (const row of fieldRows) {
-    if (row.key === 'original_document_url') continue;
     if (!extractedDbKeys.has(row.key)) continue;
     await upsertTeamField({ teamId: input.teamId, fieldId: row.id, value: '' });
   }

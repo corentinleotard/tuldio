@@ -10,6 +10,7 @@ import { getCurrentUser } from '../../modules/users/index.js';
 import { getTeam } from '../../modules/teams/index.js';
 import { getDemandState, upsertDemandState, clearDemandState } from '../../modules/demands/index.js';
 import { findClientById } from '../../modules/clients/repository/find-client-by-id.js';
+import { getClientDisplayName } from '../../modules/clients/domain/get-client-display-name.js';
 import { getQuote } from '../../modules/quotes/index.js';
 import { getInvoice } from '../../modules/invoices/index.js';
 import { logger } from '../infra/logger.js';
@@ -93,7 +94,7 @@ export async function processMessage(input: {
   if (metadata?.selectedClientId) {
     const client = await findClientById({ teamId, clientId: metadata.selectedClientId });
     if (client) {
-      const clientName = `${client.first_name} ${client.last_name}`;
+      const clientName = getClientDisplayName(client);
       activeState = { client: { id: metadata.selectedClientId, name: clientName }, document: null };
       await upsertDemandState({ userId, teamId, state: toDbState(activeState) });
     }

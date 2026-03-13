@@ -7,6 +7,7 @@ import { findInvoiceById } from '../repository/find-invoice-by-id.js';
 import { insertInvoice } from '../repository/insert-invoice.js';
 import { updateInvoiceAvoirId } from '../repository/update-invoice-avoir-id.js';
 import { findClientById } from '../../clients/repository/find-client-by-id.js';
+import { getClientDisplayName } from '../../clients/domain/get-client-display-name.js';
 import { findTeamById } from '../../teams/repository/find-team-by-id.js';
 import { toInvoiceView } from './create-invoice.js';
 
@@ -68,7 +69,7 @@ export async function createAvoir(input: {
   const full = await findInvoiceById({ teamId: input.teamId, invoiceId: avoir.id });
 
   return toInvoiceView(full!, {
-    clientName: client ? `${client.first_name} ${client.last_name}` : undefined,
+    clientName: client ? getClientDisplayName(client) : undefined,
     clientEmail: client?.email ?? undefined,
     sourceInvoiceNumber: source.number,
   });

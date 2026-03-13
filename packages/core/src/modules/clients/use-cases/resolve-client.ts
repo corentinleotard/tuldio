@@ -1,5 +1,6 @@
 import { findClientByEmail } from '../repository/find-client-by-email.js';
 import { findClientByPhone } from '../repository/find-client-by-phone.js';
+import { findClientBySiret } from '../repository/find-client-by-siret.js';
 import { searchClients } from '../repository/search-clients.js';
 import { toClientView, type ClientView } from '../domain/client.view.js';
 
@@ -28,8 +29,9 @@ export async function resolveClient(input: {
   search: string;
   email?: string;
   phone?: string;
+  siret?: string;
 }): Promise<ClientResolution> {
-  const { teamId, search, email, phone } = input;
+  const { teamId, search, email, phone, siret } = input;
 
   // Hard match: email (unique per team)
   if (email) {
@@ -44,6 +46,14 @@ export async function resolveClient(input: {
     const byPhone = await findClientByPhone({ teamId, phone });
     if (byPhone) {
       return { status: 'exact_match', client: toClientView(byPhone) };
+    }
+  }
+
+  // Hard match: SIRET (unique per team, B2B)
+  if (siret) {
+    const bySiret = await findClientBySiret({ teamId, siret });
+    if (bySiret) {
+      return { status: 'exact_match', client: toClientView(bySiret) };
     }
   }
 

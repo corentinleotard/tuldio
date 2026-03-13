@@ -10,7 +10,8 @@ export function useGroupedClients(clients: ClientView[]): GroupedClients[] {
   return useMemo(() => {
     const groups = new Map<string, ClientView[]>();
     for (const client of clients) {
-      const letter = client.lastName.charAt(0).toUpperCase();
+      const sortKey = client.companyName ?? client.lastName ?? client.firstName ?? '';
+      const letter = sortKey.charAt(0).toUpperCase() || '#';
       if (!groups.has(letter)) groups.set(letter, []);
       groups.get(letter)!.push(client);
     }

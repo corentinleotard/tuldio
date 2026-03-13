@@ -6,11 +6,12 @@ import { canInvoiceQuote, shouldAutoAcceptQuote } from '../../quotes/domain/vali
 import { findQuoteById } from '../../quotes/repository/find-quote-by-id.js';
 import { updateQuoteStatus } from '../../quotes/repository/update-quote-status.js';
 import { findClientById } from '../../clients/repository/find-client-by-id.js';
+import { getClientDisplayName } from '../../clients/domain/get-client-display-name.js';
 import { findTeamById } from '../../teams/repository/find-team-by-id.js';
 import { isFieldTrue } from '../../teams/domain/team-field.entity.js';
 import { findTeamFieldByKey } from '../../teams/repository/find-team-field-by-key.js';
-import { computeDueDate, buildAcompteLines, computeInvoiceTotals, buildSoldeLines } from '../domain/validators.js';
-import { computeLineTotal, resolveTvaRate, groupByTva } from '../../shared/domain/document-math.js';
+import { computeDueDate, buildAcompteLines, buildAcompteLinesByAmount, computeInvoiceTotals, buildSoldeLines } from '../domain/validators.js';
+import { computeLineTotal, resolveTvaRate, groupByTva } from '../../documents/domain/document-math.js';
 import { insertInvoice } from '../repository/insert-invoice.js';
 import { findInvoiceById } from '../repository/find-invoice-by-id.js';
 import { findInvoicesByQuote } from '../repository/find-invoices-by-quote.js';
@@ -24,6 +25,8 @@ export async function createInvoiceFromQuote(input: {
   prestationDate?: Date;
   invoiceType?: InvoiceType;
   depositPercent?: number;
+  depositAmount?: number;
+  depositBase?: 'total' | 'remaining';
 }): Promise<InvoiceView> {
   const quote = await findQuoteById({
     teamId: input.teamId,
@@ -63,9 +66,6 @@ export async function createInvoiceFromQuote(input: {
   let resolvedInvoiceType: InvoiceType;
 
   if (input.invoiceType === 'acompte') {
-    // Acompte: single deposit line based on percentage
-    const percent = input.depositPercent ?? 30;
-
     // Guard: sum of existing sent/paid acomptes + new acompte must be strictly less than quote total
     const existingAcomptes = await findInvoicesByQuote({
       teamId: input.teamId,
@@ -73,10 +73,6 @@ export async function createInvoiceFromQuote(input: {
       invoiceType: 'acompte',
     });
     const existingAcomptesHt = existingAcomptes.reduce((sum, inv) => sum + inv.total_ht, 0);
-    const newAcompteHt = Math.round(quote.total_ht * percent / 100);
-    if (existingAcomptesHt + newAcompteHt >= quote.total_ht) {
-      throw new HandledError(errorCodes.acompteExceedsQuote);
-    }
 
     const tvaExemptField = await findTeamFieldByKey({ teamId: input.teamId, key: 'tva_exempt' });
     const tvaExempt = isFieldTrue(tvaExemptField);
@@ -89,11 +85,36 @@ export async function createInvoiceFromQuote(input: {
     }));
     const tvaGroups = groupByTva(quoteLinesForGrouping);
 
-    const acompteLinesList = buildAcompteLines({
-      quoteTitle: quote.title,
-      percentage: percent,
-      tvaGroups,
-    });
+    let acompteLinesList: Array<{ description: string; quantity: number; unit: string; unitPrice: number; tvaRate: number }>;
+
+    if (input.depositAmount) {
+      // Fixed amount: prorate across TVA groups
+      acompteLinesList = buildAcompteLinesByAmount({
+        quoteTitle: quote.title,
+        amountHt: input.depositAmount,
+        tvaGroups,
+      });
+    } else {
+      // Percentage-based
+      const percent = input.depositPercent ?? 30;
+      const baseGroups = input.depositBase === 'remaining'
+        ? tvaGroups.map((g) => ({
+          ...g,
+          baseHt: g.baseHt - Math.round(existingAcomptesHt * g.baseHt / quote.total_ht),
+        }))
+        : tvaGroups;
+
+      acompteLinesList = buildAcompteLines({
+        quoteTitle: quote.title,
+        percentage: percent,
+        tvaGroups: baseGroups,
+      });
+    }
+
+    const newAcompteHt = acompteLinesList.reduce((sum, l) => sum + Math.round(l.unitPrice * l.quantity), 0);
+    if (existingAcomptesHt + newAcompteHt >= quote.total_ht) {
+      throw new HandledError(errorCodes.acompteExceedsQuote);
+    }
 
     insertLines = acompteLinesList.map((l) => ({
       description: l.description,
@@ -189,7 +210,7 @@ export async function createInvoiceFromQuote(input: {
   const full = await findInvoiceById({ teamId: input.teamId, invoiceId: invoice.id });
 
   return toInvoiceView(full!, {
-    clientName: client ? `${client.first_name} ${client.last_name}` : undefined,
+    clientName: client ? getClientDisplayName(client) : undefined,
     clientEmail: client?.email ?? undefined,
   });
 }

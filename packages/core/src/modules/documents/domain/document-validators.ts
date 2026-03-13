@@ -11,8 +11,10 @@ export interface DocumentLineInput {
 export function validateDocumentLine(line: DocumentLineInput): string[] {
   const errors: string[] = [];
   if (!line.description.trim()) errors.push('description is required');
-  if (line.quantity <= 0) errors.push('quantity must be > 0');
-  if (line.unitPrice < 0) errors.push('unitPrice must be >= 0');
+  if (!Number.isFinite(line.quantity) || line.quantity <= 0) errors.push('quantity must be > 0');
+  if (!Number.isFinite(line.unitPrice) || line.unitPrice < 0) errors.push('unitPrice must be >= 0');
+  if (!Number.isInteger(line.unitPrice)) errors.push('unitPrice must be an integer (cents)');
+  if (!Number.isInteger(line.tvaRate)) errors.push('tvaRate must be an integer (basis points)');
   if (!isValidTvaRate(line.tvaRate)) errors.push(`invalid tvaRate: ${line.tvaRate}`);
   return errors;
 }

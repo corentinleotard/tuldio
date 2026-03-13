@@ -75,7 +75,7 @@ export function ChatMessageList({
   }, [onLoadOlder]);
 
   function handleClientSelect(client: ClientView) {
-    onSendMessage(`C'est ${client.firstName} ${client.lastName}`, {
+    onSendMessage(`C'est ${client.displayName}`, {
       selectedClientId: client.id,
     });
   }

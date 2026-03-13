@@ -24,7 +24,7 @@ export async function findQuotesByTeam(input: {
   params.push(limit);
 
   const result = await query<QuoteWithClient>(
-    `SELECT q.id, q.team_id, q.created_by, q.client_id, q.number, q.title, q.total_ht, q.total_ttc, q.status, q.pdf_url, q.valid_until, q.sent_at, q.accepted_at, q.refused_at, q.cancelled_at, q.created_at, c.first_name || ' ' || c.last_name AS client_name, c.email AS client_email, c.phone AS client_phone
+    `SELECT q.id, q.team_id, q.created_by, q.client_id, q.number, q.title, q.total_ht, q.total_ttc, q.status, q.pdf_url, q.valid_until, q.sent_at, q.accepted_at, q.refused_at, q.cancelled_at, q.created_at, COALESCE(c.company_name, COALESCE(c.first_name, '') || ' ' || COALESCE(c.last_name, '')) AS client_name, c.email AS client_email, c.phone AS client_phone
      FROM quotes q
      JOIN clients c ON c.id = q.client_id
      ${where}

@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import {
+  computeDeposit,
   computeDocumentTotals,
   computeLineTotal,
   computeTva,
   groupByTva,
   isValidTvaRate,
+  normalizeQuantity,
   resolveTvaRate,
 } from './document-math.js';
 
@@ -42,6 +44,54 @@ describe('computeLineTotal', () => {
 
   it('handles zero quantity', () => {
     expect(computeLineTotal({ quantity: 0, unitPrice: 4500 })).toBe(0);
+  });
+
+  it('handles JS floating point quirks with Math.round', () => {
+    // 0.1 normalized to 0.1, 0.1 * 3 = 0.3 → Math.round = 0
+    expect(computeLineTotal({ quantity: 0.1, unitPrice: 3 })).toBe(0);
+
+    // 1.1 * 333 = 366.3 → 366
+    expect(computeLineTotal({ quantity: 1.1, unitPrice: 333 })).toBe(366);
+
+    // 2.7 * 4999 = 13497.3 → 13497
+    expect(computeLineTotal({ quantity: 2.7, unitPrice: 4999 })).toBe(13497);
+  });
+
+  it('normalizes quantity to 2 decimals before computing', () => {
+    // 1.555 normalized to 1.56 → 1.56 * 10000 = 15600
+    // Without normalization would be: Math.round(1.555 * 10000) = 15550
+    // This ensures total_ht matches quantity × unitPrice when recalculated from DB
+    expect(computeLineTotal({ quantity: 1.555, unitPrice: 10000 })).toBe(15600);
+
+    // 3.333 normalized to 3.33 → 3.33 * 5000 = 16650
+    expect(computeLineTotal({ quantity: 3.333, unitPrice: 5000 })).toBe(16650);
+
+    // 0.999 normalized to 1.0 → 1.0 * 10000 = 10000
+    expect(computeLineTotal({ quantity: 0.999, unitPrice: 10000 })).toBe(10000);
+  });
+
+  it('handles large values without overflow', () => {
+    // 99999.99 quantity × 100_000_000 unitPrice (1M€) = 9_999_999_000_000
+    // Within JS safe integer range (2^53 - 1 = 9_007_199_254_740_991)
+    expect(computeLineTotal({ quantity: 99999.99, unitPrice: 100_000_000 })).toBe(9_999_999_000_000);
+  });
+});
+
+describe('normalizeQuantity', () => {
+  it('keeps 2-decimal quantities unchanged', () => {
+    expect(normalizeQuantity(2.5)).toBe(2.5);
+    expect(normalizeQuantity(10.25)).toBe(10.25);
+  });
+
+  it('rounds to 2 decimal places', () => {
+    expect(normalizeQuantity(1.555)).toBe(1.56);
+    expect(normalizeQuantity(3.333)).toBe(3.33);
+    expect(normalizeQuantity(0.999)).toBe(1);
+  });
+
+  it('keeps integers unchanged', () => {
+    expect(normalizeQuantity(5)).toBe(5);
+    expect(normalizeQuantity(0)).toBe(0);
   });
 });
 
@@ -113,6 +163,21 @@ describe('resolveTvaRate', () => {
     expect(resolveTvaRate({ requestedRate: 2000, tvaExempt: false })).toBe(2000);
     expect(resolveTvaRate({ requestedRate: 550, tvaExempt: false })).toBe(550);
     expect(resolveTvaRate({ requestedRate: 0, tvaExempt: false })).toBe(0);
+  });
+});
+
+describe('computeDeposit', () => {
+  it('computes 30% deposit', () => {
+    expect(computeDeposit({ totalTtc: 120000, depositPercent: 30 })).toBe(36000);
+  });
+
+  it('rounds to nearest cent', () => {
+    // 95998 * 30 / 100 = 28799.4 → 28799
+    expect(computeDeposit({ totalTtc: 95998, depositPercent: 30 })).toBe(28799);
+  });
+
+  it('handles 100%', () => {
+    expect(computeDeposit({ totalTtc: 50000, depositPercent: 100 })).toBe(50000);
   });
 });
 

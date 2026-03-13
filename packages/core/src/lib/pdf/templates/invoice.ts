@@ -99,6 +99,8 @@ export function renderInvoiceHtml(input: {
         <div class="client-name">${esc(client.name)}</div>
         <div class="client-info">
           ${client.address ? `${esc(client.address)}<br>` : ''}
+          ${client.siret ? `SIRET : ${esc(formatSiret(client.siret))}<br>` : ''}
+          ${client.tvaNumber ? `TVA : ${esc(client.tvaNumber)}<br>` : ''}
           ${client.phone ? `${esc(client.phone)}<br>` : ''}
           ${client.email ? esc(client.email) : ''}
         </div>

@@ -3,13 +3,16 @@ import { HandledError } from '../../../lib/errors/handled-error.js';
 import { errorCodes } from '../../../lib/errors/error-codes.js';
 import { logger } from '../../../lib/infra/logger.js';
 import { validateInvoiceStatusTransition } from '../domain/validators.js';
+import { validateDocumentReady } from '../../documents/domain/validate-document-ready.js';
+import { fetchDocumentContext } from '../../documents/repository/fetch-document-context.js';
 import { findInvoiceById } from '../repository/find-invoice-by-id.js';
 import { updateInvoiceStatus } from '../repository/update-invoice-status.js';
 import { updateInvoicePdfUrl } from '../repository/update-invoice-pdf-url.js';
 import { generatePdf } from '../../../lib/pdf/generate-pdf.js';
 import { buildDocumentPdfInput } from '../../../lib/pdf/build-document-pdf-input.js';
 import { findClientById } from '../../clients/repository/find-client-by-id.js';
-import { toLineViews, toTvaGroups } from '../../shared/domain/to-line-views.js';
+import { getClientDisplayName } from '../../clients/domain/get-client-display-name.js';
+import { toLineViews, toTvaGroups } from '../../documents/domain/to-line-views.js';
 import { toInvoiceView } from './create-invoice.js';
 import { createAvoir } from './create-avoir.js';
 
@@ -36,7 +39,7 @@ export async function updateInvoiceStatusUc(input: {
     if (!full) throw new HandledError(errorCodes.invoiceNotFound);
     const client = await findClientById({ teamId: input.teamId, clientId: full.client_id });
     return toInvoiceView(full, {
-      clientName: client ? `${client.first_name} ${client.last_name}` : undefined,
+      clientName: client ? getClientDisplayName(client) : undefined,
       clientEmail: client?.email ?? undefined,
     });
   }
@@ -49,6 +52,25 @@ export async function updateInvoiceStatusUc(input: {
   });
   if (!isValid) {
     throw new HandledError(errorCodes.invalidStatusTransition);
+  }
+
+  // Validate document readiness when leaving draft
+  if (invoice.status === 'draft') {
+    const { team, client: clientRow, teamFields } = await fetchDocumentContext({
+      teamId: input.teamId,
+      clientId: invoice.client_id,
+    });
+
+    const readinessErrors = validateDocumentReady({
+      documentType: 'invoice',
+      team: { name: team.name },
+      teamFields,
+      client: { firstName: clientRow.first_name, lastName: clientRow.last_name, companyName: clientRow.company_name, siret: clientRow.siret, address: clientRow.address },
+      lines: invoice.lines,
+    });
+    if (readinessErrors.length > 0) {
+      throw new HandledError(errorCodes.documentNotReady, readinessErrors[0]!.message, readinessErrors);
+    }
   }
 
   // Freeze PDF when leaving draft
@@ -103,7 +125,7 @@ export async function updateInvoiceStatusUc(input: {
   }
 
   return toInvoiceView(full, {
-    clientName: client ? `${client.first_name} ${client.last_name}` : undefined,
+    clientName: client ? getClientDisplayName(client) : undefined,
     clientEmail: client?.email ?? undefined,
     sourceInvoiceNumber,
   });

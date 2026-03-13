@@ -7,8 +7,11 @@ import type { ClientRow } from '../domain/client.entity.js';
 
 const insertClientSchema = z.object({
   teamId: z.string().uuid(),
-  firstName: z.string().min(1),
-  lastName: z.string().min(1),
+  firstName: z.string().min(1).optional(),
+  lastName: z.string().min(1).optional(),
+  companyName: z.string().min(1).optional(),
+  siret: z.string().optional(),
+  tvaNumber: z.string().optional(),
   email: z.string().optional(),
   phone: z.string().optional(),
   address: z.string().optional(),
@@ -16,8 +19,11 @@ const insertClientSchema = z.object({
 
 export async function insertClient(input: {
   teamId: string;
-  firstName: string;
-  lastName: string;
+  firstName?: string;
+  lastName?: string;
+  companyName?: string;
+  siret?: string;
+  tvaNumber?: string;
   email?: string;
   phone?: string;
   address?: string;
@@ -27,14 +33,17 @@ export async function insertClient(input: {
 
   try {
     const result = await query<ClientRow>(
-      `INSERT INTO clients (id, team_id, first_name, last_name, email, phone, address)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)
-       RETURNING id, team_id, first_name, last_name, email, phone, address, notes, created_at`,
+      `INSERT INTO clients (id, team_id, first_name, last_name, company_name, siret, tva_number, email, phone, address)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+       RETURNING id, team_id, first_name, last_name, company_name, siret, tva_number, email, phone, address, notes, created_at`,
       [
         id,
         validated.teamId,
-        validated.firstName,
-        validated.lastName,
+        validated.firstName ?? null,
+        validated.lastName ?? null,
+        validated.companyName ?? null,
+        validated.siret ?? null,
+        validated.tvaNumber ?? null,
         validated.email ?? null,
         validated.phone ?? null,
         validated.address ?? null,
@@ -50,6 +59,9 @@ export async function insertClient(input: {
       }
       if (pgError.constraint === 'idx_clients_team_phone') {
         throw new HandledError(errorCodes.clientDuplicatePhone);
+      }
+      if (pgError.constraint === 'idx_clients_team_siret') {
+        throw new HandledError(errorCodes.clientDuplicateSiret);
       }
     }
     throw err;

@@ -18,6 +18,7 @@ You can combine operations in a single call (e.g. add + remove + update).
 For status changes: provide status only, no other fields. Invalid transitions will be rejected.
   - sent, paid, cancelled. "paid" marks the full invoice amount as paid — no partial payments.
   - To cancel a paid invoice, the system creates an avoir (credit note) automatically.
+  - Cancellation is destructive and irreversible (creates an avoir). Only cancel when the user explicitly asks to cancel/annuler. Never cancel as an intermediate step to create a different document.
 Avoir invoices cannot be edited (lines mirror the source invoice).
 To delete a draft invoice, use delete_document instead.`,
   schema: z.object({
@@ -38,7 +39,7 @@ To delete a draft invoice, use delete_document instead.`,
     if (args.status) {
       const invoice = await updateInvoiceStatusUc({ teamId: ctx.teamId, userId: ctx.userId, invoiceId, status: args.status });
       return {
-        result: { ref: args.ref, type: 'invoice', number: invoice.number, status: invoice.status, totalTtc: invoice.totalTtc },
+        result: { ref: args.ref, type: 'invoice', number: invoice.number, status: invoice.status, totalHt: invoice.totalHt, totalTtc: invoice.totalTtc },
         richCard: { type: 'invoice', data: invoice },
         activeStateUpdate: {
           document: { id: invoiceId, type: 'invoice' as const, number: invoice.number },
@@ -76,7 +77,7 @@ To delete a draft invoice, use delete_document instead.`,
       prestationDate: args.prestationDate ? new Date(args.prestationDate) : undefined,
     });
     return {
-      result: { ref: args.ref, type: 'invoice', number: invoice.number },
+      result: { ref: args.ref, type: 'invoice', number: invoice.number, totalHt: invoice.totalHt, totalTtc: invoice.totalTtc },
       richCard: { type: 'invoice', data: invoice },
       activeStateUpdate: {
         document: { id: invoiceId, type: 'invoice' as const, number: invoice.number },

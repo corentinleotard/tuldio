@@ -10,8 +10,18 @@ vi.mock('../../../lib/pdf/generate-pdf.js', () => ({
 async function seedTeamAndClient(teamId: string, clientId: string) {
   await query(`INSERT INTO teams (id, name) VALUES ($1, 'Test SARL')`, [teamId]);
   await query(
-    `INSERT INTO clients (id, team_id, first_name, last_name) VALUES ($1, $2, 'Jean', 'Martin')`,
+    `INSERT INTO clients (id, team_id, first_name, last_name, address) VALUES ($1, $2, 'Jean', 'Martin', '2 rue du Moulin, 69001 Lyon')`,
     [clientId, teamId],
+  );
+  // Seed required team fields for document readiness validation
+  await query(
+    `INSERT INTO team_fields (id, team_id, key, label, value, zone, scope, show_quote, show_invoice, sort_order, is_system)
+     VALUES ($1, $2, 'siret', 'SIRET', '12345678901234', 'identity', 'both', true, true, 0, true),
+            ($3, $2, 'address', 'Adresse', '1 rue de Paris, 75001 Paris', 'identity', 'both', true, true, 1, true),
+            ($4, $2, 'early_payment_discount', 'Escompte', 'Pas d''escompte', 'legal', 'invoice', false, true, 0, true),
+            ($5, $2, 'late_penalty_rate', 'Penalites', '3x taux legal', 'legal', 'invoice', false, true, 1, true),
+            ($6, $2, 'recovery_fee', 'Recouvrement', '4000', 'legal', 'invoice', false, true, 2, true)`,
+    [generateId(), teamId, generateId(), generateId(), generateId(), generateId()],
   );
 }
 

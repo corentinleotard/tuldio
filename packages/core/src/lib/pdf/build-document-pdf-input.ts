@@ -1,9 +1,6 @@
-import { findTeamById } from '../../modules/teams/repository/find-team-by-id.js';
-import { findClientById } from '../../modules/clients/repository/find-client-by-id.js';
-import { findTeamFields } from '../../modules/teams/repository/find-team-fields.js';
 import { toTeamField } from '../../modules/teams/domain/team-field.view.js';
-import { HandledError } from '../errors/handled-error.js';
-import { errorCodes } from '../errors/error-codes.js';
+import { fetchDocumentContext } from '../../modules/documents/repository/fetch-document-context.js';
+import { getClientDisplayName } from '../../modules/clients/domain/get-client-display-name.js';
 import type { GeneratePdfInput } from './generate-pdf.js';
 
 export async function buildDocumentPdfInput(input: {
@@ -24,25 +21,23 @@ export async function buildDocumentPdfInput(input: {
   sourceInvoiceNumber?: string | null;
   situationNumber?: number | null;
 }): Promise<GeneratePdfInput> {
-  const [teamRow, clientRow, fieldRows] = await Promise.all([
-    findTeamById(input.teamId),
-    findClientById({ teamId: input.teamId, clientId: input.clientId }),
-    findTeamFields(input.teamId),
-  ]);
-
-  if (!teamRow) throw new HandledError(errorCodes.teamNotFound);
-  if (!clientRow) throw new HandledError(errorCodes.clientNotFound);
+  const { team, client, teamFields } = await fetchDocumentContext({
+    teamId: input.teamId,
+    clientId: input.clientId,
+  });
 
   return {
     type: input.type,
     id: input.id,
     number: input.number,
-    team: { name: teamRow.name, logoUrl: teamRow.logo_url, fields: fieldRows.map(toTeamField) },
+    team: { name: team.name, logoUrl: team.logo_url, fields: teamFields.map(toTeamField) },
     client: {
-      name: clientRow.first_name + ' ' + clientRow.last_name,
-      email: clientRow.email,
-      phone: clientRow.phone,
-      address: clientRow.address,
+      name: getClientDisplayName(client),
+      siret: client.siret,
+      tvaNumber: client.tva_number,
+      email: client.email,
+      phone: client.phone,
+      address: client.address,
     },
     lines: input.lines,
     totalHt: input.totalHt,

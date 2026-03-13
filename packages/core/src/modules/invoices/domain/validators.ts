@@ -3,8 +3,8 @@ import {
   computeDocumentLineTotals,
   validateStatusTransition,
   type DocumentLineInput,
-} from '../../shared/domain/document-validators.js';
-import type { DocumentTotals } from '../../shared/domain/document-math.js';
+} from '../../documents/domain/document-validators.js';
+import type { DocumentTotals } from '../../documents/domain/document-math.js';
 import type { InvoiceType } from './invoice.entity.js';
 import type { InvoiceLineRow } from './invoice.entity.js';
 
@@ -72,6 +72,40 @@ export function buildAcompteLines(input: {
     unitPrice: Math.round(group.baseHt * input.percentage / 100),
     tvaRate: group.tvaRate,
   }));
+}
+
+export function buildAcompteLinesByAmount(input: {
+  quoteTitle: string | null;
+  amountHt: number;
+  tvaGroups: Array<{ tvaRate: number; baseHt: number }>;
+}): Array<{ description: string; quantity: number; unit: string; unitPrice: number; tvaRate: number }> {
+  const quoteTotalHt = input.tvaGroups.reduce((sum, g) => sum + g.baseHt, 0);
+  if (quoteTotalHt === 0) return [];
+
+  const label = input.quoteTitle
+    ? `Acompte — ${input.quoteTitle}`
+    : 'Acompte';
+
+  // Prorate the fixed amount across TVA groups proportionally
+  let distributed = 0;
+  const lines = input.tvaGroups.map((group, i) => {
+    const isLast = i === input.tvaGroups.length - 1;
+    // Last group gets the remainder to avoid rounding drift
+    const groupAmount = isLast
+      ? input.amountHt - distributed
+      : Math.round(input.amountHt * group.baseHt / quoteTotalHt);
+    distributed += groupAmount;
+
+    return {
+      description: label,
+      quantity: 1,
+      unit: 'forfait',
+      unitPrice: groupAmount,
+      tvaRate: group.tvaRate,
+    };
+  });
+
+  return lines;
 }
 
 export function computeRemaining(input: {

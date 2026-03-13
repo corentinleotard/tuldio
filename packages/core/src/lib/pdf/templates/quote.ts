@@ -13,6 +13,7 @@ import {
   type PdfLine,
   type PdfTvaGroup,
 } from './shared.js';
+import { computeDeposit } from '../../../modules/documents/domain/document-math.js';
 
 function formatTvaRate(basisPoints: number): string {
   const percent = basisPoints / 100;
@@ -90,6 +91,8 @@ export function renderQuoteHtml(input: {
         <div class="client-name">${esc(client.name)}</div>
         <div class="client-info">
           ${client.address ? `${esc(client.address)}<br>` : ''}
+          ${client.siret ? `SIRET : ${esc(formatSiret(client.siret))}<br>` : ''}
+          ${client.tvaNumber ? `TVA : ${esc(client.tvaNumber)}<br>` : ''}
           ${client.phone ? `${esc(client.phone)}<br>` : ''}
           ${client.email ? esc(client.email) : ''}
         </div>
@@ -150,7 +153,7 @@ export function renderQuoteHtml(input: {
     return `<div class="payment-box">
     ${paymentTerms ? `<strong>R\u00E8glement :</strong> ${esc(paymentTerms)}` : ''}
     ${paymentTerms && depositPercent ? '<br>' : ''}
-    ${depositPercent ? `<strong>Acompte :</strong> ${depositPercent} % soit ${formatCurrency(Math.round(totalTtc * Number(depositPercent) / 100))}` : ''}
+    ${depositPercent ? `<strong>Acompte :</strong> ${depositPercent} % soit ${formatCurrency(computeDeposit({ totalTtc, depositPercent: Number(depositPercent) }))}` : ''}
     ${customPayment.map((cf) => `${paymentTerms || depositPercent ? '<br>' : ''}${esc(cf.value)}`).join('')}
   </div>`;
   })()}
