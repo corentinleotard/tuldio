@@ -18,7 +18,8 @@ Invoice types:
 - To invoice a quote fully: sourceQuoteRef + no invoiceType. The system auto-decides: if no prior acomptes → standard invoice; if acomptes exist → solde (final invoice with deductions).
 - acompte: deposit invoice from a quote. Use sourceQuoteRef + invoiceType 'acompte' + either depositPercent OR depositAmount (mutually exclusive). Multiple acomptes on the same quote are supported — always use sourceQuoteRef. Use depositBase 'remaining' when the user refers to a percentage of what's left. Use depositAmount when the user gives a fixed euro amount (e.g. "200 euros d'acompte"). Never create standalone invoices to simulate acompte behavior.
 - To cancel/reverse an invoice, use update_invoice with status 'cancelled' instead — the system creates an avoir automatically.
-- initialStatus: set to 'sent' or 'paid' to skip the draft stage (invoices only). MANDATORY when the user indicates payment already happened (past tense). If the user says the client paid, always set initialStatus to 'paid'.`,
+- initialStatus: set to 'sent' or 'paid' to skip the draft stage (invoices only). MANDATORY when the user indicates payment already happened (past tense). If the user says the client paid, always set initialStatus to 'paid'.
+- When the user mentions a payment amount (e.g. "il a payé 250€"), this amount is TTC. For acomptes, pass it directly as depositAmount (the system handles TTC→HT conversion). For standalone invoices, lines/unitPrice are always HT — ask the user for line details.`,
   schema: z.object({
     type: z.enum(['quote', 'invoice']).describe('Document type'),
     clientRef: z.string().optional().describe('Client ref (from current conversation tool results only, e.g. c0, c1). Required unless sourceQuoteRef is provided.'),
@@ -39,7 +40,7 @@ Invoice types:
       'Deposit percentage for acompte invoices (e.g. 30 for 30%). Integer only — no decimals.',
     ),
     depositAmount: z.number().int().min(1).optional().describe(
-      'Fixed deposit amount in euro cents (e.g. 20000 = 200.00€). Mutually exclusive with depositPercent.',
+      'Fixed deposit amount in euro cents TTC (e.g. 24000 = 240.00€ TTC). Mutually exclusive with depositPercent. When the user says "200€ d\'acompte", that is TTC.',
     ),
     depositBase: z.enum(['total', 'remaining']).optional().describe(
       'Base for depositPercent: "total" (default) = % of full quote, "remaining" = % of balance after existing acomptes. Ignored when depositAmount is used.',

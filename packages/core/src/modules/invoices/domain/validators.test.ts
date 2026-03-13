@@ -13,6 +13,7 @@ import {
   validateInvoiceLine,
   validateInvoiceStatusTransition,
 } from './validators.js';
+import { computeTva } from '../../documents/domain/document-math.js';
 import type { InvoiceLineRow } from './invoice.entity.js';
 
 describe('validateInvoiceLine', () => {
@@ -310,29 +311,35 @@ describe('buildAcompteLines with remaining base', () => {
 });
 
 describe('buildAcompteLinesByAmount', () => {
-  it('builds acompte lines from fixed amount — single TVA rate', () => {
+  it('builds acompte lines from fixed TTC amount — single TVA rate', () => {
+    // User says "240€ d'acompte" (TTC) on a 1000€ HT @20% quote (1200€ TTC)
+    // HT = round(24000 * 10000 / 12000) = 20000
     const lines = buildAcompteLinesByAmount({
       quoteTitle: 'Rénovation SDB',
-      amountHt: 20000, // 200€
+      amountTtc: 24000,
       tvaGroups: [{ tvaRate: 2000, baseHt: 100000 }],
     });
 
     expect(lines).toHaveLength(1);
     expect(lines[0]!.description).toBe('Acompte — Rénovation SDB');
-    expect(lines[0]!.unitPrice).toBe(20000);
+    expect(lines[0]!.unitPrice).toBe(20000); // 200€ HT
     expect(lines[0]!.quantity).toBe(1);
     expect(lines[0]!.unit).toBe('forfait');
     expect(lines[0]!.tvaRate).toBe(2000);
+
+    // Recomputed TTC must match input
+    const ttc = lines[0]!.unitPrice + computeTva({ totalHt: lines[0]!.unitPrice, tvaRate: lines[0]!.tvaRate });
+    expect(ttc).toBe(24000);
   });
 
   it('prorates across multiple TVA rates', () => {
-    // Quote: 50000 @20% + 20000 @5.5% = 70000 HT
-    // Amount: 21000 HT (300€)
-    // @20%: round(21000 * 50000 / 70000) = round(15000) = 15000
-    // @5.5%: 21000 - 15000 = 6000 (remainder)
+    // Quote: 50000 @20% (TTC=60000) + 20000 @5.5% (TTC=21100) = 81100 TTC
+    // User says "243.30€ d'acompte" (TTC) = 24330 cents → 30% of 81100
+    // @20% share: round(24330 * 60000 / 81100) = 18000 TTC → HT = round(18000 * 10000 / 12000) = 15000
+    // @5.5% share: 24330 - 18000 = 6330 TTC → HT = round(6330 * 10000 / 10550) = 6000
     const lines = buildAcompteLinesByAmount({
       quoteTitle: null,
-      amountHt: 21000,
+      amountTtc: 24330,
       tvaGroups: [
         { tvaRate: 2000, baseHt: 50000 },
         { tvaRate: 550, baseHt: 20000 },
@@ -344,18 +351,22 @@ describe('buildAcompteLinesByAmount', () => {
     expect(lines[0]!.tvaRate).toBe(2000);
     expect(lines[1]!.unitPrice).toBe(6000);
     expect(lines[1]!.tvaRate).toBe(550);
-    // Sum must equal the input amount
-    expect(lines[0]!.unitPrice + lines[1]!.unitPrice).toBe(21000);
+
+    // Recomputed TTC must match input
+    const ttc = lines.reduce((sum, l) => sum + l.unitPrice + computeTva({ totalHt: l.unitPrice, tvaRate: l.tvaRate }), 0);
+    expect(ttc).toBe(24330);
   });
 
-  it('last group absorbs rounding remainder', () => {
-    // 10000 split across 3 groups of 33333 each
-    // round(10000 * 33333 / 99999) = round(3333.3) = 3333
-    // round(10000 * 33333 / 99999) = 3333
-    // remainder: 10000 - 3333 - 3333 = 3334
+  it('last group absorbs rounding remainder (mixed TVA rates)', () => {
+    // 3 groups with different TVA rates to stress rounding
+    // @20%: 33333 HT → TTC = 33333 + 6667 = 40000
+    // @10%: 33333 HT → TTC = 33333 + 3333 = 36666
+    // @5.5%: 33333 HT → TTC = 33333 + 1833 = 35166
+    // Total TTC = 111832
+    // amountTtc = 11000
     const lines = buildAcompteLinesByAmount({
       quoteTitle: null,
-      amountHt: 10000,
+      amountTtc: 11000,
       tvaGroups: [
         { tvaRate: 2000, baseHt: 33333 },
         { tvaRate: 1000, baseHt: 33333 },
@@ -364,13 +375,15 @@ describe('buildAcompteLinesByAmount', () => {
     });
 
     expect(lines).toHaveLength(3);
-    expect(lines[0]!.unitPrice + lines[1]!.unitPrice + lines[2]!.unitPrice).toBe(10000);
+    // Recomputed TTC should be within 1 cent of input (rounding écart acceptable)
+    const ttc = lines.reduce((sum, l) => sum + l.unitPrice + computeTva({ totalHt: l.unitPrice, tvaRate: l.tvaRate }), 0);
+    expect(Math.abs(ttc - 11000)).toBeLessThanOrEqual(1);
   });
 
   it('returns empty array when quote has no lines', () => {
     const lines = buildAcompteLinesByAmount({
       quoteTitle: null,
-      amountHt: 20000,
+      amountTtc: 20000,
       tvaGroups: [],
     });
     expect(lines).toEqual([]);
@@ -379,7 +392,7 @@ describe('buildAcompteLinesByAmount', () => {
   it('builds label without title', () => {
     const lines = buildAcompteLinesByAmount({
       quoteTitle: null,
-      amountHt: 5000,
+      amountTtc: 6000,
       tvaGroups: [{ tvaRate: 2000, baseHt: 100000 }],
     });
     expect(lines[0]!.description).toBe('Acompte');

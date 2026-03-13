@@ -4,7 +4,7 @@ import {
   validateStatusTransition,
   type DocumentLineInput,
 } from '../../documents/domain/document-validators.js';
-import type { DocumentTotals } from '../../documents/domain/document-math.js';
+import { computeTva, type DocumentTotals } from '../../documents/domain/document-math.js';
 import type { InvoiceType } from './invoice.entity.js';
 import type { InvoiceLineRow } from './invoice.entity.js';
 
@@ -76,31 +76,34 @@ export function buildAcompteLines(input: {
 
 export function buildAcompteLinesByAmount(input: {
   quoteTitle: string | null;
-  amountHt: number;
+  amountTtc: number;
   tvaGroups: Array<{ tvaRate: number; baseHt: number }>;
 }): Array<{ description: string; quantity: number; unit: string; unitPrice: number; tvaRate: number }> {
-  const quoteTotalHt = input.tvaGroups.reduce((sum, g) => sum + g.baseHt, 0);
-  if (quoteTotalHt === 0) return [];
+  const groupsWithTtc = input.tvaGroups.map((g) => ({
+    ...g,
+    ttc: g.baseHt + computeTva({ totalHt: g.baseHt, tvaRate: g.tvaRate }),
+  }));
+  const quoteTotalTtc = groupsWithTtc.reduce((sum, g) => sum + g.ttc, 0);
+  if (quoteTotalTtc === 0) return [];
 
   const label = input.quoteTitle
     ? `Acompte — ${input.quoteTitle}`
     : 'Acompte';
 
-  // Prorate the fixed amount across TVA groups proportionally
-  let distributed = 0;
-  const lines = input.tvaGroups.map((group, i) => {
-    const isLast = i === input.tvaGroups.length - 1;
-    // Last group gets the remainder to avoid rounding drift
-    const groupAmount = isLast
-      ? input.amountHt - distributed
-      : Math.round(input.amountHt * group.baseHt / quoteTotalHt);
-    distributed += groupAmount;
+  // Prorate the TTC amount across TVA groups, then convert each to HT
+  let distributedTtc = 0;
+  const lines = groupsWithTtc.map((group, i) => {
+    const isLast = i === groupsWithTtc.length - 1;
+    const groupTtc = isLast
+      ? input.amountTtc - distributedTtc
+      : Math.round(input.amountTtc * group.ttc / quoteTotalTtc);
+    distributedTtc += groupTtc;
 
     return {
       description: label,
       quantity: 1,
       unit: 'forfait',
-      unitPrice: groupAmount,
+      unitPrice: Math.round(groupTtc * 10000 / (10000 + group.tvaRate)),
       tvaRate: group.tvaRate,
     };
   });

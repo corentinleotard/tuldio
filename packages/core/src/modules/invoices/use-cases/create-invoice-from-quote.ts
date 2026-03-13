@@ -91,7 +91,7 @@ export async function createInvoiceFromQuote(input: {
       // Fixed amount: prorate across TVA groups
       acompteLinesList = buildAcompteLinesByAmount({
         quoteTitle: quote.title,
-        amountHt: input.depositAmount,
+        amountTtc: input.depositAmount,
         tvaGroups,
       });
     } else {
