@@ -10,7 +10,7 @@ import { getClientDisplayName } from '../../clients/domain/get-client-display-na
 import { findTeamById } from '../../teams/repository/find-team-by-id.js';
 import { isFieldTrue } from '../../teams/domain/team-field.entity.js';
 import { findTeamFieldByKey } from '../../teams/repository/find-team-field-by-key.js';
-import { computeDueDate, buildAcompteLines, buildAcompteLinesByAmount, computeInvoiceTotals, buildSoldeLines } from '../domain/validators.js';
+import { computeDueDate, buildAcompteLines, buildAcompteLinesByAmount, computeInvoiceTotals, buildSoldeLines, acompteTotalExceedsQuote } from '../domain/validators.js';
 import { computeLineTotal, resolveTvaRate, groupByTva } from '../../documents/domain/document-math.js';
 import { insertInvoice } from '../repository/insert-invoice.js';
 import { findInvoiceById } from '../repository/find-invoice-by-id.js';
@@ -112,7 +112,7 @@ export async function createInvoiceFromQuote(input: {
     }
 
     const newAcompteHt = acompteLinesList.reduce((sum, l) => sum + Math.round(l.unitPrice * l.quantity), 0);
-    if (existingAcomptesHt + newAcompteHt >= quote.total_ht) {
+    if (acompteTotalExceedsQuote({ existingAcomptesHt, newAcompteHt, quoteTotalHt: quote.total_ht })) {
       throw new HandledError(errorCodes.acompteExceedsQuote);
     }
 

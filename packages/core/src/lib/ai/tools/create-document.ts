@@ -18,7 +18,7 @@ Invoice types:
 - To invoice a quote fully: sourceQuoteRef + no invoiceType. The system auto-decides: if no prior acomptes → standard invoice; if acomptes exist → solde (final invoice with deductions).
 - acompte: deposit invoice from a quote. Use sourceQuoteRef + invoiceType 'acompte' + either depositPercent OR depositAmount (mutually exclusive). Multiple acomptes on the same quote are supported — always use sourceQuoteRef. Use depositBase 'remaining' when the user refers to a percentage of what's left. Use depositAmount when the user gives a fixed euro amount (e.g. "200 euros d'acompte"). Never create standalone invoices to simulate acompte behavior.
 - To cancel/reverse an invoice, use update_invoice with status 'cancelled' instead — the system creates an avoir automatically.
-- initialStatus: set to 'sent' or 'paid' to skip the draft stage (invoices only). Use when the client has already paid or the invoice should be sent immediately.`,
+- initialStatus: set to 'sent' or 'paid' to skip the draft stage (invoices only). MANDATORY when the user indicates payment already happened (past tense). If the user says the client paid, always set initialStatus to 'paid'.`,
   schema: z.object({
     type: z.enum(['quote', 'invoice']).describe('Document type'),
     clientRef: z.string().optional().describe('Client ref (from current conversation tool results only, e.g. c0, c1). Required unless sourceQuoteRef is provided.'),

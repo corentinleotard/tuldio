@@ -2,7 +2,7 @@ import type { InvoiceView } from '@tuldio/types';
 import { HandledError } from '../../../lib/errors/handled-error.js';
 import { errorCodes } from '../../../lib/errors/error-codes.js';
 import { logger } from '../../../lib/infra/logger.js';
-import { validateInvoiceStatusTransition } from '../domain/validators.js';
+import { validateInvoiceStatusTransition, acompteTotalExceedsQuote } from '../domain/validators.js';
 import { validateDocumentReady } from '../../documents/domain/validate-document-ready.js';
 import { fetchDocumentContext } from '../../documents/repository/fetch-document-context.js';
 import { findInvoiceById } from '../repository/find-invoice-by-id.js';
@@ -17,6 +17,8 @@ import { getClientDisplayName } from '../../clients/domain/get-client-display-na
 import { toLineViews, toTvaGroups } from '../../documents/domain/to-line-views.js';
 import { toInvoiceView } from './create-invoice.js';
 import { createAvoir } from './create-avoir.js';
+import { findInvoicesByQuote } from '../repository/find-invoices-by-quote.js';
+import { findQuoteById } from '../../quotes/repository/find-quote-by-id.js';
 
 export async function updateInvoiceStatusUc(input: {
   teamId: string;
@@ -70,6 +72,22 @@ export async function updateInvoiceStatusUc(input: {
       lastNumber,
     });
     invoice.number = number;
+  }
+
+  // Guard: acompte total must not exceed quote total when leaving draft
+  if (invoice.status === 'draft' && invoice.invoice_type === 'acompte' && invoice.quote_id) {
+    const quote = await findQuoteById({ teamId: input.teamId, quoteId: invoice.quote_id });
+    if (quote) {
+      const existingAcomptes = await findInvoicesByQuote({
+        teamId: input.teamId,
+        quoteId: invoice.quote_id,
+        invoiceType: 'acompte',
+      });
+      const existingAcomptesHt = existingAcomptes.reduce((sum, inv) => sum + inv.total_ht, 0);
+      if (acompteTotalExceedsQuote({ existingAcomptesHt, newAcompteHt: invoice.total_ht, quoteTotalHt: quote.total_ht })) {
+        throw new HandledError(errorCodes.acompteExceedsQuote);
+      }
+    }
   }
 
   // Validate document readiness when leaving draft

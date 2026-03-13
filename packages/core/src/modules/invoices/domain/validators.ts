@@ -108,6 +108,15 @@ export function buildAcompteLinesByAmount(input: {
   return lines;
 }
 
+/** Returns true if adding newAcompteHt to existing acomptes would reach or exceed quoteTotalHt. */
+export function acompteTotalExceedsQuote(input: {
+  existingAcomptesHt: number;
+  newAcompteHt: number;
+  quoteTotalHt: number;
+}): boolean {
+  return input.existingAcomptesHt + input.newAcompteHt >= input.quoteTotalHt;
+}
+
 export function computeRemaining(input: {
   quoteTotalHt: number;
   invoicedTotalHt: number;

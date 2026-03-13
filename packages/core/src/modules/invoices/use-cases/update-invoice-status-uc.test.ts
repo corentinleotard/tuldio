@@ -353,6 +353,65 @@ describe('updateInvoiceStatusUc', () => {
     ).rejects.toThrow('Facture introuvable');
   });
 
+  it('rejects draft → sent when acompte total would exceed quote total', async () => {
+    const teamId = generateId();
+    const clientId = generateId();
+    await seedTeamAndClient(teamId, clientId);
+
+    // Create a quote worth 10000 HT
+    const quoteId = generateId();
+    const userId = generateId();
+    await query(
+      `INSERT INTO users (id, team_id, email, name) VALUES ($1, $2, $3, 'Test')`,
+      [userId, teamId, `user-${userId}@test.com`],
+    );
+    await query(
+      `INSERT INTO quotes (id, team_id, created_by, client_id, number, total_ht, total_ttc, status)
+       VALUES ($1, $2, $3, $4, $5, 10000, 12000, 'accepted')`,
+      [quoteId, teamId, userId, clientId, `DEVIS-${generateId().slice(0, 8)}`],
+    );
+    await query(
+      `INSERT INTO quote_lines (id, quote_id, sort_order, description, quantity, unit, unit_price, tva_rate, total_ht)
+       VALUES ($1, $2, 1, 'Service', 1, 'u', 10000, 2000, 10000)`,
+      [generateId(), quoteId],
+    );
+
+    // Create a sent acompte for 6000 HT (already finalized)
+    const acompte1Id = generateId();
+    await query(
+      `INSERT INTO invoices (id, team_id, created_by, client_id, quote_id, number, total_ht, total_ttc, status, invoice_type, pdf_url)
+       VALUES ($1, $2, $3, $4, $5, $6, 6000, 7200, 'sent', 'acompte', '/files/pdfs/a1.pdf')`,
+      [acompte1Id, teamId, userId, clientId, quoteId, `FAC-${generateId().slice(0, 8)}`],
+    );
+    await query(
+      `INSERT INTO invoice_lines (id, invoice_id, sort_order, description, quantity, unit, unit_price, tva_rate, total_ht)
+       VALUES ($1, $2, 1, 'Acompte 1', 1, 'u', 6000, 2000, 6000)`,
+      [generateId(), acompte1Id],
+    );
+
+    // Create a draft acompte for 5000 HT — this would push total to 11000 > 10000
+    const acompte2Id = generateId();
+    await query(
+      `INSERT INTO invoices (id, team_id, created_by, client_id, quote_id, number, total_ht, total_ttc, status, invoice_type)
+       VALUES ($1, $2, $3, $4, $5, $6, 5000, 6000, 'draft', 'acompte')`,
+      [acompte2Id, teamId, userId, clientId, quoteId, `BROUILLON-${acompte2Id.slice(0, 8)}`],
+    );
+    await query(
+      `INSERT INTO invoice_lines (id, invoice_id, sort_order, description, quantity, unit, unit_price, tva_rate, total_ht)
+       VALUES ($1, $2, 1, 'Acompte 2', 1, 'u', 5000, 2000, 5000)`,
+      [generateId(), acompte2Id],
+    );
+
+    // Trying to send it should fail — 6000 + 5000 >= 10000
+    await expect(
+      updateInvoiceStatusUc({ teamId, invoiceId: acompte2Id, status: 'sent' }),
+    ).rejects.toThrow();
+
+    // Status unchanged
+    const rows = await query('SELECT status FROM invoices WHERE id = $1', [acompte2Id]);
+    expect(rows.rows[0]!.status).toBe('draft');
+  });
+
   it('rejects status change on another team invoice', async () => {
     const teamId = generateId();
     const otherTeamId = generateId();
