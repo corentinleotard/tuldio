@@ -8,7 +8,6 @@ import { insertInvoice } from '../repository/insert-invoice.js';
 import { updateInvoiceAvoirId } from '../repository/update-invoice-avoir-id.js';
 import { findClientById } from '../../clients/repository/find-client-by-id.js';
 import { getClientDisplayName } from '../../clients/domain/get-client-display-name.js';
-import { findTeamById } from '../../teams/repository/find-team-by-id.js';
 import { toInvoiceView } from './create-invoice.js';
 
 export async function createAvoir(input: {
@@ -21,11 +20,11 @@ export async function createAvoir(input: {
     throw new HandledError(errorCodes.invoiceNotFound);
   }
 
-  // Only sent or paid standard/acompte/solde invoices can have an avoir (not an avoir of an avoir)
+  // Only non-draft, non-avoir invoices can have an avoir (document must have been communicated to client)
   if (source.invoice_type === 'avoir') {
     throw new HandledError(errorCodes.invalidInput);
   }
-  if (source.status !== 'sent' && source.status !== 'paid') {
+  if (source.status !== 'sent' && source.status !== 'paid' && source.status !== 'overdue') {
     throw new HandledError(errorCodes.invalidStatusTransition);
   }
 
@@ -33,8 +32,6 @@ export async function createAvoir(input: {
   if (source.avoir_id) {
     throw new HandledError(errorCodes.invoiceAlreadyHasAvoir);
   }
-
-  const team = await findTeamById(input.teamId);
 
   const avoirLines = buildAvoirLines(source.lines);
   const totals = computeInvoiceTotals(avoirLines);
@@ -45,7 +42,6 @@ export async function createAvoir(input: {
     clientId: source.client_id,
     quoteId: source.quote_id ?? undefined,
     title: source.title ? `Avoir — ${source.title}` : null,
-    lastNumber: team?.avoir_last_number ?? 0,
     prestationDate: source.prestation_date ?? undefined,
     lines: avoirLines,
     totalHt: totals.totalHt,

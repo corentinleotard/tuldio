@@ -3,7 +3,7 @@ import { FileText } from 'lucide-react';
 import type { QuoteView, InvoiceView, MonthlyStatsView } from '@tuldio/types';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency, formatDocumentNumber } from '@/lib/utils';
 import { fetchQuotes, fetchInvoices } from '@/modules/documents/api/documents.api.js';
 import { fetchMonthlyStats } from '@/modules/stats/api/stats.api.js';
 
@@ -84,7 +84,7 @@ function LatestDocumentCard({ doc }: { doc: AnyDocument }) {
       <CardContent className="p-3">
         <p className="text-xs font-medium uppercase text-muted-foreground">Dernier document</p>
         <div className="mt-2 flex items-center justify-between">
-          <span className="text-sm font-semibold">{doc.number}</span>
+          <span className="text-sm font-semibold">{formatDocumentNumber(doc.number)}</span>
           <Badge variant={badge.variant}>{badge.label}</Badge>
         </div>
         <p className="mt-1 text-xs text-muted-foreground">

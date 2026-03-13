@@ -44,7 +44,7 @@ export async function verifyOtp(input: {
     teamId = existingUser.team_id;
   } else {
     const team = await createTeam({
-      name: 'Mon entreprise',
+      name: '',
     });
 
     user = await createUser({

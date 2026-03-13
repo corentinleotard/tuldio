@@ -8,6 +8,8 @@ import { fetchDocumentContext } from '../../documents/repository/fetch-document-
 import { findInvoiceById } from '../repository/find-invoice-by-id.js';
 import { updateInvoiceStatus } from '../repository/update-invoice-status.js';
 import { updateInvoicePdfUrl } from '../repository/update-invoice-pdf-url.js';
+import { assignInvoiceNumber } from '../repository/assign-invoice-number.js';
+import { findTeamById } from '../../teams/repository/find-team-by-id.js';
 import { generatePdf } from '../../../lib/pdf/generate-pdf.js';
 import { buildDocumentPdfInput } from '../../../lib/pdf/build-document-pdf-input.js';
 import { findClientById } from '../../clients/repository/find-client-by-id.js';
@@ -27,8 +29,9 @@ export async function updateInvoiceStatusUc(input: {
     throw new HandledError(errorCodes.invoiceNotFound);
   }
 
-  // Cancelling a paid non-avoir invoice: create avoir (legal requirement) + cancel source
-  if (input.status === 'cancelled' && invoice.status === 'paid' && invoice.invoice_type !== 'avoir') {
+  // Cancelling a non-draft non-avoir invoice: create avoir (legal requirement — document was communicated to client)
+  const needsAvoir = input.status === 'cancelled' && invoice.status !== 'draft' && invoice.status !== 'cancelled' && invoice.invoice_type !== 'avoir';
+  if (needsAvoir) {
     if (!input.userId) throw new HandledError(errorCodes.invalidInput);
     const avoir = await createAvoir({ teamId: input.teamId, userId: input.userId, sourceInvoiceId: invoice.id });
     await updateInvoiceStatus({ teamId: input.teamId, invoiceId: invoice.id, status: 'cancelled' });
@@ -52,6 +55,21 @@ export async function updateInvoiceStatusUc(input: {
   });
   if (!isValid) {
     throw new HandledError(errorCodes.invalidStatusTransition);
+  }
+
+  // Assign sequential number when leaving draft (number was BROUILLON-xxx until now)
+  if (invoice.status === 'draft') {
+    const team = await findTeamById(input.teamId);
+    const lastNumber = invoice.invoice_type === 'avoir'
+      ? (team?.avoir_last_number ?? 0)
+      : (team?.invoice_last_number ?? 0);
+    const number = await assignInvoiceNumber({
+      teamId: input.teamId,
+      invoiceId: invoice.id,
+      invoiceType: invoice.invoice_type,
+      lastNumber,
+    });
+    invoice.number = number;
   }
 
   // Validate document readiness when leaving draft

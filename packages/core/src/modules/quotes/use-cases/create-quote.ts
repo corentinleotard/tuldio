@@ -83,7 +83,6 @@ export async function createQuote(input: {
     clientId: input.clientId,
     title: input.title ?? null,
     validUntil,
-    lastNumber: team?.quote_last_number ?? 0,
     lines: insertLines,
     totalHt,
     totalTtc,

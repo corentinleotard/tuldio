@@ -101,7 +101,6 @@ export async function createInvoice(input: {
     createdBy: input.userId,
     clientId: input.clientId,
     title: input.title ?? null,
-    lastNumber: team?.invoice_last_number ?? 0,
     prestationDate: input.prestationDate ?? new Date(),
     lines: insertLines,
     totalHt,

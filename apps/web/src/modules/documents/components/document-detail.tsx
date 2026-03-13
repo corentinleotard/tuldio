@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import type { QuoteView, InvoiceView } from '@tuldio/types';
 import { Download, ChevronDown } from 'lucide-react';
-import { cn, formatCurrency, formatDate, formatShortDate, isSameDay } from '@/lib/utils';
+import { cn, formatCurrency, formatDate, formatShortDate, isSameDay, formatDocumentNumber } from '@/lib/utils';
 import { viewDocument } from '@/lib/share-document';
 import {
   statusConfig,
@@ -59,7 +59,7 @@ export function DocumentDetail({ document: doc, type, onStatusChange }: Document
             <p className="mb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
               {typeLabel}
             </p>
-            <h2 className="text-2xl font-bold tracking-tight">{doc.number}</h2>
+            <h2 className="text-2xl font-bold tracking-tight">{formatDocumentNumber(doc.number)}</h2>
           </div>
 
           {/* Status dropdown */}

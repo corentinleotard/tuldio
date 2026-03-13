@@ -39,10 +39,14 @@ async function insertInvoice(input: {
     [userId, input.teamId, `test-${userId}@test.com`],
   );
 
+  const status = input.status ?? 'draft';
+  // Drafts use BROUILLON prefix; non-drafts simulate already-numbered invoices
+  const number = status === 'draft' ? `BROUILLON-${invoiceId.slice(0, 8)}` : `FAC-${generateId().slice(0, 8)}`;
+
   await query(
     `INSERT INTO invoices (id, team_id, created_by, client_id, number, total_ht, total_ttc, status, pdf_url)
      VALUES ($1, $2, $3, $4, $5, 10000, 12000, $6, $7)`,
-    [invoiceId, input.teamId, userId, input.clientId, `FAC-${generateId().slice(0, 8)}`, input.status ?? 'draft', input.pdfUrl ?? null],
+    [invoiceId, input.teamId, userId, input.clientId, number, status, input.pdfUrl ?? null],
   );
 
   await query(
@@ -93,26 +97,52 @@ describe('updateInvoiceStatusUc', () => {
     expect(result.status).toBe('overdue');
   });
 
-  it('cancels a sent invoice', async () => {
+  it('cancels a sent invoice and creates avoir (legal requirement)', async () => {
     const teamId = generateId();
     const clientId = generateId();
     await seedTeamAndClient(teamId, clientId);
+    const userId = generateId();
+    await query(
+      `INSERT INTO users (id, team_id, email, name) VALUES ($1, $2, $3, 'Test')`,
+      [userId, teamId, `user-${userId}@test.com`],
+    );
     const invoiceId = await insertInvoice({ teamId, clientId, status: 'sent' });
 
-    const result = await updateInvoiceStatusUc({ teamId, invoiceId, status: 'cancelled' });
+    const result = await updateInvoiceStatusUc({ teamId, userId, invoiceId, status: 'cancelled' });
 
     expect(result.status).toBe('cancelled');
+
+    // Avoir was created — sent invoice is a legal document
+    const avoirRows = await query(
+      "SELECT id, invoice_type, source_invoice_id FROM invoices WHERE team_id = $1 AND invoice_type = 'avoir'",
+      [teamId],
+    );
+    expect(avoirRows.rows).toHaveLength(1);
+    expect(avoirRows.rows[0]!.source_invoice_id).toBe(invoiceId);
   });
 
-  it('cancels an overdue invoice', async () => {
+  it('cancels an overdue invoice and creates avoir (legal requirement)', async () => {
     const teamId = generateId();
     const clientId = generateId();
     await seedTeamAndClient(teamId, clientId);
+    const userId = generateId();
+    await query(
+      `INSERT INTO users (id, team_id, email, name) VALUES ($1, $2, $3, 'Test')`,
+      [userId, teamId, `user-${userId}@test.com`],
+    );
     const invoiceId = await insertInvoice({ teamId, clientId, status: 'overdue' });
 
-    const result = await updateInvoiceStatusUc({ teamId, invoiceId, status: 'cancelled' });
+    const result = await updateInvoiceStatusUc({ teamId, userId, invoiceId, status: 'cancelled' });
 
     expect(result.status).toBe('cancelled');
+
+    // Avoir was created — overdue invoice was communicated to client
+    const avoirRows = await query(
+      "SELECT id, invoice_type, source_invoice_id FROM invoices WHERE team_id = $1 AND invoice_type = 'avoir'",
+      [teamId],
+    );
+    expect(avoirRows.rows).toHaveLength(1);
+    expect(avoirRows.rows[0]!.source_invoice_id).toBe(invoiceId);
   });
 
   it('marks a sent invoice as paid', async () => {
@@ -212,6 +242,69 @@ describe('updateInvoiceStatusUc', () => {
     );
     expect(avoirRows.rows).toHaveLength(1);
     expect(avoirRows.rows[0]!.source_invoice_id).toBe(invoiceId);
+  });
+
+  it('cancels a draft invoice without creating avoir (not communicated to client)', async () => {
+    const teamId = generateId();
+    const clientId = generateId();
+    await seedTeamAndClient(teamId, clientId);
+    const invoiceId = await insertInvoice({ teamId, clientId, status: 'draft', pdfUrl: '/files/pdfs/pre.pdf' });
+
+    const result = await updateInvoiceStatusUc({ teamId, invoiceId, status: 'cancelled' });
+
+    expect(result.status).toBe('cancelled');
+
+    // No avoir created — draft was never sent to client
+    const avoirRows = await query(
+      "SELECT id FROM invoices WHERE team_id = $1 AND invoice_type = 'avoir'",
+      [teamId],
+    );
+    expect(avoirRows.rows).toHaveLength(0);
+  });
+
+  it('assigns sequential number when leaving draft', async () => {
+    const teamId = generateId();
+    const clientId = generateId();
+    await seedTeamAndClient(teamId, clientId);
+    const invoiceId = await insertInvoice({ teamId, clientId, status: 'draft', pdfUrl: '/files/pdfs/pre.pdf' });
+
+    // Before: number is BROUILLON-xxx
+    const beforeRows = await query('SELECT number FROM invoices WHERE id = $1', [invoiceId]);
+    expect(beforeRows.rows[0]!.number).toMatch(/^BROUILLON-/);
+
+    const result = await updateInvoiceStatusUc({ teamId, invoiceId, status: 'sent' });
+
+    // After: number is FAC-YYYY-NNNN
+    expect(result.number).toMatch(/^FAC-\d{4}-\d{4}$/);
+
+    const afterRows = await query('SELECT number FROM invoices WHERE id = $1', [invoiceId]);
+    expect(afterRows.rows[0]!.number).toMatch(/^FAC-\d{4}-\d{4}$/);
+  });
+
+  it('deleting a draft does not consume a number', async () => {
+    const teamId = generateId();
+    const clientId = generateId();
+    await seedTeamAndClient(teamId, clientId);
+
+    // Create and send first invoice to get FAC-YYYY-0001
+    const invoiceId1 = await insertInvoice({ teamId, clientId, status: 'draft', pdfUrl: '/files/pdfs/pre.pdf' });
+    await updateInvoiceStatusUc({ teamId, invoiceId: invoiceId1, status: 'sent' });
+
+    // Create and delete a draft (should not consume number 0002)
+    const draftId = await insertInvoice({ teamId, clientId, status: 'draft', pdfUrl: '/files/pdfs/pre.pdf' });
+    // Delete the draft directly
+    await query("DELETE FROM invoice_lines WHERE invoice_id = $1", [draftId]);
+    await query("DELETE FROM invoices WHERE id = $1 AND status = 'draft'", [draftId]);
+
+    // Create and send another invoice — should be 0002, not 0003
+    const invoiceId3 = await insertInvoice({ teamId, clientId, status: 'draft', pdfUrl: '/files/pdfs/pre.pdf' });
+    const result = await updateInvoiceStatusUc({ teamId, invoiceId: invoiceId3, status: 'sent' });
+
+    const num1 = (await query('SELECT number FROM invoices WHERE id = $1', [invoiceId1])).rows[0]!.number;
+    // Sequential: 0001 then 0002 with no gap
+    const seq1 = parseInt(num1.split('-')[2]!);
+    const seq3 = parseInt(result.number.split('-')[2]!);
+    expect(seq3).toBe(seq1 + 1);
   });
 
   it('rejects cancellation of a paid invoice without userId', async () => {

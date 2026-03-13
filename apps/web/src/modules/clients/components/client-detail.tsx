@@ -5,7 +5,7 @@ import type { ClientView, QuoteView, InvoiceView } from '@tuldio/types';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { cn, formatCurrency, formatMonthYear, formatDate } from '@/lib/utils';
+import { cn, formatCurrency, formatMonthYear, formatDate, formatDocumentNumber } from '@/lib/utils';
 import { Avatar } from '@/components/ui/avatar';
 import { fetchQuotes, fetchInvoices } from '@/modules/documents/api/documents.api.js';
 import { statusConfig, defaultStatus } from '@/modules/documents/components/status-config.js';
@@ -324,7 +324,7 @@ export function ClientDetail({ client }: ClientDetailProps) {
                     className="flex items-center justify-between rounded-lg bg-secondary/30 px-3.5 py-2.5"
                   >
                     <div>
-                      <p className="text-[13px] font-semibold">{doc.number}</p>
+                      <p className="text-[13px] font-semibold">{formatDocumentNumber(doc.number)}</p>
                       <p className="text-xs text-muted-foreground">{formatDate(doc.createdAt)}</p>
                     </div>
                     <div className="text-right">

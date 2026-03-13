@@ -27,9 +27,10 @@ function matchesSearch(doc: QuoteView | InvoiceView, query: string): boolean {
   const q = query.toLowerCase();
   const name = (doc.clientName ?? '').toLowerCase();
   const email = (doc.clientEmail ?? '').toLowerCase();
-  const number = doc.number.toLowerCase();
+  // Match "brouillon" for draft documents, otherwise match the real number
+  const displayNumber = doc.number.startsWith('BROUILLON') ? 'brouillon' : doc.number.toLowerCase();
 
-  return name.includes(q) || email.includes(q) || number.includes(q);
+  return name.includes(q) || email.includes(q) || displayNumber.includes(q);
 }
 
 export function DocumentsPage() {

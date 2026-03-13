@@ -199,7 +199,7 @@ export function OnboardingPage() {
   const canContinue = form.name.trim() && form.siret.trim() && form.address.trim();
 
   return (
-    <div className="flex min-h-dvh flex-col bg-background">
+    <div className="flex min-h-dvh flex-col overflow-y-auto bg-background">
       {/* Desktop header */}
       <header className="hidden items-center justify-between border-b bg-card px-10 py-5 md:flex">
         <span className="text-2xl font-bold tracking-tight text-primary">Tuldio</span>
@@ -227,12 +227,7 @@ export function OnboardingPage() {
 
       {/* Main content */}
       <main
-        className={cn(
-          'flex flex-1 justify-center',
-          step === 2
-            ? 'items-stretch md:items-center md:py-12'
-            : 'items-start pt-6 md:items-center md:py-12',
-        )}
+        className="flex flex-1 items-start justify-center pt-6 md:items-center md:py-12"
       >
         <div
           className={cn(
@@ -325,7 +320,7 @@ export function OnboardingPage() {
 
   function renderVerifyStep() {
     return (
-      <form onSubmit={handleSaveInfo} className="flex flex-1 flex-col md:block">
+      <form onSubmit={handleSaveInfo} className="flex flex-col md:block">
         {/* Header */}
         <div className="shrink-0 px-7 pt-6 text-center md:px-0 md:pt-0">
           <StepIndicator current={2} onNavigate={navigateToStep} />
@@ -336,7 +331,7 @@ export function OnboardingPage() {
         </div>
 
         {/* Form */}
-        <div className="flex-1 overflow-y-auto px-7 pb-6 md:overflow-visible md:px-0">
+        <div className="px-7 pb-6 md:px-0">
           {/* Required fields */}
           <div className="mb-2.5 mt-2 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
             Obligatoires

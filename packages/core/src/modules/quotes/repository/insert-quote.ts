@@ -11,30 +11,17 @@ export async function insertQuote(input: {
   clientId: string;
   title?: string | null;
   validUntil?: Date | null;
-  lastNumber?: number;
   lines: InsertDocumentLine[];
   totalHt: number;
   totalTtc: number;
 }): Promise<QuoteRow> {
   const id = generateId();
-  const year = new Date().getFullYear();
-  const prefix = `DEVIS-${year}-`;
+  // Draft quotes get a temporary number — real sequential number assigned when leaving draft
+  const number = `BROUILLON-${id}`;
 
   await query('BEGIN');
 
   try {
-    await query(`SELECT pg_advisory_xact_lock(hashtext($1 || 'quote'))`, [input.teamId]);
-
-    const seqResult = await query<{ next_num: number }>(
-      `SELECT GREATEST(COALESCE(MAX(CAST(SPLIT_PART(number, '-', 3) AS INTEGER)), 0), $3) + 1 AS next_num
-       FROM quotes
-       WHERE team_id = $1 AND number LIKE $2`,
-      [input.teamId, `${prefix}%`, input.lastNumber ?? 0],
-    );
-
-    const nextNum = seqResult.rows[0]?.next_num ?? 1;
-    const number = `${prefix}${String(nextNum).padStart(4, '0')}`;
-
     const result = await query<QuoteRow>(
       `INSERT INTO quotes (id, team_id, created_by, client_id, number, title, total_ht, total_ttc, valid_until)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)

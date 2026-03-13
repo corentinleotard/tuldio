@@ -195,7 +195,6 @@ export async function createInvoiceFromQuote(input: {
     clientId: quote.client_id,
     quoteId: quote.id,
     title: input.title ?? quote.title,
-    lastNumber: team?.invoice_last_number ?? 0,
     prestationDate: input.prestationDate ?? new Date(),
     lines: insertLines,
     totalHt,

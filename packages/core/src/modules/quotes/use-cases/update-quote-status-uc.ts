@@ -8,6 +8,8 @@ import { fetchDocumentContext } from '../../documents/repository/fetch-document-
 import { findQuoteById } from '../repository/find-quote-by-id.js';
 import { updateQuoteStatus } from '../repository/update-quote-status.js';
 import { updateQuotePdfUrl } from '../repository/update-quote-pdf-url.js';
+import { assignQuoteNumber } from '../repository/assign-quote-number.js';
+import { findTeamById } from '../../teams/repository/find-team-by-id.js';
 import { generatePdf } from '../../../lib/pdf/generate-pdf.js';
 import { buildDocumentPdfInput } from '../../../lib/pdf/build-document-pdf-input.js';
 import { findClientById } from '../../clients/repository/find-client-by-id.js';
@@ -33,6 +35,17 @@ export async function updateQuoteStatusUc(input: {
   });
   if (!isValid) {
     throw new HandledError(errorCodes.invalidStatusTransition);
+  }
+
+  // Assign sequential number when leaving draft (number was BROUILLON-xxx until now)
+  if (current.status === 'draft') {
+    const team = await findTeamById(input.teamId);
+    const number = await assignQuoteNumber({
+      teamId: input.teamId,
+      quoteId: current.id,
+      lastNumber: team?.quote_last_number ?? 0,
+    });
+    current.number = number;
   }
 
   // Validate document readiness when leaving draft

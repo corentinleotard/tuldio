@@ -1,6 +1,6 @@
 import { FileText } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { cn, formatCurrency, formatShortDate } from '@/lib/utils';
+import { cn, formatCurrency, formatShortDate, formatDocumentNumber } from '@/lib/utils';
 import { statusConfig, defaultStatus } from './status-config.js';
 
 interface DocumentListItemProps {
@@ -49,7 +49,7 @@ export function DocumentListItem({
         </div>
         <div className="mt-0.5 flex items-center justify-between gap-2">
           <p className="text-xs text-muted-foreground">
-            {number} · {formatShortDate(date)}
+            {formatDocumentNumber(number)} · {formatShortDate(date)}
           </p>
           <Badge variant={badge.variant}>{badge.label}</Badge>
         </div>

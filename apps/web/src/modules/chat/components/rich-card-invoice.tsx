@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency, formatDocumentNumber } from '@/lib/utils';
 import { apiFetch, ApiError } from '@/lib/api-fetch';
 import { shareDocument, viewDocument } from '@/lib/share-document';
 import { statusConfig, defaultStatus } from '@/modules/documents/components/status-config';
@@ -209,7 +209,7 @@ export function RichCardInvoice({ data }: RichCardInvoiceProps) {
       <CardContent className="p-4">
         <div className="flex items-center justify-between">
           <span className="text-sm font-medium">
-            {liveData.invoiceType === 'avoir' ? 'Avoir' : liveData.invoiceType === 'acompte' ? "Facture d'acompte" : liveData.invoiceType === 'solde' ? 'Facture de solde' : 'Facture'} {liveData.number}
+            {liveData.invoiceType === 'avoir' ? 'Avoir' : liveData.invoiceType === 'acompte' ? "Facture d'acompte" : liveData.invoiceType === 'solde' ? 'Facture de solde' : 'Facture'} {formatDocumentNumber(liveData.number)}
           </span>
           <Badge variant={status.variant}>{status.label}</Badge>
         </div>

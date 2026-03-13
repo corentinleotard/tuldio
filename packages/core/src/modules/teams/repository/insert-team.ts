@@ -6,7 +6,7 @@ import type { TeamRow } from '../domain/team.entity.js';
 const TRIAL_DAYS = 14;
 
 const insertTeamSchema = z.object({
-  name: z.string().min(1),
+  name: z.string(),
 });
 
 export async function insertTeam(input: {

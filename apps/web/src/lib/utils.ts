@@ -43,6 +43,11 @@ export function isSameDay(a: string, b: string): boolean {
     da.getDate() === db.getDate();
 }
 
+/** Display "Brouillon" for draft documents instead of the internal BROUILLON-xxx identifier. */
+export function formatDocumentNumber(number: string): string {
+  return number.startsWith('BROUILLON') ? 'Brouillon' : number;
+}
+
 export function getInitials(name: string): string {
   return name
     .split(/\s+/)

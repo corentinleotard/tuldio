@@ -11,7 +11,6 @@ export async function insertInvoice(input: {
   clientId: string;
   quoteId?: string;
   title?: string | null;
-  lastNumber?: number;
   prestationDate?: Date | null;
   lines: InsertDocumentLine[];
   totalHt: number;
@@ -22,27 +21,13 @@ export async function insertInvoice(input: {
   situationNumber?: number;
 }): Promise<InvoiceRow> {
   const id = generateId();
-  const year = new Date().getFullYear();
   const invoiceType = input.invoiceType ?? 'standard';
-  const isAvoir = invoiceType === 'avoir';
-  const prefix = isAvoir ? `AVO-${year}-` : `FAC-${year}-`;
-  const lockKey = isAvoir ? 'avoir' : 'invoice';
+  // Draft invoices get a temporary number — real sequential number assigned when leaving draft
+  const number = `BROUILLON-${id}`;
 
   await query('BEGIN');
 
   try {
-    await query(`SELECT pg_advisory_xact_lock(hashtext($1 || $2))`, [input.teamId, lockKey]);
-
-    const seqResult = await query<{ next_num: number }>(
-      `SELECT GREATEST(COALESCE(MAX(CAST(SPLIT_PART(number, '-', 3) AS INTEGER)), 0), $3) + 1 AS next_num
-       FROM invoices
-       WHERE team_id = $1 AND number LIKE $2`,
-      [input.teamId, `${prefix}%`, input.lastNumber ?? 0],
-    );
-
-    const nextNum = seqResult.rows[0]?.next_num ?? 1;
-    const number = `${prefix}${String(nextNum).padStart(4, '0')}`;
-
     const result = await query<InvoiceRow>(
       `INSERT INTO invoices (id, team_id, created_by, client_id, quote_id, number, title, total_ht, total_ttc, due_date, prestation_date, invoice_type, source_invoice_id, situation_number)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
