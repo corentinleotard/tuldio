@@ -6,6 +6,7 @@ schedule({
   name: 'mark-overdue-invoices',
   expression: '0 8 * * *', // daily at 08:00
   fn: async () => {
+    console.log('coucou');
     const count = await markOverdueInvoices();
     if (count > 0) {
       logger.info(`[cron:mark-overdue-invoices] Marked ${count} invoice(s) as overdue`);
