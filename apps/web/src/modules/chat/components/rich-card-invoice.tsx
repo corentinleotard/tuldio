@@ -221,16 +221,18 @@ export function RichCardInvoice({ data }: RichCardInvoiceProps) {
           <p className="mt-0.5 text-xs text-muted-foreground">Réf. facture {liveData.sourceInvoiceNumber}</p>
         )}
 
-        <div className="mt-3 space-y-1">
-          {liveData.lines.map((line, i) => (
-            <div key={i} className="flex items-center justify-between text-sm">
-              <span className="min-w-0 truncate pr-2">{line.description}</span>
-              <span className="shrink-0 font-medium">
-                {formatCurrency(line.totalHt)}
-              </span>
-            </div>
-          ))}
-        </div>
+        {liveData.invoiceType !== 'acompte' && (
+          <div className="mt-3 space-y-1">
+            {liveData.lines.map((line, i) => (
+              <div key={i} className="flex items-center justify-between text-sm">
+                <span className="min-w-0 truncate pr-2">{line.description}</span>
+                <span className="shrink-0 font-medium">
+                  {formatCurrency(line.totalHt)}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
 
         <div className="mt-3 flex items-center justify-between border-t pt-3">
           <span className="text-sm text-muted-foreground">Total TTC</span>
