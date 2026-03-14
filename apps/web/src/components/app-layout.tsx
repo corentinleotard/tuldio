@@ -1,8 +1,6 @@
 import { NavLink, Outlet } from 'react-router-dom';
 import { MessageSquare, FileText, Users, BarChart3, Settings } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useAuth } from '@/lib/auth-context';
-import { Avatar } from '@/components/ui/avatar';
 import { PwaInstallPrompt } from '@/components/pwa-install-prompt';
 
 const navItems = [
@@ -10,10 +8,10 @@ const navItems = [
   { to: '/documents', label: 'Documents', desktopLabel: 'Documents', icon: FileText, badge: 0 },
   { to: '/clients', label: 'Clients', desktopLabel: 'Clients', icon: Users, badge: 0 },
   { to: '/stats', label: 'Stats', desktopLabel: 'Statistiques', icon: BarChart3, badge: 0 },
+  { to: '/settings', label: 'Compte', desktopLabel: 'Compte', icon: Settings, badge: 0 },
 ];
 
 export function AppLayout() {
-  const { user } = useAuth();
   return (
     <div className="flex min-h-0 flex-1 flex-col md:flex-row">
       {/* Desktop sidebar */}
@@ -40,25 +38,6 @@ export function AppLayout() {
             </NavLink>
           ))}
         </nav>
-        {user && (
-          <div className="flex items-center justify-between border-t px-6 py-4">
-            <div className="flex min-w-0 flex-1 items-center gap-3">
-              <Avatar name={user.name} size="sm" />
-              <div className="min-w-0">
-                <p className="truncate text-sm font-medium">{user.name}</p>
-                <p className="truncate text-xs text-muted-foreground">
-                  {user.email}
-                </p>
-              </div>
-            </div>
-            <NavLink
-              to="/settings"
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-            >
-              <Settings className="h-[18px] w-[18px]" />
-            </NavLink>
-          </div>
-        )}
       </aside>
 
       {/* Main content */}

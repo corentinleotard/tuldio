@@ -46,7 +46,7 @@ export function SettingsPage() {
 
   return (
     <div className="mx-auto max-w-lg p-4 md:p-6">
-      <h1 className="mb-6 text-[22px] font-bold tracking-tight text-primary">Reglages</h1>
+      <h1 className="mb-6 text-[22px] font-bold tracking-tight text-primary">Compte</h1>
 
       {/* Profile header */}
       {user && (

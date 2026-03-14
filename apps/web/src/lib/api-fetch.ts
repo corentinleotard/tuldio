@@ -1,3 +1,5 @@
+import { toast } from 'sonner';
+
 export const API_URL =
   import.meta.env.VITE_API_URL ||
   `${window.location.protocol}//${window.location.hostname}:3003`;
@@ -70,10 +72,14 @@ export async function apiFetch<T>(path: string, options?: RequestInit): Promise<
 
   if (!res.ok) {
     const body = await res.json().catch(() => null);
-    if (body?.error?.code && body?.error?.message) {
-      throw new ApiError(body.error.code, body.error.message, body.error.details);
+    const error = body?.error?.code && body?.error?.message
+      ? new ApiError(body.error.code, body.error.message, body.error.details)
+      : new ApiError('UNKNOWN', 'Une erreur est survenue');
+    // Don't toast on auth errors — handled by auth flow (redirect to login)
+    if (error.code !== 'UNAUTHORIZED') {
+      toast.error(error.message);
     }
-    throw new ApiError('UNKNOWN', 'Une erreur est survenue');
+    throw error;
   }
 
   if (res.status === 204) return undefined as T;

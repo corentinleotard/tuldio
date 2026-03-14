@@ -1,7 +1,5 @@
 import { useState, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
-import { Settings } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import { ChatMessageList } from '../components/chat-message-list';
 import { ChatInputBar } from '../components/chat-input-bar';
@@ -135,20 +133,11 @@ export function ChatPage() {
     }
   }
 
-  const navigate = useNavigate();
-
   return (
     <div className="absolute inset-0 flex flex-col overflow-hidden">
       {/* Mobile header */}
-      <div className="flex items-center justify-between border-b px-4 py-3 md:hidden">
+      <div className="flex items-center border-b px-4 py-3 md:hidden">
         <span className="text-2xl font-bold text-primary">Tuldio</span>
-        <button
-          type="button"
-          onClick={() => navigate('/settings')}
-          className="rounded-full p-2 transition-colors hover:bg-secondary"
-        >
-          <Settings className="h-5 w-5 text-muted-foreground" />
-        </button>
       </div>
 
       {/* Desktop: headers + content + input in a row layout */}

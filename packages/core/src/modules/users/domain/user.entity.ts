@@ -8,6 +8,7 @@ export const userSchema = z.object({
   name: z.string(),
   role: z.enum(['owner', 'member']),
   god: z.boolean(),
+  has_seen_document_guide: z.boolean(),
   created_at: z.date(),
 });
 

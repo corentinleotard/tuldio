@@ -13,6 +13,7 @@ import { RichCardQuote } from './rich-card-quote';
 import { RichCardInvoice } from './rich-card-invoice';
 import { RichCardStats } from './rich-card-stats';
 import { RichCardClientPicker } from './rich-card-client-picker';
+import { DraftInfoBubble } from './draft-info-bubble';
 import { TypingIndicator } from './typing-indicator';
 
 interface ChatMessageListProps {
@@ -118,15 +119,57 @@ export function ChatMessageList({
   );
 }
 
+interface ReadinessError {
+  code: string;
+  message: string;
+}
+
+interface DocumentReadiness {
+  errors: ReadinessError[];
+  warnings: ReadinessError[];
+  tvaExempt: boolean;
+}
+
+interface RichCardDocumentData {
+  status?: string;
+  _readiness?: DocumentReadiness;
+  _showTutorial?: boolean;
+}
+
+function renderDraftInfoBubble(documentType: 'quote' | 'invoice', data: RichCardDocumentData) {
+  if (data.status !== 'draft' || !data._readiness) return null;
+  return (
+    <DraftInfoBubble
+      documentType={documentType}
+      errors={data._readiness.errors}
+      showTutorial={data._showTutorial ?? false}
+    />
+  );
+}
+
 function renderRichCard(
   richCard: { type: string; data: unknown },
   onClientSelect: (client: ClientView) => void,
 ) {
   switch (richCard.type) {
-    case 'quote':
-      return <RichCardQuote data={richCard.data as QuoteView} />;
-    case 'invoice':
-      return <RichCardInvoice data={richCard.data as InvoiceView} />;
+    case 'quote': {
+      const data = richCard.data as QuoteView & RichCardDocumentData;
+      return (
+        <>
+          <RichCardQuote data={data} />
+          {renderDraftInfoBubble('quote', data)}
+        </>
+      );
+    }
+    case 'invoice': {
+      const data = richCard.data as InvoiceView & RichCardDocumentData;
+      return (
+        <>
+          <RichCardInvoice data={data} />
+          {renderDraftInfoBubble('invoice', data)}
+        </>
+      );
+    }
     case 'stats':
       return <RichCardStats data={richCard.data as MonthlyStatsView} />;
     case 'client_picker':

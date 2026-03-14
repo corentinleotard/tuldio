@@ -17,12 +17,14 @@ function resetIOSZoom() {
   requestAnimationFrame(() => viewport.setAttribute('content', original));
 }
 
-const isTouchDevice = () => matchMedia('(pointer: coarse)').matches;
+const isTouchDevice = () =>
+  matchMedia('(pointer: coarse)').matches || navigator.maxTouchPoints > 0;
 
 const MAX_ROWS_DESKTOP = 6;
 const MAX_ROWS_MOBILE = 4;
 const LINE_HEIGHT = 24; // matches text-base leading-6
 const PADDING_Y = 20; // py-2.5 = 10px top + 10px bottom
+const MAX_LENGTH = 2000;
 
 export function ChatInputBar({ onSend, disabled, onTypingChange }: ChatInputBarProps) {
   const [value, setValue] = useState(() => sessionStorage.getItem('chat-draft') ?? '');
@@ -83,6 +85,8 @@ export function ChatInputBar({ onSend, disabled, onTypingChange }: ChatInputBarP
           onBlur={resetIOSZoom}
           placeholder="Ecrivez un message..."
           rows={1}
+          maxLength={MAX_LENGTH}
+          enterKeyHint="enter"
           // text-base (16px) prevents iOS auto-zoom on input focus (triggers at <16px)
           className="flex-1 resize-none bg-transparent px-4 py-2.5 pr-12 text-base leading-6 placeholder:text-muted-foreground focus-visible:outline-none"
           disabled={disabled}

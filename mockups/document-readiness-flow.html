@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tuldio — Document Readiness UX Flow</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --background: #F8F7F4;
+    --foreground: #1A1A1A;
+    --card: #FFFFFF;
+    --card-foreground: #1A1A1A;
+    --primary: #1B4D3E;
+    --primary-light: #2D7A5F;
+    --primary-lightest: #D4E8E3;
+    --secondary: #EBE8E0;
+    --muted: #EBE8E0;
+    --muted-foreground: #6B6B6B;
+    --accent: #E8913A;
+    --destructive: #C4392D;
+    --success: #2D7A5F;
+    --warning: #E8913A;
+    --info: #4A90E2;
+    --border: #E5E2DC;
+
+    --primary-10: rgba(27, 77, 62, 0.1);
+    --destructive-10: rgba(196, 57, 45, 0.1);
+    --destructive-bg: #FEF2F2;
+    --warning-10: rgba(232, 145, 58, 0.12);
+    --success-10: rgba(45, 122, 95, 0.1);
+    --info-10: rgba(74, 144, 226, 0.1);
+    --draft-bg: rgba(107, 107, 107, 0.15);
+    --sent-bg: rgba(74, 144, 226, 0.15);
+  }
+
+  body {
+    font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: #EDEBE7;
+    color: var(--foreground);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .presentation { max-width: 960px; margin: 0 auto; padding: 60px 20px 120px; }
+  .hero { text-align: center; margin-bottom: 80px; }
+  .hero h1 { font-size: 28px; font-weight: 700; letter-spacing: -0.5px; color: var(--foreground); margin-bottom: 8px; }
+  .hero .subtitle { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--muted-foreground); text-transform: uppercase; letter-spacing: 2px; }
+  .hero .divider { width: 48px; height: 3px; background: var(--primary); margin: 24px auto 0; border-radius: 2px; }
+
+  .section { margin-bottom: 80px; }
+  .section-header { margin-bottom: 32px; }
+  .section-number { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--primary); text-transform: uppercase; letter-spacing: 3px; margin-bottom: 6px; font-weight: 500; }
+  .section-title { font-size: 20px; font-weight: 600; color: var(--foreground); letter-spacing: -0.3px; }
+  .section-desc { font-size: 14px; color: var(--muted-foreground); margin-top: 6px; max-width: 560px; }
+
+  .phone-frame { width: 375px; margin: 0 auto; background: var(--background); border-radius: 24px; overflow: hidden; box-shadow: 0 8px 30px rgba(0,0,0,0.08), 0 0 0 1px rgba(0,0,0,0.04); }
+  .phone-notch { height: 48px; background: var(--card); display: flex; align-items: center; justify-content: center; border-bottom: 1px solid var(--border); }
+  .phone-notch .header-title { font-size: 16px; font-weight: 600; color: var(--foreground); }
+  .phone-content { padding: 16px; min-height: 480px; display: flex; flex-direction: column; gap: 10px; }
+
+  .bubble { max-width: 85%; font-size: 14px; line-height: 1.45; }
+  .bubble-ai { align-self: flex-start; background: var(--card); color: var(--card-foreground); border: 1px solid var(--border); padding: 12px 16px; border-radius: 18px 18px 18px 6px; }
+  .bubble-user { align-self: flex-end; background: var(--primary); color: #FFFFFF; padding: 10px 16px; border-radius: 18px 18px 6px 18px; }
+  .bubble-ai .sender { font-size: 11px; font-weight: 600; color: var(--primary); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+  .rich-card { align-self: flex-start; width: 88%; background: var(--card); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
+  .rich-card-header { padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; }
+  .rich-card-header .doc-type { font-size: 14px; font-weight: 500; color: var(--foreground); }
+  .status-badge { font-size: 12px; font-weight: 500; padding: 2px 10px; border-radius: 9999px; display: inline-flex; align-items: center; }
+  .status-draft { background: var(--draft-bg); color: var(--muted-foreground); }
+  .status-sent { background: var(--sent-bg); color: var(--info); }
+
+  .rich-card-body { padding: 0 16px 16px; }
+  .rich-card-body .doc-number { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--muted-foreground); margin-bottom: 2px; }
+  .rich-card-body .doc-client { font-size: 14px; font-weight: 500; color: var(--muted-foreground); margin-bottom: 12px; }
+  .doc-lines { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; }
+  .doc-line { display: flex; justify-content: space-between; align-items: center; font-size: 14px; }
+  .doc-line .line-desc { color: var(--foreground); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding-right: 8px; }
+  .doc-line .line-amount { font-weight: 500; color: var(--foreground); flex-shrink: 0; }
+  .doc-total { display: flex; justify-content: space-between; align-items: center; padding-top: 12px; border-top: 1px solid var(--border); }
+  .doc-total .total-label { font-size: 14px; color: var(--muted-foreground); }
+  .doc-total .total-amount { font-size: 18px; font-weight: 700; color: var(--foreground); }
+
+  .rich-card-actions { padding: 12px 16px; border-top: 1px solid var(--border); display: flex; gap: 8px; }
+  .card-btn { flex: 1; height: 36px; padding: 0 12px; border-radius: 16px; font-size: 14px; font-weight: 600; border: none; cursor: pointer; text-align: center; transition: all 0.15s; font-family: inherit; display: inline-flex; align-items: center; justify-content: center; }
+  .card-btn-primary { background: var(--primary); color: #FFFFFF; }
+  .card-btn-primary:hover { background: var(--primary-light); }
+  .card-btn-secondary { background: var(--background); color: var(--foreground); border: 1px solid var(--border); }
+  .card-btn-secondary:hover { background: var(--secondary); }
+  .card-btn-disabled { background: var(--secondary); color: var(--muted-foreground); border: 1px solid var(--border); cursor: not-allowed; opacity: 0.5; }
+  .card-btn-outline-success { background: transparent; color: var(--success); border: 1px solid var(--success); }
+  .card-btn-outline-destructive { background: transparent; color: var(--destructive); border: 1px solid var(--destructive); }
+
+  .bubble-ai .link { color: var(--primary); font-weight: 600; text-decoration: none; }
+  .bubble-ai .link:hover { text-decoration: underline; }
+
+  /* ── Inline tappable chip (in-chat link to settings) ── */
+  .chip-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--primary);
+    background: var(--primary-10);
+    padding: 4px 10px;
+    border-radius: 12px;
+    text-decoration: none;
+    transition: background 0.15s;
+    white-space: nowrap;
+  }
+  .chip-link:hover { background: var(--primary-lightest); }
+
+  /* ── Mobile bottom tab bar ── */
+  .tab-bar {
+    display: flex;
+    border-top: 1px solid var(--border);
+    background: var(--card);
+  }
+  .tab-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 6px 0 4px;
+    font-size: 10px;
+    font-weight: 500;
+    color: var(--muted-foreground);
+    text-decoration: none;
+    border: none;
+    background: none;
+    cursor: pointer;
+  }
+  .tab-item.active {
+    color: var(--primary);
+    font-weight: 600;
+  }
+  .tab-icon {
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  /* Simple SVG-like icons using CSS */
+  .tab-icon svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+  .data-panel { margin-top: 16px; width: 375px; margin-left: auto; margin-right: auto; background: #1e1e2e; color: #cdd6f4; border-radius: 12px; padding: 16px; font-family: 'DM Mono', monospace; font-size: 11px; line-height: 1.6; overflow-x: auto; }
+  .data-panel .dp-title { font-size: 10px; text-transform: uppercase; letter-spacing: 2px; color: #6c7086; margin-bottom: 8px; }
+  .data-panel .dp-key { color: #89b4fa; }
+  .data-panel .dp-str { color: #a6e3a1; }
+  .data-panel .dp-bool { color: #fab387; }
+  .data-panel .dp-comment { color: #585b70; font-style: italic; }
+  .data-panel .dp-bracket { color: #9399b2; }
+
+  .comparison { display: flex; gap: 24px; align-items: flex-start; justify-content: center; flex-wrap: wrap; }
+  .comparison .phone-frame { flex-shrink: 0; }
+  .comparison-label { text-align: center; margin-bottom: 12px; }
+  .comparison-label span { font-family: 'DM Mono', monospace; font-size: 11px; text-transform: uppercase; letter-spacing: 2px; padding: 4px 12px; border-radius: 9999px; font-weight: 500; }
+  .label-before span { background: var(--destructive-10); color: var(--destructive); }
+  .label-after span { background: var(--success-10); color: var(--success); }
+  .removed { position: relative; }
+  .removed::after { content: ''; position: absolute; top: 50%; left: 0; right: 0; height: 2px; background: var(--destructive); opacity: 0.6; }
+  .removed-label { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--destructive); background: var(--destructive-bg); padding: 2px 6px; border-radius: 9999px; font-weight: 500; }
+
+  @media (max-width: 500px) {
+    .presentation { padding: 32px 12px 80px; }
+    .hero h1 { font-size: 22px; }
+    .phone-frame, .data-panel { width: 100%; max-width: 375px; }
+    .comparison { flex-direction: column; align-items: center; }
+  }
+</style>
+</head>
+<body>
+
+<div class="presentation">
+
+  <div class="hero">
+    <h1>Tuldio — Document Readiness</h1>
+    <p class="subtitle">UX Flow · Mars 2026 · v7b</p>
+    <div class="divider"></div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════ -->
+  <!-- CONTEXT                                          -->
+  <!-- ════════════════════════════════════════════════ -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-number">Contexte</div>
+      <div class="section-title">État d'un utilisateur après onboarding</div>
+      <p class="section-desc">L'onboarding force : nom, SIRET, adresse. Les mentions légales facture ont des valeurs par défaut. La date de validité du devis est auto-calculée (30 jours). Donc au premier document : paramètres entreprise = OK. Le seul problème récurrent = adresse client manquante.</p>
+    </div>
+
+    <div class="data-panel">
+      <div class="dp-title">État réel après onboarding</div>
+<span class="dp-comment">// Forcé par onboarding</span>
+<span class="dp-key">name</span>            <span class="dp-str">"Durand Plomberie"</span>       <span class="dp-comment">✓</span>
+<span class="dp-key">siret</span>           <span class="dp-str">"12345678901234"</span>         <span class="dp-comment">✓</span>
+<span class="dp-key">address</span>         <span class="dp-str">"12 rue des Lilas, 69003"</span> <span class="dp-comment">✓</span>
+
+<span class="dp-comment">// Valeurs par défaut (pre-remplies)</span>
+<span class="dp-key">early_payment_discount</span>  <span class="dp-str">"Pas d'escompte..."</span>      <span class="dp-comment">✓</span>
+<span class="dp-key">late_penalty_rate</span>       <span class="dp-str">"3x taux légal"</span>          <span class="dp-comment">✓</span>
+<span class="dp-key">recovery_fee</span>            <span class="dp-str">"40,00 €"</span>                <span class="dp-comment">✓</span>
+
+<span class="dp-comment">// Auto-calculés</span>
+<span class="dp-key">validUntil</span>      <span class="dp-str">+30 jours</span>                <span class="dp-comment">✓ (quote_validity_days)</span>
+<span class="dp-key">prestationDate</span>  <span class="dp-str">aujourd'hui</span>              <span class="dp-comment">✓</span>
+<span class="dp-key">dueDate</span>         <span class="dp-str">+30 jours</span>                <span class="dp-comment">✓ (invoice_payment_delay_days)</span>
+
+<span class="dp-comment">// Probablement vide</span>
+<span class="dp-key">tva_number</span>      <span class="dp-str">""</span>                       <span class="dp-comment">warning si assujetti</span>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════ -->
+  <!-- SCREEN 1: Premier devis — Erreurs + tutorial     -->
+  <!-- ════════════════════════════════════════════════ -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-number">Écran 01</div>
+      <div class="section-title">Premier devis — Erreurs + tutorial</div>
+      <p class="section-desc">L'IA dit "C'est fait !". Le frontend affiche une bulle info sous la card avec le message brouillon, les erreurs, et le nudge tutorial. Ce n'est pas un message AI, c'est un composant déterministe.</p>
+    </div>
+
+    <div class="phone-frame">
+      <div class="phone-notch"><span class="header-title">Tuldio</span></div>
+      <div class="phone-content">
+
+        <div class="bubble bubble-user">Fais-moi un devis pour Martin Jean, pose de carrelage 2500€</div>
+
+        <div class="bubble bubble-ai">
+          <div class="sender">Tuldio</div>
+          C'est fait !
+        </div>
+
+        <div class="rich-card">
+          <div class="rich-card-header">
+            <span class="doc-type">Devis</span>
+            <span class="status-badge status-draft">Brouillon</span>
+          </div>
+          <div class="rich-card-body">
+            <div class="doc-number">D-2026-001</div>
+            <div class="doc-client">Martin Jean</div>
+            <div class="doc-lines">
+              <div class="doc-line">
+                <span class="line-desc">Pose de carrelage</span>
+                <span class="line-amount">2 500,00 €</span>
+              </div>
+            </div>
+            <div class="doc-total">
+              <span class="total-label">Total TTC</span>
+              <span class="total-amount">3 000,00 €</span>
+            </div>
+          </div>
+          <div class="rich-card-actions">
+            <button class="card-btn card-btn-primary">Consulter le PDF</button>
+            <button class="card-btn card-btn-secondary">Marquer envoyé</button>
+          </div>
+        </div>
+
+        <!-- Info bubble (frontend component, not AI message) -->
+        <div class="bubble bubble-ai" style="max-width: 92%;">
+          Ton devis est en brouillon, tu peux encore tout modifier. Ecris-moi ici ce que tu veux changer.
+          <p style="margin-top: 8px; color: var(--destructive);">L'adresse du client est requise</p>
+          <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); font-size: 13px; color: var(--muted-foreground);">
+            Pense à vérifier tes infos entreprise sur le PDF (TVA, conditions de paiement, assurance...). Tu peux les modifier à tout moment dans <a href="/settings/company" class="chip-link"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: -1px;"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg> Compte > Mon entreprise</a>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════ -->
+  <!-- SCREEN 1b: Premier devis — Tout est bon          -->
+  <!-- ════════════════════════════════════════════════ -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-number">Écran 01b</div>
+      <div class="section-title">Premier devis — Client complet</div>
+      <p class="section-desc">Aucune erreur. Le message brouillon + tutorial nudge dans une bulle sous la card.</p>
+    </div>
+
+    <div class="phone-frame">
+      <div class="phone-notch"><span class="header-title">Tuldio</span></div>
+      <div class="phone-content">
+
+        <div class="bubble bubble-user">Devis pour Sophie Lefèvre, installation climatisation 4800€ HT</div>
+
+        <div class="bubble bubble-ai">
+          <div class="sender">Tuldio</div>
+          C'est fait !
+        </div>
+
+        <div class="rich-card">
+          <div class="rich-card-header">
+            <span class="doc-type">Devis</span>
+            <span class="status-badge status-draft">Brouillon</span>
+          </div>
+          <div class="rich-card-body">
+            <div class="doc-number">D-2026-001</div>
+            <div class="doc-client">Sophie Lefèvre</div>
+            <div class="doc-lines">
+              <div class="doc-line">
+                <span class="line-desc">Installation climatisation</span>
+                <span class="line-amount">4 800,00 €</span>
+              </div>
+            </div>
+            <div class="doc-total">
+              <span class="total-label">Total TTC</span>
+              <span class="total-amount">5 760,00 €</span>
+            </div>
+          </div>
+          <div class="rich-card-actions">
+            <button class="card-btn card-btn-primary">Consulter le PDF</button>
+            <button class="card-btn card-btn-secondary">Marquer envoyé</button>
+          </div>
+        </div>
+
+        <div class="bubble bubble-ai" style="max-width: 92%;">
+          Ton devis est en brouillon, tu peux encore tout modifier. Ecris-moi ici ce que tu veux changer, ou dis-moi quand tu l'as envoyé.
+          <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); font-size: 13px; color: var(--muted-foreground);">
+            Pense à vérifier tes infos entreprise sur le PDF (TVA, conditions de paiement, assurance...). Tu peux les modifier à tout moment dans <a href="/settings/company" class="chip-link"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: -1px;"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg> Compte > Mon entreprise</a>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════ -->
+  <!-- SCREEN 1c: Récurrent — Adresse client manquante  -->
+  <!-- ════════════════════════════════════════════════ -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-number">Écran 01c</div>
+      <div class="section-title">Récurrent — Adresse manquante</div>
+      <p class="section-desc">Pas le premier document, pas de tutorial. L'erreur dans une bulle sous la card.</p>
+    </div>
+
+    <div class="phone-frame">
+      <div class="phone-notch"><span class="header-title">Tuldio</span></div>
+      <div class="phone-content">
+
+        <div class="bubble bubble-user">Devis pour Pierre Morel, ravalement façade 12000€</div>
+
+        <div class="bubble bubble-ai">
+          <div class="sender">Tuldio</div>
+          C'est fait !
+        </div>
+
+        <div class="rich-card">
+          <div class="rich-card-header">
+            <span class="doc-type">Devis</span>
+            <span class="status-badge status-draft">Brouillon</span>
+          </div>
+          <div class="rich-card-body">
+            <div class="doc-number">D-2026-005</div>
+            <div class="doc-client">Pierre Morel</div>
+            <div class="doc-lines">
+              <div class="doc-line">
+                <span class="line-desc">Ravalement façade</span>
+                <span class="line-amount">12 000,00 €</span>
+              </div>
+            </div>
+            <div class="doc-total">
+              <span class="total-label">Total TTC</span>
+              <span class="total-amount">14 400,00 €</span>
+            </div>
+          </div>
+          <div class="rich-card-actions">
+            <button class="card-btn card-btn-primary">Consulter le PDF</button>
+            <button class="card-btn card-btn-secondary">Marquer envoyé</button>
+          </div>
+        </div>
+
+        <div class="bubble bubble-ai" style="max-width: 92%;">
+          Ton devis est en brouillon, tu peux encore tout modifier. Ecris-moi ici ce que tu veux changer.
+          <p style="margin-top: 8px; color: var(--destructive);">L'adresse du client est requise</p>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════ -->
+  <!-- SCREEN 2: Tout est bon — Devis                   -->
+  <!-- ════════════════════════════════════════════════ -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-number">Écran 02</div>
+      <div class="section-title">Récurrent — Devis prêt</div>
+      <p class="section-desc">Pas de tutorial, pas d'erreurs. Juste le message brouillon dans une bulle.</p>
+    </div>
+
+    <div class="phone-frame">
+      <div class="phone-notch"><span class="header-title">Tuldio</span></div>
+      <div class="phone-content">
+
+        <div class="bubble bubble-user">Devis pour Sophie Lefèvre, installation climatisation 4800€ HT</div>
+
+        <div class="bubble bubble-ai">
+          <div class="sender">Tuldio</div>
+          C'est fait !
+        </div>
+
+        <div class="rich-card">
+          <div class="rich-card-header">
+            <span class="doc-type">Devis</span>
+            <span class="status-badge status-draft">Brouillon</span>
+          </div>
+          <div class="rich-card-body">
+            <div class="doc-number">D-2026-003</div>
+            <div class="doc-client">Sophie Lefèvre</div>
+            <div class="doc-lines">
+              <div class="doc-line">
+                <span class="line-desc">Installation climatisation</span>
+                <span class="line-amount">4 800,00 €</span>
+              </div>
+            </div>
+            <div class="doc-total">
+              <span class="total-label">Total TTC</span>
+              <span class="total-amount">5 760,00 €</span>
+            </div>
+          </div>
+          <div class="rich-card-actions">
+            <button class="card-btn card-btn-primary">Consulter le PDF</button>
+            <button class="card-btn card-btn-secondary">Marquer envoyé</button>
+          </div>
+        </div>
+
+        <div class="bubble bubble-ai" style="max-width: 92%;">
+          Ton devis est en brouillon, tu peux encore tout modifier. Ecris-moi ici ce que tu veux changer, ou dis-moi quand tu l'as envoyé.
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════ -->
+  <!-- SCREEN 2b: Tout est bon — Facture                -->
+  <!-- ════════════════════════════════════════════════ -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-number">Écran 02b</div>
+      <div class="section-title">Récurrent — Facture prête</div>
+      <p class="section-desc">Wording adapté aux factures.</p>
+    </div>
+
+    <div class="phone-frame">
+      <div class="phone-notch"><span class="header-title">Tuldio</span></div>
+      <div class="phone-content">
+
+        <div class="bubble bubble-user">Facture le devis D-2026-003</div>
+
+        <div class="bubble bubble-ai">
+          <div class="sender">Tuldio</div>
+          C'est fait !
+        </div>
+
+        <div class="rich-card">
+          <div class="rich-card-header">
+            <span class="doc-type">Facture</span>
+            <span class="status-badge status-draft">Brouillon</span>
+          </div>
+          <div class="rich-card-body">
+            <div class="doc-number">F-2026-003</div>
+            <div class="doc-client">Sophie Lefèvre</div>
+            <div class="doc-lines">
+              <div class="doc-line">
+                <span class="line-desc">Installation climatisation</span>
+                <span class="line-amount">4 800,00 €</span>
+              </div>
+            </div>
+            <div class="doc-total">
+              <span class="total-label">Total TTC</span>
+              <span class="total-amount">5 760,00 €</span>
+            </div>
+          </div>
+          <div class="rich-card-actions">
+            <button class="card-btn card-btn-primary">Consulter le PDF</button>
+            <button class="card-btn card-btn-secondary">Marquer envoyée</button>
+          </div>
+        </div>
+
+        <div class="bubble bubble-ai" style="max-width: 92%;">
+          Ta facture est en brouillon, tu peux encore tout modifier. Ecris-moi ici ce que tu veux changer, ou dis-moi quand tu l'as envoyée.
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════ -->
+  <!-- SCREEN 3: Client B2B — SIRET manquant            -->
+  <!-- ════════════════════════════════════════════════ -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-number">Écran 03</div>
+      <div class="section-title">Client B2B — Erreurs multiples</div>
+      <p class="section-desc">Client pro sans adresse ni SIRET. Les erreurs dans la bulle sous la card.</p>
+    </div>
+
+    <div class="phone-frame">
+      <div class="phone-notch"><span class="header-title">Tuldio</span></div>
+      <div class="phone-content">
+
+        <div class="bubble bubble-user">Facture pour la société Duval et Fils, rénovation salle de bain 8500€</div>
+
+        <div class="bubble bubble-ai">
+          <div class="sender">Tuldio</div>
+          C'est fait !
+        </div>
+
+        <div class="rich-card">
+          <div class="rich-card-header">
+            <span class="doc-type">Facture</span>
+            <span class="status-badge status-draft">Brouillon</span>
+          </div>
+          <div class="rich-card-body">
+            <div class="doc-number">F-2026-004</div>
+            <div class="doc-client">Duval et Fils</div>
+            <div class="doc-lines">
+              <div class="doc-line">
+                <span class="line-desc">Rénovation salle de bain</span>
+                <span class="line-amount">8 500,00 €</span>
+              </div>
+            </div>
+            <div class="doc-total">
+              <span class="total-label">Total TTC</span>
+              <span class="total-amount">10 200,00 €</span>
+            </div>
+          </div>
+          <div class="rich-card-actions">
+            <button class="card-btn card-btn-primary">Consulter le PDF</button>
+            <button class="card-btn card-btn-secondary">Marquer envoyée</button>
+          </div>
+        </div>
+
+        <div class="bubble bubble-ai" style="max-width: 92%;">
+          Ta facture est en brouillon, tu peux encore tout modifier. Ecris-moi ici ce que tu veux changer.
+          <p style="margin-top: 8px; color: var(--destructive); margin-bottom: 4px;">L'adresse du client est requise</p>
+          <p style="color: var(--destructive);">Le SIRET du client professionnel est requis</p>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════ -->
+  <!-- SCREEN 4: Après "Marquer envoyé" — Devis         -->
+  <!-- ════════════════════════════════════════════════ -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-number">Écran 04</div>
+      <div class="section-title">Après « Marquer envoyé » — Devis</div>
+      <p class="section-desc">Statut → Envoyé. Les actions deviennent : accepté ou refusé.</p>
+    </div>
+
+    <div class="phone-frame">
+      <div class="phone-notch"><span class="header-title">Tuldio</span></div>
+      <div class="phone-content">
+
+        <div class="rich-card">
+          <div class="rich-card-header">
+            <span class="doc-type">Devis</span>
+            <span class="status-badge status-sent">Envoyé</span>
+          </div>
+          <div class="rich-card-body">
+            <div class="doc-number">D-2026-003</div>
+            <div class="doc-client">Sophie Lefèvre</div>
+            <div class="doc-lines">
+              <div class="doc-line">
+                <span class="line-desc">Installation climatisation</span>
+                <span class="line-amount">4 800,00 €</span>
+              </div>
+            </div>
+            <div class="doc-total">
+              <span class="total-label">Total TTC</span>
+              <span class="total-amount">5 760,00 €</span>
+            </div>
+          </div>
+          <div class="rich-card-actions">
+            <button class="card-btn card-btn-primary">Consulter le PDF</button>
+          </div>
+          <div class="rich-card-actions" style="border-top: none; padding-top: 0;">
+            <button class="card-btn card-btn-outline-success">Accepté</button>
+            <button class="card-btn card-btn-outline-destructive">Refusé</button>
+          </div>
+        </div>
+
+        <div class="bubble bubble-ai">
+          <div class="sender">Tuldio</div>
+          C'est noté, ton devis est marqué comme envoyé. Dis-moi quand le client a répondu.
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════ -->
+  <!-- SCREEN 4b: Après "Marquer envoyée" — Facture     -->
+  <!-- ════════════════════════════════════════════════ -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-number">Écran 04b</div>
+      <div class="section-title">Après « Marquer envoyée » — Facture</div>
+      <p class="section-desc">Statut → Envoyée. Action suivante : marquer comme payée.</p>
+    </div>
+
+    <div class="phone-frame">
+      <div class="phone-notch"><span class="header-title">Tuldio</span></div>
+      <div class="phone-content">
+
+        <div class="rich-card">
+          <div class="rich-card-header">
+            <span class="doc-type">Facture</span>
+            <span class="status-badge status-sent">Envoyée</span>
+          </div>
+          <div class="rich-card-body">
+            <div class="doc-number">F-2026-003</div>
+            <div class="doc-client">Sophie Lefèvre</div>
+            <div class="doc-lines">
+              <div class="doc-line">
+                <span class="line-desc">Installation climatisation</span>
+                <span class="line-amount">4 800,00 €</span>
+              </div>
+            </div>
+            <div class="doc-total">
+              <span class="total-label">Total TTC</span>
+              <span class="total-amount">5 760,00 €</span>
+            </div>
+          </div>
+          <div class="rich-card-actions">
+            <button class="card-btn card-btn-primary">Consulter le PDF</button>
+            <button class="card-btn card-btn-outline-success">Payée</button>
+          </div>
+        </div>
+
+        <div class="bubble bubble-ai">
+          <div class="sender">Tuldio</div>
+          C'est noté, ta facture est marquée comme envoyée. Dis-moi quand elle a été payée.
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════ -->
+  <!-- SCREEN 5: Settings access — Desktop + Mobile     -->
+  <!-- ════════════════════════════════════════════════ -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-number">Écran 05</div>
+      <div class="section-title">Accès paramètres — Desktop + Mobile</div>
+      <p class="section-desc">Le ⚙️ est caché en bas de la sidebar desktop. Sur mobile, aucun accès. Proposition : « Mon compte » comme vrai item de navigation, sur les deux plateformes.</p>
+    </div>
+
+    <!-- DESKTOP before/after -->
+    <div style="margin-bottom: 40px;">
+      <div class="comparison">
+        <!-- DESKTOP BEFORE -->
+        <div>
+          <div class="comparison-label label-before"><span>Avant · Desktop</span></div>
+          <div style="width: 220px; background: var(--card); border-radius: 16px; overflow: hidden; box-shadow: 0 8px 30px rgba(0,0,0,0.08), 0 0 0 1px rgba(0,0,0,0.04); display: flex; flex-direction: column;">
+            <!-- Header -->
+            <div style="padding: 16px 20px; border-bottom: 1px solid var(--border);">
+              <span style="font-size: 18px; font-weight: 700; color: var(--primary);">Tuldio</span>
+            </div>
+            <!-- Nav items -->
+            <div style="flex: 1; padding: 10px 10px; display: flex; flex-direction: column; gap: 2px;">
+              <div style="display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 8px; background: var(--primary-10); color: var(--primary); font-size: 14px; font-weight: 600;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                Chat
+              </div>
+              <div style="display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 8px; color: var(--muted-foreground); font-size: 14px; font-weight: 500;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                Documents
+              </div>
+              <div style="display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 8px; color: var(--muted-foreground); font-size: 14px; font-weight: 500;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+                Clients
+              </div>
+              <div style="display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 8px; color: var(--muted-foreground); font-size: 14px; font-weight: 500;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                Statistiques
+              </div>
+            </div>
+            <!-- Bottom: avatar + hidden gear -->
+            <div style="padding: 12px 16px; border-top: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between;">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <div style="width: 28px; height: 28px; border-radius: 50%; background: var(--primary-10); color: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700;">JD</div>
+                <div>
+                  <div style="font-size: 12px; font-weight: 500;">Jean Durand</div>
+                  <div style="font-size: 10px; color: var(--muted-foreground);">jean@durand.fr</div>
+                </div>
+              </div>
+              <div style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; color: var(--muted-foreground); opacity: 0.4;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- DESKTOP AFTER -->
+        <div>
+          <div class="comparison-label label-after"><span>Après · Desktop</span></div>
+          <div style="width: 220px; background: var(--card); border-radius: 16px; overflow: hidden; box-shadow: 0 8px 30px rgba(0,0,0,0.08), 0 0 0 1px rgba(0,0,0,0.04); display: flex; flex-direction: column;">
+            <!-- Header -->
+            <div style="padding: 16px 20px; border-bottom: 1px solid var(--border);">
+              <span style="font-size: 18px; font-weight: 700; color: var(--primary);">Tuldio</span>
+            </div>
+            <!-- Nav items -->
+            <div style="flex: 1; padding: 10px 10px; display: flex; flex-direction: column; gap: 2px;">
+              <div style="display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 8px; background: var(--primary-10); color: var(--primary); font-size: 14px; font-weight: 600;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                Chat
+              </div>
+              <div style="display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 8px; color: var(--muted-foreground); font-size: 14px; font-weight: 500;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                Documents
+              </div>
+              <div style="display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 8px; color: var(--muted-foreground); font-size: 14px; font-weight: 500;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+                Clients
+              </div>
+              <div style="display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 8px; color: var(--muted-foreground); font-size: 14px; font-weight: 500;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                Statistiques
+              </div>
+            </div>
+            <!-- Separator -->
+            <div style="margin: 0 16px; border-top: 1px solid var(--border);"></div>
+            <!-- Mon compte nav item -->
+            <div style="padding: 8px 10px 12px;">
+              <div style="display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 8px; color: var(--muted-foreground); font-size: 14px; font-weight: 500;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                Mon compte
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MOBILE before/after -->
+    <div class="comparison">
+      <!-- MOBILE BEFORE -->
+      <div>
+        <div class="comparison-label label-before"><span>Avant · Mobile</span></div>
+        <div class="phone-frame" style="min-height: auto;">
+          <div class="phone-content" style="min-height: 60px; padding: 24px 16px;">
+            <div style="font-size: 12px; color: var(--muted-foreground); text-align: center;">4 onglets, pas de paramètres</div>
+          </div>
+          <div class="tab-bar">
+            <div class="tab-item active">
+              <div class="tab-icon"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>
+              Chat
+            </div>
+            <div class="tab-item">
+              <div class="tab-icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
+              Documents
+            </div>
+            <div class="tab-item">
+              <div class="tab-icon"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div>
+              Clients
+            </div>
+            <div class="tab-item">
+              <div class="tab-icon"><svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div>
+              Stats
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- MOBILE AFTER -->
+      <div>
+        <div class="comparison-label label-after"><span>Après · Mobile</span></div>
+        <div class="phone-frame" style="min-height: auto;">
+          <div class="phone-content" style="min-height: 60px; padding: 24px 16px;">
+            <div style="font-size: 12px; color: var(--muted-foreground); text-align: center;">5ème onglet → /settings</div>
+          </div>
+          <div class="tab-bar">
+            <div class="tab-item active">
+              <div class="tab-icon"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>
+              Chat
+            </div>
+            <div class="tab-item">
+              <div class="tab-icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
+              Documents
+            </div>
+            <div class="tab-item">
+              <div class="tab-icon"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div>
+              Clients
+            </div>
+            <div class="tab-item">
+              <div class="tab-icon"><svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div>
+              Stats
+            </div>
+            <div class="tab-item">
+              <div class="tab-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></div>
+              Compte
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════ -->
+  <!-- SCREEN 6: Before / After — Rich Card             -->
+  <!-- ════════════════════════════════════════════════ -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-number">Écran 06</div>
+      <div class="section-title">Rich Card actions — Avant / Après</div>
+      <p class="section-desc">« Envoyer par email » retiré. Remplacé par « Marquer envoyé » (actif si <code>errors</code> vide, désactivé sinon).</p>
+    </div>
+
+    <div class="comparison">
+      <div>
+        <div class="comparison-label label-before"><span>Avant</span></div>
+        <div class="phone-frame" style="min-height: auto;">
+          <div class="phone-content" style="min-height: auto; padding: 12px;">
+            <div class="rich-card" style="width: 100%;">
+              <div class="rich-card-header">
+                <span class="doc-type">Devis</span>
+                <span class="status-badge status-draft">Brouillon</span>
+              </div>
+              <div class="rich-card-body">
+                <div class="doc-number">D-2026-003</div>
+                <div class="doc-client">Sophie Lefèvre</div>
+                <div class="doc-total" style="margin-top: 8px;">
+                  <span class="total-label">Total TTC</span>
+                  <span class="total-amount">5 760,00 €</span>
+                </div>
+              </div>
+              <div class="rich-card-actions" style="flex-direction: column; gap: 6px;">
+                <div style="display: flex; gap: 8px;">
+                  <button class="card-btn card-btn-primary" style="flex:1;">Consulter le PDF</button>
+                </div>
+                <div class="removed" style="position: relative; display: flex; gap: 8px;">
+                  <button class="card-btn card-btn-secondary" style="flex:1; opacity: 0.5;">Envoyer par email</button>
+                  <span class="removed-label" style="position: absolute; right: -4px; top: -8px;">Retiré</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="comparison-label label-after"><span>Après</span></div>
+        <div class="phone-frame" style="min-height: auto;">
+          <div class="phone-content" style="min-height: auto; padding: 12px;">
+            <div class="rich-card" style="width: 100%;">
+              <div class="rich-card-header">
+                <span class="doc-type">Devis</span>
+                <span class="status-badge status-draft">Brouillon</span>
+              </div>
+              <div class="rich-card-body">
+                <div class="doc-number">D-2026-003</div>
+                <div class="doc-client">Sophie Lefèvre</div>
+                <div class="doc-total" style="margin-top: 8px;">
+                  <span class="total-label">Total TTC</span>
+                  <span class="total-amount">5 760,00 €</span>
+                </div>
+              </div>
+              <div class="rich-card-actions">
+                <button class="card-btn card-btn-primary">Consulter le PDF</button>
+                <button class="card-btn card-btn-secondary">Marquer envoyé</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

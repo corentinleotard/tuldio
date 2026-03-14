@@ -1,10 +1,68 @@
 import { z } from 'zod';
+import type { TeamField } from '@tuldio/types';
 import { defineTool, lineSchema, type ToolResult } from './define-tool.js';
 import { HandledError } from '../../errors/handled-error.js';
 import { errorCodes } from '../../errors/error-codes.js';
 import { createQuote } from '../../../modules/quotes/index.js';
 import { createInvoice, createInvoiceFromQuote, updateInvoiceStatusUc } from '../../../modules/invoices/index.js';
+import { getTeam } from '../../../modules/teams/index.js';
+import { getClient } from '../../../modules/clients/index.js';
+import { validateDocumentReady, type DocumentType, type DocumentReadyError } from '../../../modules/documents/domain/validate-document-ready.js';
+import { isFieldTrue } from '../../../modules/teams/domain/team-field.entity.js';
+import { findUserById } from '../../../modules/users/repository/find-user-by-id.js';
+import { markDocumentGuideSeen } from '../../../modules/users/repository/mark-document-guide-seen.js';
 import { resolveLines } from './line-deltas.js';
+
+interface DocumentReadiness {
+  errors: DocumentReadyError[];
+  warnings: DocumentReadyError[];
+  tvaExempt: boolean;
+}
+
+async function checkReadiness(input: {
+  teamId: string;
+  clientId: string;
+  documentType: DocumentType;
+  lines: Array<{ description: string }>;
+}): Promise<DocumentReadiness> {
+  const [teamSummary, client] = await Promise.all([
+    getTeam(input.teamId),
+    getClient({ teamId: input.teamId, clientId: input.clientId }),
+  ]);
+
+  const errors = validateDocumentReady({
+    documentType: input.documentType,
+    team: { name: teamSummary.name },
+    teamFields: teamSummary.fields,
+    client: {
+      firstName: client.firstName,
+      lastName: client.lastName,
+      companyName: client.companyName,
+      siret: client.siret,
+      address: client.address,
+    },
+    lines: input.lines,
+  });
+
+  const warnings: DocumentReadyError[] = [];
+
+  const tvaField = teamSummary.fields.find((f: TeamField) => f.key === 'tva_number');
+  if (!tvaField?.value?.trim()) {
+    warnings.push({ code: 'NO_TVA_NUMBER', message: "Pas de numéro de TVA intracommunautaire renseigné" });
+  }
+
+  const tvaExemptField = teamSummary.fields.find((f: TeamField) => f.key === 'tva_exempt');
+  const tvaExempt = isFieldTrue(tvaExemptField);
+
+  return { errors, warnings, tvaExempt };
+}
+
+async function resolveShowTutorial(userId: string): Promise<boolean> {
+  const user = await findUserById(userId);
+  if (!user || user.has_seen_document_guide) return false;
+  await markDocumentGuideSeen(userId);
+  return true;
+}
 
 export const createDocumentTool = defineTool({
   name: 'create_document',
@@ -19,7 +77,9 @@ Invoice types:
 - acompte: deposit invoice from a quote. Use sourceQuoteRef + invoiceType 'acompte' + either depositPercent OR depositAmount (mutually exclusive). Multiple acomptes on the same quote are supported — always use sourceQuoteRef. Use depositBase 'remaining' when the user refers to a percentage of what's left. Use depositAmount when the user gives a fixed euro amount (e.g. "200 euros d'acompte"). Never create standalone invoices to simulate acompte behavior.
 - To cancel/reverse an invoice, use update_invoice with status 'cancelled' instead — the system creates an avoir automatically.
 - initialStatus: set to 'sent' or 'paid' to skip the draft stage (invoices only). MANDATORY when the user indicates payment already happened (past tense). If the user says the client paid, always set initialStatus to 'paid'.
-- When the user mentions a payment amount (e.g. "il a payé 250€"), this amount is TTC. For acomptes, pass it directly as depositAmount (the system handles TTC→HT conversion). For standalone invoices, lines/unitPrice are always HT — ask the user for line details.`,
+- When the user mentions a payment amount (e.g. "il a payé 250€"), this amount is TTC. For acomptes, pass it directly as depositAmount (the system handles TTC→HT conversion). For standalone invoices, lines/unitPrice are always HT — ask the user for line details.
+
+The result includes showTutorial and hasReadinessErrors booleans. The frontend handles displaying tutorial and error messages below the rich card. The AI should just confirm the document was created (e.g. "C'est fait !"). Never use the em dash character.`,
   schema: z.object({
     type: z.enum(['quote', 'invoice']).describe('Document type'),
     clientRef: z.string().optional().describe('Client ref (from current conversation tool results only, e.g. c0, c1). Required unless sourceQuoteRef is provided.'),
@@ -76,9 +136,23 @@ Invoice types:
         invoice = await updateInvoiceStatusUc({ teamId: ctx.teamId, userId: ctx.userId, invoiceId: invoice.id, status: args.initialStatus });
       }
       const ref = ctx.registerRef('invoice', invoice.id);
+      if (args.initialStatus) {
+        return {
+          result: { ref, type: 'invoice', number: invoice.number, status: invoice.status, totalHt: invoice.totalHt, totalTtc: invoice.totalTtc, showTutorial: false, hasReadinessErrors: false },
+          richCard: { type: 'invoice', data: invoice },
+          activeStateUpdate: {
+            client: { id: invoice.clientId, name: invoice.clientName ?? '' },
+            document: { id: invoice.id, type: 'invoice' as const, number: invoice.number },
+          },
+        };
+      }
+      const [readiness, showTutorial] = await Promise.all([
+        checkReadiness({ teamId: ctx.teamId, clientId: invoice.clientId, documentType: 'invoice', lines: invoice.lines.map((l) => ({ description: l.description })) }),
+        resolveShowTutorial(ctx.userId),
+      ]);
       return {
-        result: { ref, type: 'invoice', number: invoice.number, status: invoice.status, totalHt: invoice.totalHt, totalTtc: invoice.totalTtc },
-        richCard: { type: 'invoice', data: invoice },
+        result: { ref, type: 'invoice', number: invoice.number, status: invoice.status, totalHt: invoice.totalHt, totalTtc: invoice.totalTtc, showTutorial, hasReadinessErrors: readiness.errors.length > 0 },
+        richCard: { type: 'invoice', data: { ...invoice, _readiness: readiness, _showTutorial: showTutorial } },
         activeStateUpdate: {
           client: { id: invoice.clientId, name: invoice.clientName ?? '' },
           document: { id: invoice.id, type: 'invoice' as const, number: invoice.number },
@@ -107,9 +181,13 @@ Invoice types:
         lines: resolvedLines,
       });
       const ref = ctx.registerRef('quote', quote.id);
+      const [readiness, showTutorial] = await Promise.all([
+        checkReadiness({ teamId: ctx.teamId, clientId, documentType: 'quote', lines: quote.lines.map((l) => ({ description: l.description })) }),
+        resolveShowTutorial(ctx.userId),
+      ]);
       return {
-        result: { ref, type: 'quote', number: quote.number, totalHt: quote.totalHt, totalTtc: quote.totalTtc },
-        richCard: { type: 'quote', data: quote },
+        result: { ref, type: 'quote', number: quote.number, totalHt: quote.totalHt, totalTtc: quote.totalTtc, showTutorial, hasReadinessErrors: readiness.errors.length > 0 },
+        richCard: { type: 'quote', data: { ...quote, _readiness: readiness, _showTutorial: showTutorial } },
         activeStateUpdate: {
           client: { id: clientId, name: quote.clientName ?? '' },
           document: { id: quote.id, type: 'quote' as const, number: quote.number },
@@ -129,9 +207,23 @@ Invoice types:
       invoice = await updateInvoiceStatusUc({ teamId: ctx.teamId, userId: ctx.userId, invoiceId: invoice.id, status: args.initialStatus });
     }
     const ref = ctx.registerRef('invoice', invoice.id);
+    if (args.initialStatus) {
+      return {
+        result: { ref, type: 'invoice', number: invoice.number, status: invoice.status, totalHt: invoice.totalHt, totalTtc: invoice.totalTtc, showTutorial: false, hasReadinessErrors: false },
+        richCard: { type: 'invoice', data: invoice },
+        activeStateUpdate: {
+          client: { id: clientId, name: invoice.clientName ?? '' },
+          document: { id: invoice.id, type: 'invoice' as const, number: invoice.number },
+        },
+      };
+    }
+    const [readiness, showTutorial] = await Promise.all([
+      checkReadiness({ teamId: ctx.teamId, clientId, documentType: 'invoice', lines: invoice.lines.map((l) => ({ description: l.description })) }),
+      resolveShowTutorial(ctx.userId),
+    ]);
     return {
-      result: { ref, type: 'invoice', number: invoice.number, status: invoice.status, totalHt: invoice.totalHt, totalTtc: invoice.totalTtc },
-      richCard: { type: 'invoice', data: invoice },
+      result: { ref, type: 'invoice', number: invoice.number, status: invoice.status, totalHt: invoice.totalHt, totalTtc: invoice.totalTtc, showTutorial, hasReadinessErrors: readiness.errors.length > 0 },
+      richCard: { type: 'invoice', data: { ...invoice, _readiness: readiness, _showTutorial: showTutorial } },
       activeStateUpdate: {
         client: { id: clientId, name: invoice.clientName ?? '' },
         document: { id: invoice.id, type: 'invoice' as const, number: invoice.number },

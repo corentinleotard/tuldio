@@ -1,5 +1,3 @@
-import type { TeamFieldRow } from '../../teams/domain/team-field.entity.js';
-
 export type DocumentType = 'quote' | 'invoice';
 
 export interface DocumentReadyInput {
@@ -7,7 +5,7 @@ export interface DocumentReadyInput {
   team: {
     name: string;
   };
-  teamFields: TeamFieldRow[];
+  teamFields: Array<{ key: string; value: string }>;
   client: {
     firstName: string | null;
     lastName: string | null;
