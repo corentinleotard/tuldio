@@ -199,7 +199,7 @@ export function OnboardingPage() {
   const canContinue = form.name.trim() && form.siret.trim() && form.address.trim();
 
   return (
-    <div className="flex min-h-dvh flex-col overflow-y-auto bg-background">
+    <div className="flex min-h-dvh flex-col overflow-y-auto bg-background pb-safe">
       {/* Desktop header */}
       <header className="hidden items-center justify-between border-b bg-card px-10 py-5 md:flex">
         <span className="text-2xl font-bold tracking-tight text-primary">Tuldio</span>
