@@ -83,7 +83,10 @@ export function ChatMessageList({
   // column-reverse: first DOM child = visual bottom, last DOM child = visual top
   return (
     <div ref={scrollRef} className="flex min-h-0 flex-1 flex-col-reverse overflow-y-auto">
-      {/* First in DOM = bottom visually — messages + typing indicator */}
+      {/* Spacer: first in DOM = visual bottom. Pushes messages to top when few */}
+      <div className="flex-grow" />
+
+      {/* Messages + typing indicator */}
       <div className="mx-auto w-full max-w-2xl">
         {messages.map((msg, i) => (
           <div

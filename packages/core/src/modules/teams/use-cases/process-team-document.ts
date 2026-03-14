@@ -31,7 +31,6 @@ const EXTRACTION_KEY_MAP: Record<string, string> = {
   insurancePolicyNumber: 'insurance_policy_number',
   insuranceCoverageZone: 'insurance_coverage_zone',
   paymentTerms: 'payment_terms',
-  depositPercent: 'deposit_percent',
   earlyPaymentDiscount: 'early_payment_discount',
   latePenaltyRate: 'late_penalty_rate',
   recoveryFee: 'recovery_fee',

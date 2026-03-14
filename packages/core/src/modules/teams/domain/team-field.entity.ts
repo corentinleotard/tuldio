@@ -47,13 +47,12 @@ export const SYSTEM_FIELDS: SystemFieldDef[] = [
   { key: 'tva_exempt', label: 'Exonere de TVA', zone: 'identity', scope: 'both', showQuote: true, showInvoice: true, sortOrder: 7 },
   { key: 'activity_description', label: 'Activite', zone: 'identity', scope: 'both', showQuote: false, showInvoice: false, sortOrder: 8 },
   // payment — payment box on PDF
-  { key: 'payment_terms', label: 'Conditions de paiement', zone: 'payment', scope: 'both', showQuote: true, showInvoice: true, sortOrder: 0 },
-  { key: 'deposit_percent', label: 'Acompte (%)', zone: 'payment', scope: 'quote', showQuote: true, showInvoice: false, sortOrder: 1 },
+  { key: 'payment_terms', label: 'Conditions de paiement', zone: 'payment', scope: 'quote', showQuote: true, showInvoice: false, sortOrder: 0 },
   { key: 'iban', label: 'IBAN', zone: 'payment', scope: 'invoice', showQuote: false, showInvoice: true, sortOrder: 2 },
   // legal — bottom footer mentions on PDF
   { key: 'early_payment_discount', label: 'Escompte', zone: 'legal', scope: 'invoice', showQuote: false, showInvoice: true, sortOrder: 0, defaultValue: "Pas d'escompte pour paiement anticipe" },
   { key: 'late_penalty_rate', label: 'Penalites de retard', zone: 'legal', scope: 'invoice', showQuote: false, showInvoice: true, sortOrder: 1, defaultValue: 'Penalites de retard : 3 fois le taux d\'interet legal' },
-  { key: 'recovery_fee', label: 'Indemnite de recouvrement', zone: 'legal', scope: 'invoice', showQuote: false, showInvoice: true, sortOrder: 2, defaultValue: '4000' },
+  { key: 'recovery_fee', label: 'Indemnite de recouvrement', zone: 'legal', scope: 'invoice', showQuote: false, showInvoice: true, sortOrder: 2, defaultValue: 'Indemnité forfaitaire de recouvrement : 40,00 €' },
   { key: 'insurance_company', label: 'Assurance', zone: 'legal', scope: 'both', showQuote: true, showInvoice: true, sortOrder: 3 },
   { key: 'insurance_policy_number', label: 'N police assurance', zone: 'legal', scope: 'both', showQuote: true, showInvoice: true, sortOrder: 4 },
   { key: 'insurance_coverage_zone', label: 'Zone couverture assurance', zone: 'legal', scope: 'both', showQuote: true, showInvoice: true, sortOrder: 5 },

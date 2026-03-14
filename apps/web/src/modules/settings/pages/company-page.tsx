@@ -138,7 +138,7 @@ export function CompanyPage() {
     zone,
     label: ZONE_LABELS[zone],
     fields: visibleFields.filter((f) => f.zone === zone),
-  })).filter((g) => g.fields.length > 0 || !search);
+  })).filter((g) => g.fields.length > 0);
 
   const handleSaveValue = useCallback(async (fieldId: string, value: string) => {
     setFields((prev) => prev.map((f) => f.id === fieldId ? { ...f, value } : f));

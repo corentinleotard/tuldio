@@ -49,7 +49,6 @@ export function renderInvoiceHtml(input: {
   const tvaNumber = getField(f, 'tva_number', dt);
   const tvaExempt = getBooleanField(f, 'tva_exempt', dt);
   const logoUrl = team.logoUrl;
-  const paymentTerms = getField(f, 'payment_terms', dt);
   const iban = getField(f, 'iban', dt);
 
   const hasMixedTva = tvaGroups.length > 1;
@@ -156,15 +155,13 @@ export function renderInvoiceHtml(input: {
   <!-- Payment -->
   ${(() => {
     const customPayment = getCustomFields(f, 'payment', dt);
-    const hasPayment = paymentTerms || dueDate || iban || customPayment.length > 0;
+    const hasPayment = dueDate || iban || customPayment.length > 0;
     if (!hasPayment) return '';
-    return `<div class="payment-box">
-    ${paymentTerms ? `<strong>R\u00E8glement :</strong> ${esc(paymentTerms)}` : ''}
-    ${paymentTerms && dueDate ? '<br>' : ''}
-    ${dueDate ? `<strong>Date limite :</strong> ${formatDate(dueDate)}` : ''}
-    ${iban ? `${paymentTerms || dueDate ? '<br>' : ''}<strong>IBAN :</strong> ${esc(iban)}` : ''}
-    ${customPayment.map((cf) => `${paymentTerms || dueDate || iban ? '<br>' : ''}${esc(cf.value)}`).join('')}
-  </div>`;
+    const lines: string[] = [];
+    if (dueDate) lines.push(`<strong>Date limite :</strong> ${formatDate(dueDate)}`);
+    if (iban) lines.push(`<strong>IBAN :</strong> ${esc(iban)}`);
+    customPayment.forEach((cf) => lines.push(esc(cf.value)));
+    return `<div class="payment-box">${lines.join('<br>')}</div>`;
   })()}
 
   <!-- Bottom: legal only (no signature on invoices) -->

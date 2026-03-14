@@ -55,7 +55,6 @@ export default {
         sm: 'calc(var(--radius) - 4px)',
       },
       padding: {
-        safe: 'env(safe-area-inset-bottom)',
         'safe-top': 'env(safe-area-inset-top)',
       },
     },

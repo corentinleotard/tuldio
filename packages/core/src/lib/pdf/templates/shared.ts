@@ -126,7 +126,7 @@ export function renderLegalMentions(fields: TeamField[], docType: 'quote' | 'inv
 
   if (earlyDiscount) parts.push(esc(earlyDiscount));
   if (latePenalty) parts.push(esc(latePenalty));
-  if (recoveryFee) parts.push(`Indemnite forfaitaire de recouvrement : ${formatCurrency(Number(recoveryFee))}`);
+  if (recoveryFee) parts.push(esc(recoveryFee));
 
   const insuranceCompany = getField(fields, 'insurance_company', docType);
   if (insuranceCompany) {
@@ -140,11 +140,10 @@ export function renderLegalMentions(fields: TeamField[], docType: 'quote' | 'inv
 
   const legalForm = getField(fields, 'legal_form', docType);
   const capitalSocial = getField(fields, 'capital_social', docType);
-  if (legalForm || capitalSocial) {
-    let legal = '';
-    if (legalForm) legal += legalForm;
-    if (capitalSocial) legal += ` au capital de ${formatCurrency(Number(capitalSocial))}`;
-    parts.push(esc(legal.trim()));
+  if (legalForm) parts.push(esc(legalForm));
+  if (capitalSocial) {
+    const amount = Number(capitalSocial);
+    if (!isNaN(amount)) parts.push(`au capital de ${formatCurrency(amount)}`);
   }
 
   const rcsCity = getField(fields, 'rcs_city', docType);

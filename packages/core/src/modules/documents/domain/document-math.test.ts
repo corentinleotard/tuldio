@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import {
-  computeDeposit,
   computeDocumentTotals,
   computeLineTotal,
   computeTva,
@@ -163,21 +162,6 @@ describe('resolveTvaRate', () => {
     expect(resolveTvaRate({ requestedRate: 2000, tvaExempt: false })).toBe(2000);
     expect(resolveTvaRate({ requestedRate: 550, tvaExempt: false })).toBe(550);
     expect(resolveTvaRate({ requestedRate: 0, tvaExempt: false })).toBe(0);
-  });
-});
-
-describe('computeDeposit', () => {
-  it('computes 30% deposit', () => {
-    expect(computeDeposit({ totalTtc: 120000, depositPercent: 30 })).toBe(36000);
-  });
-
-  it('rounds to nearest cent', () => {
-    // 95998 * 30 / 100 = 28799.4 → 28799
-    expect(computeDeposit({ totalTtc: 95998, depositPercent: 30 })).toBe(28799);
-  });
-
-  it('handles 100%', () => {
-    expect(computeDeposit({ totalTtc: 50000, depositPercent: 100 })).toBe(50000);
   });
 });
 

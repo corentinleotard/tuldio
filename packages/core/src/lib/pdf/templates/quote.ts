@@ -13,7 +13,6 @@ import {
   type PdfLine,
   type PdfTvaGroup,
 } from './shared.js';
-import { computeDeposit } from '../../../modules/documents/domain/document-math.js';
 
 function formatTvaRate(basisPoints: number): string {
   const percent = basisPoints / 100;
@@ -46,7 +45,6 @@ export function renderQuoteHtml(input: {
   const tvaExempt = getBooleanField(f, 'tva_exempt', dt);
   const logoUrl = team.logoUrl;
   const paymentTerms = getField(f, 'payment_terms', dt);
-  const depositPercent = getField(f, 'deposit_percent', dt);
 
   const validityDate = validUntil ?? (() => {
     const d = new Date(createdAt);
@@ -148,14 +146,12 @@ export function renderQuoteHtml(input: {
   <!-- Payment -->
   ${(() => {
     const customPayment = getCustomFields(f, 'payment', dt);
-    const hasPayment = paymentTerms || depositPercent || customPayment.length > 0;
+    const hasPayment = paymentTerms || customPayment.length > 0;
     if (!hasPayment) return '';
-    return `<div class="payment-box">
-    ${paymentTerms ? `<strong>R\u00E8glement :</strong> ${esc(paymentTerms)}` : ''}
-    ${paymentTerms && depositPercent ? '<br>' : ''}
-    ${depositPercent ? `<strong>Acompte :</strong> ${depositPercent} % soit ${formatCurrency(computeDeposit({ totalTtc, depositPercent: Number(depositPercent) }))}` : ''}
-    ${customPayment.map((cf) => `${paymentTerms || depositPercent ? '<br>' : ''}${esc(cf.value)}`).join('')}
-  </div>`;
+    const lines: string[] = [];
+    if (paymentTerms) lines.push(`<strong>R\u00E8glement :</strong> ${esc(paymentTerms)}`);
+    customPayment.forEach((cf) => lines.push(esc(cf.value)));
+    return `<div class="payment-box">${lines.join('<br>')}</div>`;
   })()}
 
   <!-- Bottom: legal left, signature right -->

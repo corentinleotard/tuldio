@@ -23,10 +23,9 @@ export interface ExtractedFields {
   insurancePolicyNumber?: string;
   insuranceCoverageZone?: string;
   paymentTerms?: string;
-  depositPercent?: number;
   earlyPaymentDiscount?: string;
   latePenaltyRate?: string;
-  recoveryFee?: number;
+  recoveryFee?: string;
   customClauses?: string[];
 }
 
@@ -61,11 +60,10 @@ Retourne UNIQUEMENT un objet JSON valide, sans texte avant ou après.
   "insuranceCompany": "Nom de l'assurance décennale/RC pro",
   "insurancePolicyNumber": "Numéro de police d'assurance",
   "insuranceCoverageZone": "Zone de couverture géographique de l'assurance",
-  "paymentTerms": "Conditions de paiement",
-  "depositPercent": null,
+  "paymentTerms": "Conditions de paiement (texte complet)",
   "earlyPaymentDiscount": "Conditions d'escompte",
   "latePenaltyRate": "Taux de pénalités de retard",
-  "recoveryFee": null,
+  "recoveryFee": "Texte exact de la mention d'indemnité de recouvrement",
   "customClauses": []
 }
 
@@ -73,9 +71,8 @@ Règles de format :
 - "siret" : 14 chiffres sans espaces, UNIQUEMENT si le numéro est écrit sur le document
 - "tvaExempt" : true UNIQUEMENT si "TVA non applicable, art. 293 B du CGI" ou formulation équivalente est écrite
 - "tvaNumber" : UNIQUEMENT si un numéro commençant par "FR" est écrit sur le document
-- "capitalSocial" : montant en euros, entier (ex: 10000 pour 10 000 €)
-- "depositPercent" : pourcentage entier (ex: 30 pour 30%)
-- "recoveryFee" : montant en centimes (ex: 4000 pour 40 €)
+- "capitalSocial" : montant en centimes d'euros, entier (ex: 1000000 pour 10 000 €)
+- "recoveryFee" : texte exact tel qu'écrit sur le document (ex: "Indemnité forfaitaire de recouvrement : 40 €")
 - "customClauses" : tableau de clauses spécifiques trouvées sur le document
 - Extrais UNIQUEMENT les infos de l'émetteur, jamais du client`;
 
@@ -84,7 +81,7 @@ const ALLOWED_KEYS: (keyof ExtractedFields)[] = [
   'tvaNumber', 'tvaExempt', 'apeCode', 'legalForm', 'capitalSocial',
   'rcsCity', 'rmCity', 'activityDescription',
   'insuranceCompany', 'insurancePolicyNumber', 'insuranceCoverageZone',
-  'paymentTerms', 'depositPercent', 'earlyPaymentDiscount',
+  'paymentTerms', 'earlyPaymentDiscount',
   'latePenaltyRate', 'recoveryFee', 'customClauses',
 ];
 

@@ -65,13 +65,6 @@ export function resolveTvaRate(input: {
   return input.tvaExempt ? 0 : input.requestedRate;
 }
 
-export function computeDeposit(input: {
-  totalTtc: number;
-  depositPercent: number;
-}): number {
-  return Math.round(input.totalTtc * input.depositPercent / 100);
-}
-
 export function computeDocumentTotals(lines: DocumentLine[]): DocumentTotals {
   const tvaGroups = groupByTva(lines);
   const totalHt = tvaGroups.reduce((sum, g) => sum + g.baseHt, 0);

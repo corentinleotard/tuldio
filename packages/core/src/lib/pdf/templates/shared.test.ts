@@ -108,21 +108,20 @@ describe('renderLegalMentions', () => {
     const fields: TeamField[] = [
       makeField({ key: 'early_payment_discount', value: 'Pas d\'escompte', zone: 'legal', showQuote: false, showInvoice: true }),
       makeField({ key: 'late_penalty_rate', value: 'Taux de penalite: 3x taux legal', zone: 'legal', showQuote: false, showInvoice: true }),
-      makeField({ key: 'recovery_fee', value: '4000', zone: 'legal', showQuote: false, showInvoice: true }),
+      makeField({ key: 'recovery_fee', value: 'Indemnité forfaitaire de recouvrement : 40,00 €', zone: 'legal', showQuote: false, showInvoice: true }),
     ];
 
     const result = renderLegalMentions(fields, 'invoice');
     expect(result).toContain('Pas d\'escompte');
     expect(result).toContain('Taux de penalite: 3x taux legal');
-    expect(result).toContain('Indemnite forfaitaire de recouvrement');
-    expect(result).toContain('40,00');
+    expect(result).toContain('Indemnité forfaitaire de recouvrement : 40,00 €');
   });
 
   it('excludes invoice-scoped fields for docType=quote when showQuote=false', () => {
     const fields: TeamField[] = [
       makeField({ key: 'early_payment_discount', value: 'Pas d\'escompte', zone: 'legal', showQuote: false, showInvoice: true }),
       makeField({ key: 'late_penalty_rate', value: 'Taux de penalite: 3x taux legal', zone: 'legal', showQuote: false, showInvoice: true }),
-      makeField({ key: 'recovery_fee', value: '4000', zone: 'legal', showQuote: false, showInvoice: true }),
+      makeField({ key: 'recovery_fee', value: 'Indemnité forfaitaire de recouvrement : 40,00 €', zone: 'legal', showQuote: false, showInvoice: true }),
     ];
 
     const result = renderLegalMentions(fields, 'quote');
