@@ -130,3 +130,8 @@
     animation: typing-dot 1.4s infinite;
   }
 }
+
+/* Push sonner toasts below iOS status bar in PWA mode */
+[data-sonner-toaster][data-y-position="top"] {
+  top: env(safe-area-inset-top, 0px) !important;
+}

@@ -30,7 +30,7 @@ export function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <PwaProvider>
-      <Toaster position="top-center" richColors closeButton offset="env(safe-area-inset-top, 14px)" />
+      <Toaster position="top-center" richColors closeButton />
       <BrowserRouter>
         <AuthProvider>
           <Routes>
