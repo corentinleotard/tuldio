@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { WithGrayBackground } from '@/components/with-gray-background';
 import { Input } from '@/components/ui/input';
 import { sendOtp, verifyOtp } from '../api/auth.api';
 
@@ -42,6 +43,7 @@ export function LoginPage() {
   }
 
   return (
+    <WithGrayBackground>
     <div className="flex min-h-dvh flex-col items-center justify-center px-6">
       <div className="w-full max-w-sm space-y-8">
         <div className="text-center">
@@ -78,5 +80,6 @@ export function LoginPage() {
         </p>
       </div>
     </div>
+    </WithGrayBackground>
   );
 }

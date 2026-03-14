@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { WithGrayBackground } from '@/components/with-gray-background';
 import { OtpInput } from '@/components/ui/otp-input';
 import { verifyOtp } from '../api/auth.api';
 
@@ -38,6 +39,7 @@ export function VerifyPage() {
   }
 
   return (
+    <WithGrayBackground>
     <div className="flex min-h-dvh flex-col items-center justify-center px-6">
       <div className="w-full max-w-sm space-y-8">
         <div className="text-center">
@@ -74,5 +76,6 @@ export function VerifyPage() {
         </form>
       </div>
     </div>
+    </WithGrayBackground>
   );
 }

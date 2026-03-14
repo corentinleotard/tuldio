@@ -10,6 +10,7 @@ import { updateTeam, acceptTerms, uploadDocument } from '../api/onboarding.api';
 import { viewDocument } from '@/lib/share-document';
 import { updateTeamField } from '@/modules/settings/api/fields.api';
 import { cn } from '@/lib/utils';
+import { WithGrayBackground } from '@/components/with-gray-background';
 
 type Step = 1 | 2 | 3;
 
@@ -199,6 +200,7 @@ export function OnboardingPage() {
   const canContinue = form.name.trim() && form.siret.trim() && form.address.trim();
 
   return (
+    <WithGrayBackground>
     <div className="flex min-h-dvh flex-col overflow-y-auto bg-background">
       {/* Desktop header */}
       <header className="hidden items-center justify-between border-b bg-card px-10 py-5 md:flex">
@@ -244,6 +246,7 @@ export function OnboardingPage() {
         </div>
       </main>
     </div>
+    </WithGrayBackground>
   );
 
   function renderMethodStep() {
