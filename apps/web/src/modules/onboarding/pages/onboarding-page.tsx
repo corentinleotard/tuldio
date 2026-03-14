@@ -199,7 +199,7 @@ export function OnboardingPage() {
   const canContinue = form.name.trim() && form.siret.trim() && form.address.trim();
 
   return (
-    <div className="flex min-h-dvh flex-col overflow-y-auto bg-background pb-safe">
+    <div className="flex min-h-dvh flex-col overflow-y-auto bg-background">
       {/* Desktop header */}
       <header className="hidden items-center justify-between border-b bg-card px-10 py-5 md:flex">
         <span className="text-2xl font-bold tracking-tight text-primary">Tuldio</span>
@@ -214,7 +214,7 @@ export function OnboardingPage() {
       </header>
 
       {/* Mobile disconnect button */}
-      <div className="flex justify-end px-5 pt-4 md:hidden">
+      <div className="flex justify-end px-5 pt-safe-top md:hidden">
         <button
           type="button"
           onClick={signOut}

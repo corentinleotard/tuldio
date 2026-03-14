@@ -42,7 +42,7 @@ export function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-dvh flex-col items-center justify-center px-6 pb-safe">
+    <div className="flex min-h-dvh flex-col items-center justify-center px-6">
       <div className="w-full max-w-sm space-y-8">
         <div className="text-center">
           <h1 className="text-4xl font-bold tracking-tight text-primary">Tuldio</h1>
