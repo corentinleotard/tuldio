@@ -247,7 +247,7 @@ export function OnboardingPage() {
             step === 2 ? 'max-w-[680px]' : 'max-w-[520px]',
             step === 2
               ? 'flex flex-col md:rounded-2xl md:border md:bg-card md:p-10'
-              : 'px-7 text-center md:rounded-2xl md:border md:bg-card md:p-10',
+              : 'px-7 pt-6 text-center md:rounded-2xl md:border md:bg-card md:p-10',
           )}
         >
           {step === 1 && renderMethodStep()}
