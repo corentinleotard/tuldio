@@ -54,9 +54,10 @@ export function SettingsPage() {
           <Avatar name={user.name} size="lg" />
           <div className="min-w-0">
             <p className="text-lg font-semibold">{user.name}</p>
-            <p className="text-sm text-muted-foreground">
-              {team?.name ?? user.email}
-            </p>
+            {team?.name && (
+              <p className="text-sm text-muted-foreground">{team.name}</p>
+            )}
+            <p className="text-sm text-muted-foreground">{user.email}</p>
           </div>
         </div>
       )}

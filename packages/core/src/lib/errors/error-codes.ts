@@ -132,7 +132,7 @@ export const errorCodes = {
   invalidTvaNumber: {
     code: 'INVALID_TVA_NUMBER',
     statusCode: 400,
-    message: 'Numéro de TVA invalide',
+    message: 'Numéro de TVA invalide (format attendu : FRXX999999999)',
   },
   clientDuplicateEmail: {
     code: 'CLIENT_DUPLICATE_EMAIL',

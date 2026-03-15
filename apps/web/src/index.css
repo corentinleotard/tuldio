@@ -131,7 +131,7 @@
   }
 }
 
-/* Push sonner toasts below iOS status bar in PWA mode */
+/* Push sonner toasts below iOS status bar in PWA mode, add baseline offset on desktop */
 [data-sonner-toaster][data-y-position="top"] {
-  top: env(safe-area-inset-top, 0px) !important;
+  top: calc(env(safe-area-inset-top, 0px) + 8px) !important;
 }

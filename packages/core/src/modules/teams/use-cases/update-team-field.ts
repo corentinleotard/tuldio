@@ -26,6 +26,14 @@ export async function updateTeamField(input: {
     }
   }
 
+  // Validate French TVA number format: FR + 2 check chars + 9 digits (SIREN) = 13 chars
+  if (current.key === 'tva_number' && value !== undefined && value.trim()) {
+    const cleaned = value.trim().replace(/\s/g, '').toUpperCase();
+    if (!/^FR[0-9A-Z]{2}\d{9}$/.test(cleaned)) {
+      throw new HandledError(errorCodes.invalidTvaNumber);
+    }
+  }
+
   // Enforce scope constraints
   if (current.scope === 'quote') {
     showInvoice = undefined; // never change show_invoice for quote-scoped fields

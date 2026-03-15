@@ -9,7 +9,7 @@ export const updatedLineSchema = z.object({
   description: z.string().min(1).max(500).optional().describe('New description'),
   quantity: z.number().positive().max(100_000).optional().describe('New quantity'),
   unit: z.string().max(50).optional().describe('New unit'),
-  unitPrice: z.number().int().min(0).max(100_000_000).optional().describe('New unit price in cents'),
+  unitPrice: z.number().int().min(0).max(100_000_000).optional().describe('New unit price in euro cents (e.g. 4500 = 45.00€, 132000 = 1320.00€). Always multiply the euro amount by 100.'),
   tvaRate: z.number().int().optional().describe('New VAT rate in basis points'),
 });
 
