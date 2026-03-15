@@ -14,6 +14,8 @@ export type ToolContext = {
   userId: string;
   resolveRef: (ref: string, expectedType?: EntityType) => string;
   registerRef: (type: EntityType, id: string) => string;
+  /** Current active document ID, if any. Used for conditional state clearing. */
+  activeDocumentId: string | null;
 };
 
 /** Type-erased tool definition used in the registry array/map */

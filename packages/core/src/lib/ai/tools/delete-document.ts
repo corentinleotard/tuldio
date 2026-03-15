@@ -34,7 +34,8 @@ Use this when the user explicitly asks to delete/remove/discard a draft quote or
     const label = docType === 'invoice' ? 'Facture' : 'Devis';
     return {
       result: { message: `${label} brouillon supprimé.` },
-      activeStateUpdate: { document: null },
+      // Only clear active document if the deleted document was the active one
+      ...(ctx.activeDocumentId === docId ? { activeStateUpdate: { document: null } } : {}),
     };
   },
 });

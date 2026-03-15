@@ -8,6 +8,28 @@ import type { EntityType } from '../ref-map.js';
 vi.mock('../../../modules/clients/index.js', () => ({
   resolveClient: vi.fn(),
   createClient: vi.fn(),
+  getClient: vi.fn().mockResolvedValue({
+    firstName: 'Test',
+    lastName: 'Client',
+    companyName: null,
+    siret: null,
+    address: '1 rue de Test',
+  }),
+}));
+
+vi.mock('../../../modules/teams/index.js', () => ({
+  getTeam: vi.fn().mockResolvedValue({
+    name: 'Test SARL',
+    fields: [],
+  }),
+}));
+
+vi.mock('../../../modules/users/repository/find-user-by-id.js', () => ({
+  findUserById: vi.fn().mockResolvedValue({ has_seen_document_guide: true }),
+}));
+
+vi.mock('../../../modules/users/repository/mark-document-guide-seen.js', () => ({
+  markDocumentGuideSeen: vi.fn(),
 }));
 
 vi.mock('../../../modules/quotes/index.js', async (importOriginal) => {
@@ -63,6 +85,7 @@ function makeCtx(): ToolContext {
   return {
     teamId: TEAM_ID,
     userId: USER_ID,
+    activeDocumentId: null,
     resolveRef: (ref: string) => {
       const entry = registeredRefs.get(ref);
       if (!entry) throw new Error(`Unknown ref: ${ref}`);
@@ -355,11 +378,12 @@ describe('update_invoice (lines/title) → state management', () => {
 // ─── delete_document ─────────────────────────────────────────────
 
 describe('delete_document → state management', () => {
-  it('deleting quote: clears document', async () => {
+  it('deleting active quote: clears document', async () => {
     vi.mocked(getQuote).mockResolvedValue(makeQuoteView());
     vi.mocked(deleteQuoteUc).mockResolvedValue(undefined as never);
 
     const ctx = makeCtx();
+    ctx.activeDocumentId = QUOTE_ID;
     registeredRefs.set('d0', { type: 'quote', id: QUOTE_ID });
 
     const result = await deleteDocumentTool.handler({ ref: 'd0' }, ctx);
@@ -367,15 +391,29 @@ describe('delete_document → state management', () => {
     expect(result.activeStateUpdate).toEqual({ document: null });
   });
 
-  it('deleting invoice: clears document', async () => {
+  it('deleting active invoice: clears document', async () => {
     vi.mocked(getQuote).mockRejectedValue(new Error('not found'));
     vi.mocked(deleteInvoiceUc).mockResolvedValue(undefined as never);
 
     const ctx = makeCtx();
+    ctx.activeDocumentId = INVOICE_ID;
     registeredRefs.set('d0', { type: 'invoice', id: INVOICE_ID });
 
     const result = await deleteDocumentTool.handler({ ref: 'd0' }, ctx);
 
     expect(result.activeStateUpdate).toEqual({ document: null });
+  });
+
+  it('deleting non-active document: does not clear active document', async () => {
+    vi.mocked(getQuote).mockResolvedValue(makeQuoteView());
+    vi.mocked(deleteQuoteUc).mockResolvedValue(undefined as never);
+
+    const ctx = makeCtx();
+    ctx.activeDocumentId = 'other-document-id';
+    registeredRefs.set('d0', { type: 'quote', id: QUOTE_ID });
+
+    const result = await deleteDocumentTool.handler({ ref: 'd0' }, ctx);
+
+    expect(result.activeStateUpdate).toBeUndefined();
   });
 });

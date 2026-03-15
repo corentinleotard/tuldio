@@ -199,6 +199,11 @@ export const errorCodes = {
     statusCode: 400,
     message: 'Ce champ est obligatoire sur vos documents et ne peut pas être vide',
   },
+  messageAlreadyProcessing: {
+    code: 'MESSAGE_ALREADY_PROCESSING',
+    statusCode: 409,
+    message: 'Un message est déjà en cours de traitement',
+  },
 } as const;
 
 export type ErrorCode = (typeof errorCodes)[keyof typeof errorCodes];

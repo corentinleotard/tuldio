@@ -13,10 +13,17 @@ import { findClientById } from '../../modules/clients/repository/find-client-by-
 import { getClientDisplayName } from '../../modules/clients/domain/get-client-display-name.js';
 import { getQuote } from '../../modules/quotes/index.js';
 import { getInvoice } from '../../modules/invoices/index.js';
+import { HandledError } from '../errors/handled-error.js';
+import { errorCodes } from '../errors/error-codes.js';
 import { logger } from '../infra/logger.js';
 import type { Message, MessageMetadata, DebugTrace, DebugTraceRound, DebugTraceToolCall } from '@tuldio/types';
 
 const MAX_TOOL_ROUNDS = 10;
+
+// In-memory lock to prevent concurrent message processing for the same user.
+// Protects demand_state from race conditions (last-write-wins).
+// If scaling to multi-process, replace with a DB advisory lock.
+const processingUsers = new Set<string>();
 
 async function fetchDocumentNumber(input: { teamId: string; docId: string; docType: 'quote' | 'invoice' }): Promise<string> {
   if (input.docType === 'quote') {
@@ -50,6 +57,13 @@ export async function processMessage(input: {
 }): Promise<Message> {
   const { userId, teamId, content, metadata } = input;
 
+  // Prevent concurrent processing for the same user
+  if (processingUsers.has(userId)) {
+    throw new HandledError(errorCodes.messageAlreadyProcessing);
+  }
+  processingUsers.add(userId);
+
+  try {
   // 1. Save user message
   await createMessage({ userId, teamId, role: 'user', content });
 
@@ -136,6 +150,36 @@ export async function processMessage(input: {
   let stateChanged = false;
 
   // 9. Tool use loop
+  //
+  // ╔══════════════════════════════════════════════════════════════════════╗
+  // ║ DO NOT REMOVE — ONE TOOL PER ROUND — CRITICAL FOR DATA INTEGRITY  ║
+  // ╠══════════════════════════════════════════════════════════════════════╣
+  // ║                                                                    ║
+  // ║ We execute exactly ONE tool per round, even when Claude returns    ║
+  // ║ multiple tool_use blocks in a single response.                     ║
+  // ║                                                                    ║
+  // ║ WHY: Claude generates ALL tool inputs based on the state at the    ║
+  // ║ START of its response. When tool A changes state (e.g.             ║
+  // ║ create_client sets a new active client), tool B's inputs are       ║
+  // ║ already locked to the OLD state. This causes data corruption:     ║
+  // ║                                                                    ║
+  // ║   Example: "devis pour Jean Renaud"                                ║
+  // ║   - Active client: c0 = Laurence Martin                           ║
+  // ║   - Claude calls: create_client(Jean) + create_document(c0)       ║
+  // ║   - create_client registers c1 = Jean Renaud, updates state       ║
+  // ║   - create_document uses c0 → quote created for WRONG CLIENT      ║
+  // ║                                                                    ║
+  // ║ By executing one tool per round, we rebuild context (line ~249)    ║
+  // ║ after each tool. Claude then sees the updated state and uses the   ║
+  // ║ correct refs for the next tool call.                               ║
+  // ║                                                                    ║
+  // ║ Cost: ~0.7s latency + ~0.3¢ per extra round. Only affects         ║
+  // ║ messages where Claude batches multiple tools (rare).               ║
+  // ║                                                                    ║
+  // ║ This is the industry standard for agentic loops with mutable       ║
+  // ║ state. DO NOT optimize back to parallel execution.                 ║
+  // ╚══════════════════════════════════════════════════════════════════════╝
+  //
   let rounds = 0;
   while (response.stop_reason === 'tool_use' && rounds < MAX_TOOL_ROUNDS) {
     rounds++;
@@ -144,91 +188,94 @@ export async function processMessage(input: {
       (block): block is Anthropic.ToolUseBlock => block.type === 'tool_use',
     );
 
+    // Execute only the FIRST tool — discard the rest.
+    // Claude will re-evaluate and re-call remaining tools with updated context.
+    const toolUse = toolUseBlocks[0]!;
+
     const toolResults: Anthropic.ToolResultBlockParam[] = [];
     const roundToolCalls: DebugTraceToolCall[] = [];
     const roundStored: StoredToolCall[] = [];
 
-    for (const toolUse of toolUseBlocks) {
-      const toolStart = Date.now();
-      try {
-        const { toolResult: result, refs } = await executeTool({
-          toolName: toolUse.name,
-          toolInput: toolUse.input as Record<string, unknown>,
-          refMap,
-          ctx: {
-            teamId,
-            userId,
-            resolveRef: (ref, expectedType) => resolveRef({ refMap, ref, expectedType }),
-            registerRef: (type, id) => registerRef({ refMap, type, id, counters }),
-          },
-        });
+    const toolStart = Date.now();
+    try {
+      const { toolResult: result, refs } = await executeTool({
+        toolName: toolUse.name,
+        toolInput: toolUse.input as Record<string, unknown>,
+        refMap,
+        ctx: {
+          teamId,
+          userId,
+          resolveRef: (ref, expectedType) => resolveRef({ refMap, ref, expectedType }),
+          registerRef: (type, id) => registerRef({ refMap, type, id, counters }),
+          activeDocumentId: activeState.document?.id ?? null,
+        },
+      });
 
-        // Apply active state update
-        if (result.activeStateUpdate) {
-          activeState = applyActiveStateUpdate(activeState, result.activeStateUpdate);
-          stateChanged = true;
-        }
-
-        if (result.richCard) {
-          richCard = result.richCard;
-        }
-        if (result.quickReplies) {
-          quickReplies = result.quickReplies;
-        }
-
-        roundToolCalls.push({
-          name: toolUse.name,
-          input: toolUse.input,
-          output: result.result,
-          durationMs: Date.now() - toolStart,
-        });
-
-        roundStored.push({
-          toolUseId: toolUse.id,
-          name: toolUse.name,
-          input: toolUse.input,
-          result: result.result,
-          refs,
-        });
-
-        toolResults.push({
-          type: 'tool_result',
-          tool_use_id: toolUse.id,
-          content: JSON.stringify(result.result),
-        });
-      } catch (err) {
-        const isHandled = err instanceof Error && err.name === 'HandledError';
-        const code = isHandled ? (err as unknown as { code: string }).code : undefined;
-        logger.error(`Tool execution failed: ${toolUse.name}`, {
-          error: err,
-          input: toolUse.input,
-          ...(code ? { code } : {}),
-        });
-        const errorPayload = code
-          ? { error: code, message: (err as Error).message }
-          : { error: err instanceof Error ? err.message : 'Erreur interne' };
-
-        roundToolCalls.push({
-          name: toolUse.name,
-          input: toolUse.input,
-          output: errorPayload,
-          durationMs: Date.now() - toolStart,
-        });
-
-        roundStored.push({
-          toolUseId: toolUse.id,
-          name: toolUse.name,
-          input: toolUse.input,
-          result: errorPayload,
-        });
-
-        toolResults.push({
-          type: 'tool_result',
-          tool_use_id: toolUse.id,
-          content: JSON.stringify(errorPayload),
-          is_error: true,
-        });
+      // Apply active state update
+      if (result.activeStateUpdate) {
+        activeState = applyActiveStateUpdate(activeState, result.activeStateUpdate);
+        stateChanged = true;
       }
+
+      if (result.richCard) {
+        richCard = result.richCard;
+      }
+      if (result.quickReplies) {
+        quickReplies = result.quickReplies;
+      }
+
+      roundToolCalls.push({
+        name: toolUse.name,
+        input: toolUse.input,
+        output: result.result,
+        durationMs: Date.now() - toolStart,
+      });
+
+      roundStored.push({
+        toolUseId: toolUse.id,
+        name: toolUse.name,
+        input: toolUse.input,
+        result: result.result,
+        refs,
+      });
+
+      toolResults.push({
+        type: 'tool_result',
+        tool_use_id: toolUse.id,
+        content: JSON.stringify(result.result),
+      });
+    } catch (err) {
+      const isHandled = err instanceof Error && err.name === 'HandledError';
+      const code = isHandled ? (err as unknown as { code: string }).code : undefined;
+      logger.error(`Tool execution failed: ${toolUse.name}`, {
+        error: err,
+        input: toolUse.input,
+        ...(code ? { code } : {}),
+      });
+      const errorPayload = code
+        ? { error: code, message: (err as Error).message }
+        : { error: err instanceof Error ? err.message : 'Erreur interne' };
+
+      roundToolCalls.push({
+        name: toolUse.name,
+        input: toolUse.input,
+        output: errorPayload,
+        durationMs: Date.now() - toolStart,
+      });
+
+      roundStored.push({
+        toolUseId: toolUse.id,
+        name: toolUse.name,
+        input: toolUse.input,
+        result: errorPayload,
+      });
+
+      toolResults.push({
+        type: 'tool_result',
+        tool_use_id: toolUse.id,
+        content: JSON.stringify(errorPayload),
+        is_error: true,
+      });
     }
 
     // Record this round
@@ -241,8 +288,13 @@ export async function processMessage(input: {
     });
     toolRounds.push(roundStored);
 
-    // Continue conversation with tool results
-    claudeMessages.push({ role: 'assistant', content: response.content });
+    // Continue conversation with tool results.
+    // Only include the executed tool_use block — strip discarded ones so Claude
+    // doesn't see stale tool calls in its conversation history.
+    const executedContent = response.content.filter(
+      (block) => block.type !== 'tool_use' || block.id === toolUse.id,
+    );
+    claudeMessages.push({ role: 'assistant', content: executedContent });
     claudeMessages.push({ role: 'user', content: toolResults });
 
     // Rebuild context messages with updated state
@@ -257,6 +309,10 @@ export async function processMessage(input: {
       userId,
       purpose: 'chat',
     }));
+
+    // Fix #5: If a client_picker card was returned, stop the loop.
+    // The user must interact (pick a client) before the AI continues.
+    if (richCard?.type === 'client_picker') break;
   }
 
   if (rounds >= MAX_TOOL_ROUNDS && response.stop_reason === 'tool_use') {
@@ -291,6 +347,9 @@ export async function processMessage(input: {
   };
 
   // 11. Extract final text response
+  // Fix #3: If the loop ended early (MAX_TOOL_ROUNDS or client_picker break),
+  // the response may contain tool_use blocks with no text. Extract whatever
+  // text exists; fallback to empty string (the rich card carries the content).
   const textContent = response.content
     .filter((block): block is Anthropic.TextBlock => block.type === 'text')
     .map((block) => block.text)
@@ -309,4 +368,8 @@ export async function processMessage(input: {
   });
 
   return assistantMessage;
+
+  } finally {
+    processingUsers.delete(userId);
+  }
 }

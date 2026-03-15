@@ -9,6 +9,7 @@
     "dev:web": "pnpm --filter @tuldio/web dev",
     "dev:crons": "pnpm --filter @tuldio/crons dev",
     "dev:website": "pnpm --filter @tuldio/website dev",
+    "build:website": "pnpm --filter @tuldio/website build",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
