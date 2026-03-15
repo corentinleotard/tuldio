@@ -4,7 +4,7 @@ import { errorCodes } from '../../../lib/errors/error-codes.js';
 import { logger } from '../../../lib/infra/logger.js';
 import { canInvoiceQuote, shouldAutoAcceptQuote } from '../../quotes/domain/validators.js';
 import { findQuoteById } from '../../quotes/repository/find-quote-by-id.js';
-import { updateQuoteStatus } from '../../quotes/repository/update-quote-status.js';
+import { updateQuoteStatusUc } from '../../quotes/use-cases/update-quote-status-uc.js';
 import { findClientById } from '../../clients/repository/find-client-by-id.js';
 import { getClientDisplayName } from '../../clients/domain/get-client-display-name.js';
 import { findTeamById } from '../../teams/repository/find-team-by-id.js';
@@ -42,7 +42,7 @@ export async function createInvoiceFromQuote(input: {
   }
 
   if (shouldAutoAcceptQuote(quote.status)) {
-    await updateQuoteStatus({
+    await updateQuoteStatusUc({
       teamId: input.teamId,
       quoteId: quote.id,
       status: 'accepted',
