@@ -46,11 +46,6 @@ async function checkReadiness(input: {
 
   const warnings: DocumentReadyError[] = [];
 
-  const tvaField = teamSummary.fields.find((f: TeamField) => f.key === 'tva_number');
-  if (!tvaField?.value?.trim()) {
-    warnings.push({ code: 'NO_TVA_NUMBER', message: "Pas de numéro de TVA intracommunautaire renseigné" });
-  }
-
   const tvaExemptField = teamSummary.fields.find((f: TeamField) => f.key === 'tva_exempt');
   const tvaExempt = isFieldTrue(tvaExemptField);
 

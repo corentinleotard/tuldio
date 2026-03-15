@@ -1,0 +1,27 @@
+---
+interface Props {
+  href?: string;
+  variant?: 'primary' | 'secondary' | 'white';
+  size?: 'md' | 'lg';
+  class?: string;
+}
+
+const { href = 'https://app.tuldio.com', variant = 'primary', size = 'md', class: className } = Astro.props;
+
+const base = 'inline-flex items-center justify-center font-medium rounded-full transition-colors';
+
+const variants = {
+  primary: 'bg-brand text-white hover:bg-brand-light',
+  secondary: 'bg-white text-brand border border-brand/10 hover:bg-brand-lightest',
+  white: 'bg-white text-brand hover:bg-white/90',
+};
+
+const sizes = {
+  md: 'px-6 py-2.5 text-sm',
+  lg: 'px-8 py-3.5 text-base',
+};
+---
+
+<a href={href} class:list={[base, variants[variant], sizes[size], className]}>
+  <slot />
+</a>

@@ -1,0 +1,58 @@
+---
+import Base from '../layouts/base.astro';
+import Header from '../components/header.astro';
+import Footer from '../components/footer.astro';
+---
+
+<Base
+  title="Mentions légales · Tuldio"
+  description="Mentions légales du site tuldio.com"
+>
+  <Header />
+
+  <section class="pt-32 pb-20 md:pt-44 md:pb-28 bg-surface">
+    <div class="max-w-3xl mx-auto px-6">
+      <h1 class="text-3xl md:text-4xl font-bold text-text tracking-tight mb-10">
+        Mentions légales
+      </h1>
+
+      <div class="space-y-8 text-text-secondary leading-relaxed">
+        <div>
+          <h2 class="text-xl font-semibold text-text mb-3">Éditeur du site</h2>
+          <p>
+            Tuldio<br />
+            Email : <a href="mailto:contact@tuldio.fr" class="text-brand hover:text-brand-light">contact@tuldio.fr</a>
+          </p>
+        </div>
+
+        <div>
+          <h2 class="text-xl font-semibold text-text mb-3">Hébergement</h2>
+          <p>
+            IONOS SE<br />
+            Elgendorfer Str. 57, 56410 Montabaur, Allemagne<br />
+            <a href="https://www.ionos.fr" target="_blank" rel="noopener noreferrer" class="text-brand hover:text-brand-light">www.ionos.fr</a>
+          </p>
+        </div>
+
+        <div>
+          <h2 class="text-xl font-semibold text-text mb-3">Propriété intellectuelle</h2>
+          <p>
+            L'ensemble du contenu de ce site (textes, images, logos, marques) est protégé
+            par le droit de la propriété intellectuelle. Toute reproduction, même partielle,
+            est interdite sans autorisation préalable.
+          </p>
+        </div>
+
+        <div>
+          <h2 class="text-xl font-semibold text-text mb-3">Données personnelles</h2>
+          <p>
+            Pour toute information sur le traitement de vos données personnelles, consultez
+            notre <a href="/confidentialite" class="text-brand hover:text-brand-light">politique de confidentialité</a>.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <Footer />
+</Base>

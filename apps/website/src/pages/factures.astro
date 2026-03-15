@@ -1,0 +1,84 @@
+---
+import Base from '../layouts/base.astro';
+import Header from '../components/header.astro';
+import Footer from '../components/footer.astro';
+import Section from '../components/section.astro';
+import CtaButton from '../components/cta-button.astro';
+---
+
+<Base
+  title="Facturation simple pour indépendants · Tuldio"
+  description="Créez des factures en un clic. Transformez vos devis en factures, suivez les paiements, relancez les impayés."
+>
+  <Header />
+
+  <section class="pt-32 pb-20 md:pt-44 md:pb-28 bg-surface">
+    <div class="max-w-6xl mx-auto px-6">
+      <div class="max-w-3xl mx-auto text-center">
+        <h1 class="text-4xl md:text-5xl font-bold text-text tracking-tight leading-tight">
+          Facturez sans y penser
+        </h1>
+        <p class="mt-6 text-lg text-text-secondary max-w-2xl mx-auto leading-relaxed">
+          Devis accepté ? La facture est prête en un clic. Mentions pré-remplies,
+          numérotation automatique, PDF propre.
+        </p>
+        <div class="mt-8">
+          <CtaButton size="lg">Créer ma première facture</CtaButton>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <Section bg="white">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-12 max-w-4xl mx-auto">
+      <div>
+        <div class="w-12 h-12 bg-brand-lightest rounded-xl flex items-center justify-center mb-4">
+          <svg class="w-6 h-6 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+        </div>
+        <h3 class="text-lg font-semibold text-text mb-2">Devis → Facture</h3>
+        <p class="text-text-secondary leading-relaxed">
+          Un devis accepté se transforme en facture en un clic.
+          Toutes les informations sont reprises automatiquement.
+        </p>
+      </div>
+      <div>
+        <div class="w-12 h-12 bg-brand-lightest rounded-xl flex items-center justify-center mb-4">
+          <svg class="w-6 h-6 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+          </svg>
+        </div>
+        <h3 class="text-lg font-semibold text-text mb-2">Bien structuré</h3>
+        <p class="text-text-secondary leading-relaxed">
+          Escompte, pénalités de retard, indemnité de recouvrement.
+          Les mentions habituelles sont pré-remplies pour vous.
+        </p>
+      </div>
+      <div>
+        <div class="w-12 h-12 bg-brand-lightest rounded-xl flex items-center justify-center mb-4">
+          <svg class="w-6 h-6 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+          </svg>
+        </div>
+        <h3 class="text-lg font-semibold text-text mb-2">Suivi des paiements</h3>
+        <p class="text-text-secondary leading-relaxed">
+          Voyez qui a payé, qui est en retard. Relancez en un message.
+        </p>
+      </div>
+    </div>
+  </Section>
+
+  <Section bg="brand">
+    <div class="max-w-3xl mx-auto text-center">
+      <h2 class="text-3xl md:text-4xl font-bold text-white tracking-tight">
+        La facturation, enfin simple
+      </h2>
+      <div class="mt-8">
+        <CtaButton variant="white" size="lg">Essayer 14 jours gratuitement</CtaButton>
+      </div>
+    </div>
+  </Section>
+
+  <Footer />
+</Base>

@@ -94,7 +94,9 @@ export function ChatMessageList({
             key={msg.id}
             className={`px-4 py-1.5 ${i === messages.length - 1 ? 'pb-4' : ''}`}
           >
-            <MessageBubble message={msg} />
+            {(!msg.richCard || !isDocumentCard(msg.richCard.type)) && (
+              <MessageBubble message={msg} />
+            )}
             {msg.richCard && renderRichCard(msg.richCard, handleClientSelect)}
           </div>
         ))}
@@ -134,6 +136,10 @@ interface RichCardDocumentData {
   status?: string;
   _readiness?: DocumentReadiness;
   _showTutorial?: boolean;
+}
+
+function isDocumentCard(type: string): boolean {
+  return type === 'quote' || type === 'invoice';
 }
 
 function renderDraftInfoBubble(documentType: 'quote' | 'invoice', data: RichCardDocumentData) {

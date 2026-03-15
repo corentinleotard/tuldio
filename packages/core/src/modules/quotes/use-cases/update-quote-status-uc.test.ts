@@ -13,8 +13,10 @@ async function seedTeamAndClient(teamId: string, clientId: string) {
   await query(
     `INSERT INTO team_fields (id, team_id, key, label, value, zone, scope, show_quote, show_invoice, sort_order, is_system)
      VALUES ($1, $2, 'siret', 'SIRET', '12345678901234', 'identity', 'both', true, true, 0, true),
-            ($3, $2, 'address', 'Adresse', '1 rue de Paris, 75001 Paris', 'identity', 'both', true, true, 1, true)`,
-    [generateId(), teamId, generateId()],
+            ($3, $2, 'address', 'Adresse', '1 rue de Paris, 75001 Paris', 'identity', 'both', true, true, 1, true),
+            ($4, $2, 'tva_number', 'N TVA', 'FR32123456789', 'identity', 'both', true, true, 6, true),
+            ($5, $2, 'payment_terms', 'Conditions de paiement', 'Paiement a reception de facture', 'payment', 'quote', true, false, 0, true)`,
+    [generateId(), teamId, generateId(), generateId(), generateId()],
   );
 }
 

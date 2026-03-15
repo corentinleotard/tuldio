@@ -24,6 +24,8 @@ function validQuoteInput(): DocumentReadyInput {
     teamFields: [
       makeField({ key: 'siret', value: '12345678901234' }),
       makeField({ key: 'address', value: '1 rue de Paris, 75001 Paris' }),
+      makeField({ key: 'tva_number', value: 'FR32123456789' }),
+      makeField({ key: 'payment_terms', value: 'Paiement a reception de facture', zone: 'payment', scope: 'quote' }),
     ],
     client: { firstName: 'Jean', lastName: 'Martin', companyName: null, siret: null, address: '2 rue du Moulin, 69001 Lyon' },
     lines: [{ description: 'Prestation' }],
@@ -37,6 +39,7 @@ function validInvoiceInput(): DocumentReadyInput {
     teamFields: [
       makeField({ key: 'siret', value: '12345678901234' }),
       makeField({ key: 'address', value: '1 rue de Paris, 75001 Paris' }),
+      makeField({ key: 'tva_number', value: 'FR32123456789' }),
       makeField({ key: 'early_payment_discount', value: "Pas d'escompte pour paiement anticipé", zone: 'legal', scope: 'invoice' }),
       makeField({ key: 'late_penalty_rate', value: '3 fois le taux d\'intérêt légal', zone: 'legal', scope: 'invoice' }),
       makeField({ key: 'recovery_fee', value: '4000', zone: 'legal', scope: 'invoice' }),
@@ -174,9 +177,49 @@ describe('validateDocumentReady', () => {
     expect(errors).toContainEqual(expect.objectContaining({ code: 'MISSING_LATE_PENALTY_RATE' }));
   });
 
+  // --- TVA number required when not exempt ---
+
+  it('reports missing TVA number when not exempt', () => {
+    const input = validQuoteInput();
+    input.teamFields = input.teamFields.filter((f) => f.key !== 'tva_number');
+    const errors = validateDocumentReady(input);
+    expect(errors).toContainEqual(expect.objectContaining({ code: 'MISSING_TVA_NUMBER' }));
+  });
+
+  it('does not report missing TVA number when exempt', () => {
+    const input = validQuoteInput();
+    input.teamFields = input.teamFields.filter((f) => f.key !== 'tva_number');
+    input.teamFields.push(makeField({ key: 'tva_exempt', value: 'true' }));
+    const errors = validateDocumentReady(input);
+    expect(errors.map((e) => e.code)).not.toContain('MISSING_TVA_NUMBER');
+  });
+
+  // --- Quote: payment terms required ---
+
+  it('reports missing payment terms on quote', () => {
+    const input = validQuoteInput();
+    input.teamFields = input.teamFields.filter((f) => f.key !== 'payment_terms');
+    const errors = validateDocumentReady(input);
+    expect(errors).toContainEqual(expect.objectContaining({ code: 'MISSING_PAYMENT_TERMS' }));
+  });
+
+  it('reports missing payment terms on quote (empty value)', () => {
+    const input = validQuoteInput();
+    input.teamFields = input.teamFields.map((f) => f.key === 'payment_terms' ? { ...f, value: '' } : f);
+    const errors = validateDocumentReady(input);
+    expect(errors).toContainEqual(expect.objectContaining({ code: 'MISSING_PAYMENT_TERMS' }));
+  });
+
+  it('does not require payment terms on invoice', () => {
+    const input = validInvoiceInput();
+    // No payment_terms in invoice fields — should not trigger
+    const errors = validateDocumentReady(input);
+    expect(errors.map((e) => e.code)).not.toContain('MISSING_PAYMENT_TERMS');
+  });
+
   // --- Quote does NOT require invoice-specific mentions ---
 
-  it('does not require legal mentions on quotes', () => {
+  it('does not require invoice legal mentions on quotes', () => {
     const input = validQuoteInput();
     // No early_payment_discount, late_penalty_rate, recovery_fee in teamFields
     const errors = validateDocumentReady(input);
@@ -199,11 +242,12 @@ describe('validateDocumentReady', () => {
     expect(codes).toContain('MISSING_TEAM_SIRET');
     expect(codes).toContain('MISSING_TEAM_ADDRESS');
     expect(codes).toContain('MISSING_CLIENT_ADDRESS');
+    expect(codes).toContain('MISSING_TVA_NUMBER');
     expect(codes).toContain('MISSING_LINES');
     expect(codes).toContain('MISSING_EARLY_PAYMENT_DISCOUNT');
     expect(codes).toContain('MISSING_LATE_PENALTY_RATE');
     expect(codes).toContain('MISSING_RECOVERY_FEE');
-    expect(errors).toHaveLength(8);
+    expect(errors).toHaveLength(9);
   });
 
   it('collects all common errors on a quote (no invoice-specific)', () => {
@@ -220,11 +264,13 @@ describe('validateDocumentReady', () => {
     expect(codes).toContain('MISSING_TEAM_SIRET');
     expect(codes).toContain('MISSING_TEAM_ADDRESS');
     expect(codes).toContain('MISSING_CLIENT_ADDRESS');
+    expect(codes).toContain('MISSING_TVA_NUMBER');
     expect(codes).toContain('MISSING_LINES');
+    expect(codes).toContain('MISSING_PAYMENT_TERMS');
     expect(codes).not.toContain('MISSING_EARLY_PAYMENT_DISCOUNT');
     expect(codes).not.toContain('MISSING_LATE_PENALTY_RATE');
     expect(codes).not.toContain('MISSING_RECOVERY_FEE');
-    expect(errors).toHaveLength(5);
+    expect(errors).toHaveLength(7);
   });
 
   // --- All error messages are in French ---

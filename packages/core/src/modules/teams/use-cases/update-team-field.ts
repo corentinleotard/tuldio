@@ -2,6 +2,7 @@ import type { TeamField, UpdateTeamFieldRequest } from '@tuldio/types';
 import { HandledError } from '../../../lib/errors/handled-error.js';
 import { errorCodes } from '../../../lib/errors/error-codes.js';
 import { isFieldTrue } from '../domain/team-field.entity.js';
+import { MANDATORY_INVOICE_FIELD_KEYS, MANDATORY_QUOTE_FIELD_KEYS } from '../../documents/domain/validate-document-ready.js';
 import { findTeamFieldById } from '../repository/find-team-field-by-id.js';
 import { upsertTeamField } from '../repository/upsert-team-field.js';
 import { refreshDraftDocuments } from '../repository/refresh-draft-documents.js';
@@ -16,6 +17,14 @@ export async function updateTeamField(input: {
 
   const current = await findTeamFieldById({ teamId, fieldId });
   if (!current) throw new HandledError(errorCodes.teamNotFound);
+
+  // Block emptying mandatory document fields (invoice legal mentions + quote payment terms)
+  if (value !== undefined && !value.trim()) {
+    const allMandatoryKeys: readonly string[] = [...MANDATORY_INVOICE_FIELD_KEYS, ...MANDATORY_QUOTE_FIELD_KEYS];
+    if (allMandatoryKeys.includes(current.key)) {
+      throw new HandledError(errorCodes.mandatoryFieldCannotBeEmpty);
+    }
+  }
 
   // Enforce scope constraints
   if (current.scope === 'quote') {

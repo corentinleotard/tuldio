@@ -1,5 +1,11 @@
 export type DocumentType = 'quote' | 'invoice';
 
+/** Invoice-only mandatory team_field keys (French legal requirement since 2013) */
+export const MANDATORY_INVOICE_FIELD_KEYS = ['early_payment_discount', 'late_penalty_rate', 'recovery_fee'] as const;
+
+/** Quote-only mandatory team_field keys */
+export const MANDATORY_QUOTE_FIELD_KEYS = ['payment_terms'] as const;
+
 export interface DocumentReadyInput {
   documentType: DocumentType;
   team: {
@@ -90,28 +96,41 @@ export function validateDocumentReady(input: DocumentReadyInput): DocumentReadyE
     });
   }
 
+  // --- TVA number required when not exempt (CGI art. 242 nonies A) ---
+
+  const tvaExempt = getFieldValue('tva_exempt') === 'true';
+  if (!tvaExempt && !getFieldValue('tva_number')) {
+    errors.push({
+      code: 'MISSING_TVA_NUMBER',
+      message: "Le numéro de TVA intracommunautaire est requis (ou cochez 'Exonéré de TVA')",
+    });
+  }
+
+  // --- Quote-specific mentions ---
+
+  if (documentType === 'quote') {
+    const quoteLabels: Record<string, { code: string; message: string }> = {
+      payment_terms: { code: 'MISSING_PAYMENT_TERMS', message: 'Les conditions de paiement sont requises sur les devis' },
+    };
+    for (const key of MANDATORY_QUOTE_FIELD_KEYS) {
+      if (!getFieldValue(key)) {
+        errors.push(quoteLabels[key]!);
+      }
+    }
+  }
+
   // --- Invoice-specific legal mentions (mandatory since 2013) ---
 
   if (documentType === 'invoice') {
-    if (!getFieldValue('early_payment_discount')) {
-      errors.push({
-        code: 'MISSING_EARLY_PAYMENT_DISCOUNT',
-        message: "La mention d'escompte est requise sur les factures",
-      });
-    }
-
-    if (!getFieldValue('late_penalty_rate')) {
-      errors.push({
-        code: 'MISSING_LATE_PENALTY_RATE',
-        message: 'Les pénalités de retard sont requises sur les factures',
-      });
-    }
-
-    if (!getFieldValue('recovery_fee')) {
-      errors.push({
-        code: 'MISSING_RECOVERY_FEE',
-        message: "L'indemnité de recouvrement est requise sur les factures",
-      });
+    const invoiceLabels: Record<string, { code: string; message: string }> = {
+      early_payment_discount: { code: 'MISSING_EARLY_PAYMENT_DISCOUNT', message: "La mention d'escompte est requise sur les factures" },
+      late_penalty_rate: { code: 'MISSING_LATE_PENALTY_RATE', message: 'Les pénalités de retard sont requises sur les factures' },
+      recovery_fee: { code: 'MISSING_RECOVERY_FEE', message: "L'indemnité de recouvrement est requise sur les factures" },
+    };
+    for (const key of MANDATORY_INVOICE_FIELD_KEYS) {
+      if (!getFieldValue(key)) {
+        errors.push(invoiceLabels[key]!);
+      }
     }
   }
 

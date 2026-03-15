@@ -7,11 +7,14 @@ import { extractLogoFromPdf } from '../../../lib/ai/extract-logo.js';
 import { findTeamById } from '../repository/find-team-by-id.js';
 import { findTeamFields } from '../repository/find-team-fields.js';
 import { upsertTeamField } from '../repository/upsert-team-field.js';
+import { updateTeamName, updateTeamMeta } from '../repository/update-team.js';
+import { insertTeamField } from '../repository/insert-team-field.js';
+import { findMissingLegalDefaults } from '../domain/ensure-legal-defaults.js';
 import { toTeamSummary } from '../domain/team.view.js';
 import { toTeamField } from '../domain/team-field.view.js';
 
 // Mapping from extraction camelCase keys to DB field keys
-const EXTRACTION_KEY_MAP: Record<string, string> = {
+const CAMEL_TO_DB: Record<string, string> = {
   name: 'name', // handled separately on teams table
   siret: 'siret',
   address: 'address',
@@ -35,6 +38,9 @@ const EXTRACTION_KEY_MAP: Record<string, string> = {
   latePenaltyRate: 'late_penalty_rate',
   recoveryFee: 'recovery_fee',
 };
+
+// Reverse mapping: DB field key → camelCase extraction key
+const DB_TO_CAMEL = new Map(Object.entries(CAMEL_TO_DB).map(([camel, db]) => [db, camel]));
 
 export async function processTeamDocument(input: {
   teamId: string;
@@ -64,48 +70,40 @@ export async function processTeamDocument(input: {
 
   // Get all current fields to find IDs
   const fieldRows = await findTeamFields(input.teamId);
-  const fieldByKey = new Map(fieldRows.map((f) => [f.key, f]));
 
   // Build set of extracted DB keys
   const extractedDbKeys = new Set<string>();
   for (const camelKey of Object.keys(extractedFields)) {
-    const dbKey = EXTRACTION_KEY_MAP[camelKey];
+    const dbKey = CAMEL_TO_DB[camelKey];
     if (dbKey) extractedDbKeys.add(dbKey);
   }
 
-  // 1. Reset only fields that were extracted (preserve defaults for unextracted fields)
-  for (const row of fieldRows) {
-    if (!extractedDbKeys.has(row.key)) continue;
-    await upsertTeamField({ teamId: input.teamId, fieldId: row.id, value: '' });
-  }
-
-  // 2. Update team name if extracted
+  // 1. Update team name if extracted
   if (extractedFields.name) {
-    const { updateTeamName } = await import('../repository/update-team.js');
     await updateTeamName({ teamId: input.teamId, name: extractedFields.name });
   }
 
-  // 3. Apply extracted fields
-  for (const [camelKey, value] of Object.entries(extractedFields)) {
-    if (camelKey === 'name') continue; // already handled
-    if (camelKey === 'customClauses') continue; // handled below
+  // 2. Apply extracted fields (reset-then-apply in one pass, skip empty overwrites)
+  for (const row of fieldRows) {
+    if (!extractedDbKeys.has(row.key)) continue;
 
-    const dbKey = EXTRACTION_KEY_MAP[camelKey];
-    if (!dbKey) continue;
+    // Find the extracted value for this DB key
+    const camelKey = DB_TO_CAMEL.get(row.key);
+    if (!camelKey || camelKey === 'name') continue;
 
-    const field = fieldByKey.get(dbKey);
-    if (!field) continue;
+    const rawValue = extractedFields[camelKey as keyof typeof extractedFields];
+    const strValue = rawValue === undefined ? ''
+      : typeof rawValue === 'boolean' ? (rawValue ? 'true' : '')
+      : String(rawValue);
 
-    const strValue = typeof value === 'boolean'
-      ? (value ? 'true' : '')
-      : String(value);
+    // Never overwrite a non-empty value with empty — protects seeded defaults
+    if (!strValue && row.value) continue;
 
-    await upsertTeamField({ teamId: input.teamId, fieldId: field.id, value: strValue });
+    await upsertTeamField({ teamId: input.teamId, fieldId: row.id, value: strValue });
   }
 
-  // 4. Handle custom clauses
+  // 3. Handle custom clauses
   if (extractedFields.customClauses && Array.isArray(extractedFields.customClauses)) {
-    const { insertTeamField } = await import('../repository/insert-team-field.js');
     for (let i = 0; i < extractedFields.customClauses.length; i++) {
       const clause = extractedFields.customClauses[i];
       if (typeof clause === 'string' && clause.trim()) {
@@ -125,9 +123,8 @@ export async function processTeamDocument(input: {
     }
   }
 
-  // 5. Set logo URL and original document URL on teams table
+  // 4. Set logo URL and original document URL on teams table
   {
-    const { updateTeamMeta } = await import('../repository/update-team.js');
     await updateTeamMeta({
       teamId: input.teamId,
       logoUrl: logoUrl ?? undefined,
@@ -137,8 +134,15 @@ export async function processTeamDocument(input: {
 
   logger.info('team.document_processed', { teamId: input.teamId, mimeType: input.mimeType, logoExtracted: !!logoUrl });
 
+  // 5. Ensure mandatory invoice legal fields have values (restore defaults if wiped)
+  const updatedFields = await findTeamFields(input.teamId);
+  const missingDefaults = findMissingLegalDefaults(updatedFields);
+  for (const { fieldId, defaultValue } of missingDefaults) {
+    await upsertTeamField({ teamId: input.teamId, fieldId, value: defaultValue });
+  }
+
   // Return updated team
   const updatedTeam = await findTeamById(input.teamId);
-  const updatedFields = await findTeamFields(input.teamId);
-  return toTeamSummary(updatedTeam!, updatedFields.map(toTeamField));
+  const finalFields = missingDefaults.length > 0 ? await findTeamFields(input.teamId) : updatedFields;
+  return toTeamSummary(updatedTeam!, finalFields.map(toTeamField));
 }

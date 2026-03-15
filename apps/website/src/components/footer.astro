@@ -1,0 +1,50 @@
+---
+const currentYear = new Date().getFullYear();
+---
+
+<footer class="bg-brand text-white/80">
+  <div class="max-w-6xl mx-auto px-6 py-16">
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-10">
+      <!-- Brand -->
+      <div class="md:col-span-1">
+        <img src="/logo.svg" alt="Tuldio" class="h-7 brightness-0 invert mb-4" />
+        <p class="text-sm text-white/60 leading-relaxed">
+          Devis et factures en quelques secondes. Fait pour les indépendants.
+        </p>
+      </div>
+
+      <!-- Produit -->
+      <div>
+        <h4 class="text-white font-semibold text-sm mb-4">Produit</h4>
+        <ul class="space-y-2.5 text-sm">
+          <li><a href="/#fonctionnalites" class="hover:text-white transition-colors">Fonctionnalités</a></li>
+          <li><a href="/tarifs" class="hover:text-white transition-colors">Tarifs</a></li>
+          <li><a href="/devis" class="hover:text-white transition-colors">Devis</a></li>
+          <li><a href="/factures" class="hover:text-white transition-colors">Factures</a></li>
+        </ul>
+      </div>
+
+      <!-- Entreprise -->
+      <div>
+        <h4 class="text-white font-semibold text-sm mb-4">Entreprise</h4>
+        <ul class="space-y-2.5 text-sm">
+          <li><a href="/a-propos" class="hover:text-white transition-colors">À propos</a></li>
+        </ul>
+      </div>
+
+      <!-- Légal -->
+      <div>
+        <h4 class="text-white font-semibold text-sm mb-4">Légal</h4>
+        <ul class="space-y-2.5 text-sm">
+          <li><a href="/mentions-legales" class="hover:text-white transition-colors">Mentions légales</a></li>
+          <li><a href="/cgu" class="hover:text-white transition-colors">CGU</a></li>
+          <li><a href="/confidentialite" class="hover:text-white transition-colors">Confidentialité</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="mt-12 pt-8 border-t border-white/10 text-sm text-white/40">
+      © {currentYear} Tuldio. Tous droits réservés.
+    </div>
+  </div>
+</footer>

@@ -194,6 +194,11 @@ export const errorCodes = {
     statusCode: 422,
     message: 'Le document ne peut pas être envoyé : informations obligatoires manquantes',
   },
+  mandatoryFieldCannotBeEmpty: {
+    code: 'MANDATORY_FIELD_CANNOT_BE_EMPTY',
+    statusCode: 400,
+    message: 'Ce champ est obligatoire sur vos documents et ne peut pas être vide',
+  },
 } as const;
 
 export type ErrorCode = (typeof errorCodes)[keyof typeof errorCodes];

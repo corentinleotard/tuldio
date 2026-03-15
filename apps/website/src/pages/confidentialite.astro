@@ -1,0 +1,221 @@
+---
+import Base from '../layouts/base.astro';
+import Header from '../components/header.astro';
+import Footer from '../components/footer.astro';
+---
+
+<Base
+  title="Politique de Confidentialité · Tuldio"
+  description="Politique de confidentialité et protection des données personnelles de Tuldio."
+>
+  <Header />
+
+  <section class="pt-32 pb-20 md:pt-44 md:pb-28 bg-surface">
+    <div class="max-w-3xl mx-auto px-6">
+      <h1 class="text-3xl md:text-4xl font-bold text-text tracking-tight mb-4">
+        Politique de Confidentialité
+      </h1>
+      <p class="text-sm text-text-secondary mb-10">Dernière mise à jour : mars 2026</p>
+
+      <div class="space-y-10 text-text-secondary leading-relaxed">
+
+        <div>
+          <h2 class="text-xl font-semibold text-text mb-3">1. Responsable du traitement</h2>
+          <p>
+            Le responsable du traitement des données est Tuldio, joignable à l'adresse
+            <a href="mailto:contact@tuldio.fr" class="text-brand hover:text-brand-light">contact@tuldio.fr</a>.
+          </p>
+        </div>
+
+        <div>
+          <h2 class="text-xl font-semibold text-text mb-3">2. Données collectées</h2>
+          <p>Dans le cadre de l'utilisation du service, Tuldio collecte les données suivantes :</p>
+          <ul class="list-disc pl-6 mt-3 space-y-2">
+            <li>
+              <strong class="text-text">Données d'identification :</strong> adresse email,
+              numéro de téléphone (pour l'authentification)
+            </li>
+            <li>
+              <strong class="text-text">Données professionnelles :</strong> nom d'entreprise,
+              SIRET, adresse professionnelle, logo, informations de facturation
+            </li>
+            <li>
+              <strong class="text-text">Données commerciales :</strong> informations relatives
+              aux clients de l'utilisateur, devis, factures, descriptions de prestations, montants
+            </li>
+            <li>
+              <strong class="text-text">Messages :</strong> contenus des échanges avec
+              l'interface conversationnelle du service
+            </li>
+            <li>
+              <strong class="text-text">Données de paiement :</strong> traitées directement par
+              Stripe. Tuldio ne stocke pas les numéros de carte bancaire
+            </li>
+          </ul>
+        </div>
+
+        <div>
+          <h2 class="text-xl font-semibold text-text mb-3">3. Finalités du traitement</h2>
+          <p>Les données collectées sont utilisées pour :</p>
+          <ul class="list-disc pl-6 mt-3 space-y-1">
+            <li>fournir et faire fonctionner le service (création de documents, gestion de clients, statistiques) ;</li>
+            <li>authentifier l'utilisateur et sécuriser l'accès au compte ;</li>
+            <li>traiter les paiements et gérer l'abonnement ;</li>
+            <li>envoyer des communications liées au service (emails transactionnels, notifications) ;</li>
+            <li>améliorer le service et corriger les dysfonctionnements.</li>
+          </ul>
+          <p class="mt-3">
+            Les données ne sont jamais utilisées à des fins publicitaires et ne sont jamais
+            vendues à des tiers.
+          </p>
+        </div>
+
+        <div>
+          <h2 class="text-xl font-semibold text-text mb-3">4. Sous-traitants et prestataires techniques</h2>
+          <p>
+            Pour fournir le service, Tuldio fait appel aux prestataires techniques suivants :
+          </p>
+          <div class="mt-3 overflow-x-auto">
+            <table class="w-full text-sm border-collapse">
+              <thead>
+                <tr class="border-b border-black/10">
+                  <th class="text-left py-2 pr-4 text-text font-semibold">Prestataire</th>
+                  <th class="text-left py-2 pr-4 text-text font-semibold">Usage</th>
+                  <th class="text-left py-2 text-text font-semibold">Localisation</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr class="border-b border-black/5">
+                  <td class="py-2 pr-4">IONOS</td>
+                  <td class="py-2 pr-4">Hébergement des données et de l'application</td>
+                  <td class="py-2">Union Européenne</td>
+                </tr>
+                <tr class="border-b border-black/5">
+                  <td class="py-2 pr-4">Stripe</td>
+                  <td class="py-2 pr-4">Traitement des paiements</td>
+                  <td class="py-2">États-Unis / UE</td>
+                </tr>
+                <tr class="border-b border-black/5">
+                  <td class="py-2 pr-4">Resend</td>
+                  <td class="py-2 pr-4">Envoi d'emails transactionnels</td>
+                  <td class="py-2">États-Unis</td>
+                </tr>
+                <tr class="border-b border-black/5">
+                  <td class="py-2 pr-4">Prestataire d'intelligence artificielle</td>
+                  <td class="py-2 pr-4">Traitement des messages de l'interface conversationnelle</td>
+                  <td class="py-2">États-Unis</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="mt-3">
+            Les messages échangés avec l'interface conversationnelle sont transmis à un
+            prestataire tiers spécialisé en intelligence artificielle afin de générer les
+            réponses et d'exécuter les actions demandées (création de devis, factures, etc.).
+            Ces données sont traitées conformément aux conditions de confidentialité du
+            prestataire et ne sont pas utilisées pour entraîner des modèles d'IA.
+          </p>
+        </div>
+
+        <div>
+          <h2 class="text-xl font-semibold text-text mb-3">5. Transferts de données hors UE</h2>
+          <p>
+            Certains prestataires techniques sont situés aux États-Unis. Ces transferts sont
+            encadrés par des garanties appropriées, notamment les Clauses Contractuelles Types
+            (Standard Contractual Clauses) de la Commission Européenne et, le cas échéant,
+            le EU-US Data Privacy Framework.
+          </p>
+        </div>
+
+        <div>
+          <h2 class="text-xl font-semibold text-text mb-3">6. Hébergement et sécurité</h2>
+          <p>
+            Les données sont hébergées par IONOS sur des serveurs situés dans l'Union Européenne.
+          </p>
+          <p class="mt-3">Les mesures de sécurité mises en œuvre incluent :</p>
+          <ul class="list-disc pl-6 mt-2 space-y-1">
+            <li>chiffrement des communications (HTTPS / TLS) ;</li>
+            <li>authentification sécurisée par code à usage unique (OTP) ;</li>
+            <li>isolation des données entre utilisateurs ;</li>
+            <li>accès restreint aux bases de données.</li>
+          </ul>
+        </div>
+
+        <div>
+          <h2 class="text-xl font-semibold text-text mb-3">7. Durée de conservation</h2>
+          <p>
+            Les données sont conservées pendant toute la durée d'utilisation du service.
+          </p>
+          <p class="mt-3">
+            En cas de suppression du compte, les données personnelles sont supprimées dans
+            un délai de 30 jours, à l'exception des données soumises à une obligation légale
+            de conservation (notamment les données de facturation, conservées 10 ans conformément
+            au Code de commerce).
+          </p>
+        </div>
+
+        <div>
+          <h2 class="text-xl font-semibold text-text mb-3">8. Vos droits</h2>
+          <p>
+            Conformément au Règlement Général sur la Protection des Données (RGPD), vous
+            disposez des droits suivants :
+          </p>
+          <ul class="list-disc pl-6 mt-3 space-y-1">
+            <li><strong class="text-text">Droit d'accès :</strong> obtenir une copie de vos données personnelles</li>
+            <li><strong class="text-text">Droit de rectification :</strong> corriger des données inexactes</li>
+            <li><strong class="text-text">Droit de suppression :</strong> demander l'effacement de vos données</li>
+            <li><strong class="text-text">Droit à la portabilité :</strong> recevoir vos données dans un format structuré</li>
+            <li><strong class="text-text">Droit d'opposition :</strong> vous opposer au traitement de vos données</li>
+            <li><strong class="text-text">Droit à la limitation :</strong> demander la limitation du traitement</li>
+          </ul>
+          <p class="mt-3">
+            Pour exercer ces droits, contactez-nous à
+            <a href="mailto:contact@tuldio.fr" class="text-brand hover:text-brand-light">contact@tuldio.fr</a>.
+            Nous répondrons dans un délai de 30 jours.
+          </p>
+          <p class="mt-3">
+            Vous pouvez également introduire une réclamation auprès de la CNIL
+            (<a href="https://www.cnil.fr" target="_blank" rel="noopener noreferrer" class="text-brand hover:text-brand-light">www.cnil.fr</a>).
+          </p>
+        </div>
+
+        <div>
+          <h2 class="text-xl font-semibold text-text mb-3">9. Cookies et traceurs</h2>
+          <p>
+            Tuldio utilise des cookies strictement nécessaires au fonctionnement du service
+            (authentification, maintien de session). Ces cookies ne nécessitent pas de
+            consentement conformément à la directive ePrivacy.
+          </p>
+          <p class="mt-3">
+            Des cookies d'analyse ou de mesure d'audience pourront être ajoutés ultérieurement.
+            Le cas échéant, votre consentement sera recueilli préalablement via un bandeau
+            d'information dédié et cette politique sera mise à jour en conséquence.
+          </p>
+        </div>
+
+        <div>
+          <h2 class="text-xl font-semibold text-text mb-3">10. Modification de la politique</h2>
+          <p>
+            Tuldio se réserve le droit de modifier la présente politique de confidentialité.
+            Les modifications seront publiées sur cette page avec une date de mise à jour.
+            En cas de modification substantielle, les utilisateurs seront informés par email.
+          </p>
+        </div>
+
+        <div>
+          <h2 class="text-xl font-semibold text-text mb-3">11. Contact</h2>
+          <p>
+            Pour toute question relative à la protection de vos données personnelles :
+          </p>
+          <p class="mt-2">
+            <strong class="text-text">Tuldio</strong><br />
+            Email : <a href="mailto:contact@tuldio.fr" class="text-brand hover:text-brand-light">contact@tuldio.fr</a>
+          </p>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <Footer />
+</Base>

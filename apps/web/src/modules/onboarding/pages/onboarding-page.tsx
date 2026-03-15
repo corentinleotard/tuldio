@@ -1,7 +1,7 @@
 import { useRef, useState, type FormEvent } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { Loader2, FileText, PenLine, ChevronRight, ChevronLeft, ExternalLink, LogOut } from 'lucide-react';
+import { Loader2, FileText, PenLine, ChevronRight, ChevronLeft, ExternalLink, LogOut, Info, Settings } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,6 +11,7 @@ import { viewDocument } from '@/lib/share-document';
 import { updateTeamField } from '@/modules/settings/api/fields.api';
 import { cn } from '@/lib/utils';
 import { WithGrayBackground } from '@/components/with-gray-background';
+import { CompanyPage } from '@/modules/settings/pages/company-page';
 
 type Step = 1 | 2 | 3;
 
@@ -32,7 +33,7 @@ function getFieldId(fields: { id: string; key: string }[], key: string): string 
   return fields.find((f) => f.key === key)?.id;
 }
 
-function StepIndicator({ current, onNavigate }: { current: Step; onNavigate: (step: Step) => void }) {
+function StepIndicator({ current, onNavigate, onSignOut }: { current: Step; onNavigate: (step: Step) => void; onSignOut: () => void }) {
   return (
     <div className="relative flex items-center justify-center gap-2">
       {current > 1 && (
@@ -55,6 +56,13 @@ function StepIndicator({ current, onNavigate }: { current: Step; onNavigate: (st
           )}
         />
       ))}
+      <button
+        type="button"
+        onClick={onSignOut}
+        className="absolute right-0 flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground md:hidden"
+      >
+        <LogOut className="h-3.5 w-3.5" />
+      </button>
     </div>
   );
 }
@@ -68,12 +76,15 @@ export function OnboardingPage() {
   const fields = team?.fields ?? [];
   const siretVal = getFieldValue(fields, 'siret');
   const hasInfo = Boolean(siretVal || getFieldValue(fields, 'address'));
-  const [step, setStep] = useState<Step>(hasInfo ? 2 : 1);
+  const hasCompletedStep2 = hasInfo && Boolean(team?.name);
+  const [step, setStep] = useState<Step>(hasCompletedStep2 ? 3 : hasInfo ? 2 : 1);
   const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [error, setError] = useState('');
   const [downloading, setDownloading] = useState<'quote' | 'invoice' | null>(null);
+  const [usedUpload, setUsedUpload] = useState(false);
+  const [showCompanyEditor, setShowCompanyEditor] = useState(false);
   const [form, setForm] = useState<CompanyForm>({
     name: team?.name ?? '',
     siret: formatSiret(siretVal),
@@ -125,6 +136,7 @@ export function OnboardingPage() {
         tvaNumber: formatTva(getFieldValue(uf, 'tva_number')),
       });
       await queryClient.invalidateQueries({ queryKey: ['auth', 'bootstrap'] });
+      setUsedUpload(true);
       setStep(2);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erreur lors de l'envoi");
@@ -199,6 +211,16 @@ export function OnboardingPage() {
 
   const canContinue = form.name.trim() && form.siret.trim() && form.address.trim();
 
+  if (showCompanyEditor) {
+    return (
+      <WithGrayBackground>
+        <div className="flex h-dvh flex-col bg-background pt-safe-top">
+          <CompanyPage onBack={() => setShowCompanyEditor(false)} />
+        </div>
+      </WithGrayBackground>
+    );
+  }
+
   return (
     <WithGrayBackground>
     <div className="flex min-h-dvh flex-col overflow-y-auto bg-background">
@@ -215,21 +237,9 @@ export function OnboardingPage() {
         </button>
       </header>
 
-      {/* Mobile disconnect button */}
-      <div className="flex justify-end px-5 pt-safe-top md:hidden">
-        <button
-          type="button"
-          onClick={signOut}
-          className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[13px] text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-        >
-          <LogOut className="h-3.5 w-3.5" />
-          Se déconnecter
-        </button>
-      </div>
-
       {/* Main content */}
       <main
-        className="flex flex-1 items-start justify-center pt-6 md:items-center md:py-12"
+        className="flex flex-1 items-start justify-center overflow-y-auto pb-8 pt-4 pt-safe-top md:items-center md:py-12"
       >
         <div
           className={cn(
@@ -253,7 +263,7 @@ export function OnboardingPage() {
     if (uploading) {
       return (
         <>
-          <StepIndicator current={1} onNavigate={navigateToStep} />
+          <StepIndicator current={1} onNavigate={navigateToStep} onSignOut={signOut} />
           <h1 className="mt-4 text-xl font-semibold">Vos informations</h1>
           <div className="mt-16 flex flex-col items-center gap-4">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -265,7 +275,7 @@ export function OnboardingPage() {
 
     return (
       <>
-        <StepIndicator current={1} onNavigate={navigateToStep} />
+        <StepIndicator current={1} onNavigate={navigateToStep} onSignOut={signOut} />
         <h1 className="mt-4 text-xl font-semibold">Vos informations</h1>
         <p className="mb-7 mt-2 text-sm leading-relaxed text-muted-foreground">
           Comment voulez-vous renseigner les infos de votre entreprise ?
@@ -326,7 +336,7 @@ export function OnboardingPage() {
       <form onSubmit={handleSaveInfo} className="flex flex-col md:block">
         {/* Header */}
         <div className="shrink-0 px-7 pt-6 text-center md:px-0 md:pt-0">
-          <StepIndicator current={2} onNavigate={navigateToStep} />
+          <StepIndicator current={2} onNavigate={navigateToStep} onSignOut={signOut} />
           <h1 className="mt-3 text-xl font-semibold">Verifiez vos informations</h1>
           <p className="mb-3 mt-1 text-[13px] text-muted-foreground">
             Elles apparaitront sur vos devis et factures.
@@ -440,7 +450,7 @@ export function OnboardingPage() {
   function renderModelsStep() {
     return (
       <>
-        <StepIndicator current={3} onNavigate={navigateToStep} />
+        <StepIndicator current={3} onNavigate={navigateToStep} onSignOut={signOut} />
         <h1 className="mt-4 text-xl font-semibold">Vos modeles de documents</h1>
         <p className="mb-6 mt-2 text-sm leading-relaxed text-muted-foreground">
           Tuldio genere vos devis et factures avec votre identite. Voici un apercu.
@@ -493,15 +503,38 @@ export function OnboardingPage() {
           </button>
         </div>
 
+        {/* Info block */}
+        <div className="mt-5 flex items-center gap-2.5 rounded-xl bg-background p-3 text-left">
+          <Info className="h-4 w-4 shrink-0 text-muted-foreground" />
+          <p className="flex-1 text-[13px] leading-relaxed text-muted-foreground">
+            {usedUpload
+              ? 'Mentions legales et conditions pre-remplies depuis votre document.'
+              : 'Mentions legales et conditions pre-remplies par defaut.'
+            }
+          </p>
+          <button
+            type="button"
+            onClick={() => setShowCompanyEditor(true)}
+            className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-xl bg-primary/10 px-2.5 py-1 text-[13px] font-semibold text-primary hover:bg-primary/15"
+          >
+            <Settings className="h-3 w-3" />
+            Modifier
+          </button>
+        </div>
+
         {/* Terms */}
-        <div className="mt-7 flex items-start gap-2.5 text-left">
+        <div className="mt-5 flex items-start gap-2.5 text-left">
           <Checkbox checked={termsAccepted} onChange={setTermsAccepted} className="mt-0.5" />
           <p className="text-[13px] leading-relaxed text-muted-foreground">
             J&apos;accepte les{' '}
-            <a href="#" className="text-primary underline">
-              conditions generales d&apos;utilisation
+            <a href="https://tuldio.com/cgu" target="_blank" rel="noopener noreferrer" className="text-primary underline">
+              conditions générales d&apos;utilisation
             </a>{' '}
-            et je certifie que les informations fournies sont exactes.
+            et la{' '}
+            <a href="https://tuldio.com/confidentialite" target="_blank" rel="noopener noreferrer" className="text-primary underline">
+              politique de confidentialité
+            </a>
+            . Je certifie que les informations fournies sont exactes.
           </p>
         </div>
 

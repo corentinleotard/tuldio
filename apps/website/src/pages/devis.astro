@@ -1,0 +1,123 @@
+---
+import Base from '../layouts/base.astro';
+import Header from '../components/header.astro';
+import Footer from '../components/footer.astro';
+import Section from '../components/section.astro';
+import CtaButton from '../components/cta-button.astro';
+---
+
+<Base
+  title="Créer un devis en 30 secondes · Tuldio"
+  description="Créez des devis professionnels en quelques secondes. Fini les modèles Word et les oublis. Tuldio mémorise vos prix et vos clients."
+>
+  <Header />
+
+  <section class="pt-32 pb-20 md:pt-44 md:pb-28 bg-surface">
+    <div class="max-w-6xl mx-auto px-6">
+      <div class="max-w-3xl mx-auto text-center">
+        <h1 class="text-4xl md:text-5xl font-bold text-text tracking-tight leading-tight">
+          Des devis professionnels
+          <span class="text-brand">en quelques secondes</span>
+        </h1>
+        <p class="mt-6 text-lg text-text-secondary max-w-2xl mx-auto leading-relaxed">
+          Vous décrivez votre prestation en quelques mots, comme par message.
+          Tuldio génère le devis, prêt à envoyer.
+        </p>
+        <div class="mt-8">
+          <CtaButton size="lg">Créer mon premier devis</CtaButton>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <Section bg="white">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-12 max-w-4xl mx-auto">
+      <div>
+        <div class="w-12 h-12 bg-brand-lightest rounded-xl flex items-center justify-center mb-4">
+          <svg class="w-6 h-6 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 10V3L4 14h7v7l9-11h-7z" />
+          </svg>
+        </div>
+        <h3 class="text-lg font-semibold text-text mb-2">Rapide</h3>
+        <p class="text-text-secondary leading-relaxed">
+          Pas de formulaire à remplir. Décrivez votre prestation comme vous le feriez par SMS.
+          Le devis est prêt en quelques secondes.
+        </p>
+      </div>
+      <div>
+        <div class="w-12 h-12 bg-brand-lightest rounded-xl flex items-center justify-center mb-4">
+          <svg class="w-6 h-6 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </div>
+        <h3 class="text-lg font-semibold text-text mb-2">Bien présenté</h3>
+        <p class="text-text-secondary leading-relaxed">
+          Mentions pré-remplies, numérotation automatique, mise en page propre.
+          Vos documents font bonne impression.
+        </p>
+      </div>
+      <div>
+        <div class="w-12 h-12 bg-brand-lightest rounded-xl flex items-center justify-center mb-4">
+          <svg class="w-6 h-6 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+          </svg>
+        </div>
+        <h3 class="text-lg font-semibold text-text mb-2">Il retient tout</h3>
+        <p class="text-text-secondary leading-relaxed">
+          Vos prix sont mémorisés. La prochaine fois, Tuldio vous les suggère.
+          Plus vous l'utilisez, plus c'est rapide.
+        </p>
+      </div>
+    </div>
+  </Section>
+
+  <Section>
+    <div class="max-w-3xl mx-auto text-center">
+      <h2 class="text-3xl md:text-4xl font-bold text-text tracking-tight">
+        Comment ça marche
+      </h2>
+      <div class="mt-12 space-y-12 text-left">
+        <div class="flex gap-6 items-start">
+          <div class="w-10 h-10 bg-brand text-white rounded-full flex items-center justify-center font-bold text-lg flex-shrink-0">1</div>
+          <div>
+            <h3 class="text-lg font-semibold text-text">Dites ce qu'il vous faut</h3>
+            <p class="text-text-secondary mt-1 leading-relaxed">
+              "Devis pour Mme Dupont, consultation initiale 60€, 3 séances de suivi à 45€"
+            </p>
+          </div>
+        </div>
+        <div class="flex gap-6 items-start">
+          <div class="w-10 h-10 bg-brand text-white rounded-full flex items-center justify-center font-bold text-lg flex-shrink-0">2</div>
+          <div>
+            <h3 class="text-lg font-semibold text-text">Jetez un œil</h3>
+            <p class="text-text-secondary mt-1 leading-relaxed">
+              Le document est prêt avec les bonnes infos. Ajustez si besoin avant d'envoyer.
+            </p>
+          </div>
+        </div>
+        <div class="flex gap-6 items-start">
+          <div class="w-10 h-10 bg-brand text-white rounded-full flex items-center justify-center font-bold text-lg flex-shrink-0">3</div>
+          <div>
+            <h3 class="text-lg font-semibold text-text">Envoyez</h3>
+            <p class="text-text-secondary mt-1 leading-relaxed">
+              Le PDF part directement par email à votre client. C'est fait.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </Section>
+
+  <Section bg="brand">
+    <div class="max-w-3xl mx-auto text-center">
+      <h2 class="text-3xl md:text-4xl font-bold text-white tracking-tight">
+        Fini les devis qui prennent une demi-heure
+      </h2>
+      <div class="mt-8">
+        <CtaButton variant="white" size="lg">Essayer 14 jours gratuitement</CtaButton>
+      </div>
+    </div>
+  </Section>
+
+  <Footer />
+</Base>

@@ -1,0 +1,50 @@
+---
+import Base from '../layouts/base.astro';
+import Header from '../components/header.astro';
+import Footer from '../components/footer.astro';
+import Section from '../components/section.astro';
+import CtaButton from '../components/cta-button.astro';
+---
+
+<Base
+  title="À propos · Tuldio"
+  description="Tuldio est né d'un constat simple : les indépendants perdent trop de temps sur l'administratif. On a décidé de changer ça."
+>
+  <Header />
+
+  <section class="pt-32 pb-20 md:pt-44 md:pb-28 bg-surface">
+    <div class="max-w-6xl mx-auto px-6">
+      <div class="max-w-3xl mx-auto">
+        <h1 class="text-4xl md:text-5xl font-bold text-text tracking-tight">
+          À propos de Tuldio
+        </h1>
+
+        <div class="mt-10 space-y-6 text-lg text-text-secondary leading-relaxed">
+          <p>
+            Tuldio est né d'un constat simple : les indépendants passent un temps fou
+            sur leur administratif. Des devis sur Word, des factures sur Excel,
+            des infos clients éparpillées entre le téléphone et des bouts de papier.
+          </p>
+          <p>
+            On a voulu créer l'outil qu'on aurait aimé avoir. Pas un logiciel de
+            comptabilité complexe. Pas un ERP surdimensionné. Juste un outil qui
+            fait le travail administratif à votre place, simplement.
+          </p>
+          <p>
+            <strong class="text-text">Notre promesse :</strong> vous décrivez ce dont vous avez besoin,
+            c'est fait. Un devis en 30 secondes, une facture en un clic.
+          </p>
+          <p>
+            Tuldio est conçu en France, pour les indépendants français.
+          </p>
+        </div>
+
+        <div class="mt-12">
+          <CtaButton size="lg">Essayer Tuldio</CtaButton>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <Footer />
+</Base>

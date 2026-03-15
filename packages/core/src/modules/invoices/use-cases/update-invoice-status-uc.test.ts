@@ -18,10 +18,11 @@ async function seedTeamAndClient(teamId: string, clientId: string) {
     `INSERT INTO team_fields (id, team_id, key, label, value, zone, scope, show_quote, show_invoice, sort_order, is_system)
      VALUES ($1, $2, 'siret', 'SIRET', '12345678901234', 'identity', 'both', true, true, 0, true),
             ($3, $2, 'address', 'Adresse', '1 rue de Paris, 75001 Paris', 'identity', 'both', true, true, 1, true),
-            ($4, $2, 'early_payment_discount', 'Escompte', 'Pas d''escompte', 'legal', 'invoice', false, true, 0, true),
-            ($5, $2, 'late_penalty_rate', 'Penalites', '3x taux legal', 'legal', 'invoice', false, true, 1, true),
-            ($6, $2, 'recovery_fee', 'Recouvrement', '4000', 'legal', 'invoice', false, true, 2, true)`,
-    [generateId(), teamId, generateId(), generateId(), generateId(), generateId()],
+            ($4, $2, 'tva_number', 'N TVA', 'FR32123456789', 'identity', 'both', true, true, 6, true),
+            ($5, $2, 'early_payment_discount', 'Escompte', 'Pas d''escompte', 'legal', 'invoice', false, true, 0, true),
+            ($6, $2, 'late_penalty_rate', 'Penalites', '3x taux legal', 'legal', 'invoice', false, true, 1, true),
+            ($7, $2, 'recovery_fee', 'Recouvrement', '4000', 'legal', 'invoice', false, true, 2, true)`,
+    [generateId(), teamId, generateId(), generateId(), generateId(), generateId(), generateId()],
   );
 }
 

@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import { z } from 'zod';
 import type Anthropic from '@anthropic-ai/sdk';
 import { callClaude } from './claude-client.js';
 import { logger } from '../infra/logger.js';
@@ -76,14 +77,34 @@ Règles de format :
 - "customClauses" : tableau de clauses spécifiques trouvées sur le document
 - Extrais UNIQUEMENT les infos de l'émetteur, jamais du client`;
 
-const ALLOWED_KEYS: (keyof ExtractedFields)[] = [
-  'name', 'siret', 'address', 'phone', 'email', 'mobile', 'website',
-  'tvaNumber', 'tvaExempt', 'apeCode', 'legalForm', 'capitalSocial',
-  'rcsCity', 'rmCity', 'activityDescription',
-  'insuranceCompany', 'insurancePolicyNumber', 'insuranceCoverageZone',
-  'paymentTerms', 'earlyPaymentDiscount',
-  'latePenaltyRate', 'recoveryFee', 'customClauses',
-];
+// Per-field schema validation: only accept values that match expected types.
+// This prevents AI returning false, 0, [], or other non-string values
+// from being treated as valid extractions.
+const FIELD_SCHEMAS: Record<keyof ExtractedFields, z.ZodType> = {
+  name: z.string().min(1),
+  siret: z.string().min(1),
+  address: z.string().min(1),
+  phone: z.string().min(1),
+  mobile: z.string().min(1),
+  email: z.string().min(1),
+  website: z.string().min(1),
+  tvaNumber: z.string().min(1),
+  tvaExempt: z.boolean(),
+  apeCode: z.string().min(1),
+  legalForm: z.string().min(1),
+  capitalSocial: z.number(),
+  rcsCity: z.string().min(1),
+  rmCity: z.string().min(1),
+  activityDescription: z.string().min(1),
+  insuranceCompany: z.string().min(1),
+  insurancePolicyNumber: z.string().min(1),
+  insuranceCoverageZone: z.string().min(1),
+  paymentTerms: z.string().min(1),
+  earlyPaymentDiscount: z.string().min(1),
+  latePenaltyRate: z.string().min(1),
+  recoveryFee: z.string().min(1),
+  customClauses: z.array(z.string()),
+};
 
 export async function extractDocumentInfo(input: {
   filePath: string;
@@ -146,10 +167,15 @@ export async function extractDocumentInfo(input: {
     const parsed = JSON.parse(jsonMatch[0]);
 
     const fields: ExtractedFields = {};
-    for (const key of ALLOWED_KEYS) {
-      const value = parsed[key];
-      if (value !== null && value !== undefined && value !== '') {
-        (fields as Record<string, unknown>)[key] = value;
+    for (const key of Object.keys(FIELD_SCHEMAS) as (keyof ExtractedFields)[]) {
+      const raw = parsed[key];
+      if (raw === null || raw === undefined || raw === '') continue;
+
+      const result = FIELD_SCHEMAS[key].safeParse(raw);
+      if (result.success) {
+        (fields as Record<string, unknown>)[key] = result.data;
+      } else {
+        logger.warn('Extraction field type mismatch, skipping', { key, value: raw });
       }
     }
 

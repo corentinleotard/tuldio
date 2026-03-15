@@ -78,7 +78,7 @@ const VISIBILITY_COLOR: Record<VisibilityState, string> = {
   none: 'bg-secondary text-muted-foreground',
 };
 
-export function CompanyPage() {
+export function CompanyPage({ onBack }: { onBack?: () => void } = {}) {
   const navigate = useNavigate();
   const { team } = useAuth();
   const queryClient = useQueryClient();
@@ -295,7 +295,7 @@ export function CompanyPage() {
         <div className="flex items-center gap-3">
           <button
             type="button"
-            onClick={() => navigate('/settings')}
+            onClick={onBack ?? (() => navigate('/settings'))}
             className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-secondary"
           >
             <ArrowLeft className="h-[18px] w-[18px]" />

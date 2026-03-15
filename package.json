@@ -8,6 +8,7 @@
     "dev:api": "pnpm --filter @tuldio/api dev",
     "dev:web": "pnpm --filter @tuldio/web dev",
     "dev:crons": "pnpm --filter @tuldio/crons dev",
+    "dev:website": "pnpm --filter @tuldio/website dev",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",

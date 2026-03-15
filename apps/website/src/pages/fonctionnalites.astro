@@ -1,0 +1,67 @@
+---
+import Base from '../layouts/base.astro';
+import Header from '../components/header.astro';
+import Footer from '../components/footer.astro';
+import Section from '../components/section.astro';
+import CtaButton from '../components/cta-button.astro';
+import FeatureCard from '../components/feature-card.astro';
+---
+
+<Base
+  title="Fonctionnalités · Tuldio"
+  description="Devis, factures, carnet de clients, statistiques. Tout ce qu'il faut pour gérer votre activité d'indépendant."
+>
+  <Header />
+
+  <section class="pt-32 pb-20 md:pt-44 md:pb-28 bg-surface">
+    <div class="max-w-6xl mx-auto px-6">
+      <div class="max-w-3xl mx-auto text-center">
+        <h1 class="text-4xl md:text-5xl font-bold text-text tracking-tight">
+          Tout ce qu'il faut, rien de plus
+        </h1>
+        <p class="mt-6 text-lg text-text-secondary max-w-2xl mx-auto">
+          Les outils essentiels pour gérer votre activité. Sans complexité, sans formation.
+        </p>
+      </div>
+
+      <div class="mt-16 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <FeatureCard
+          icon="📄"
+          title="Devis"
+          description="Décrivez votre prestation en quelques mots. Tuldio génère un devis propre avec vos prix mémorisés."
+        />
+        <FeatureCard
+          icon="🧾"
+          title="Factures"
+          description="Transformez un devis en facture en un clic. Numérotation automatique, mise en page pro."
+        />
+        <FeatureCard
+          icon="👥"
+          title="Carnet de clients"
+          description="Coordonnées, notes, historique des documents. Tout sur vos clients, au même endroit. Fini les bouts de papier."
+        />
+        <FeatureCard
+          icon="📊"
+          title="Statistiques"
+          description="Votre chiffre d'affaires, vos impayés, votre activité du mois. Visible en un coup d'œil."
+        />
+        <FeatureCard
+          icon="📎"
+          title="PDF professionnel"
+          description="Des documents bien présentés avec vos infos et votre logo. Prêts à envoyer par email."
+        />
+        <FeatureCard
+          icon="📱"
+          title="Sur téléphone"
+          description="Créez un devis depuis votre téléphone, entre deux rendez-vous ou sur le terrain."
+        />
+      </div>
+
+      <div class="mt-16 text-center">
+        <CtaButton size="lg">Essayer 14 jours gratuitement</CtaButton>
+      </div>
+    </div>
+  </section>
+
+  <Footer />
+</Base>
