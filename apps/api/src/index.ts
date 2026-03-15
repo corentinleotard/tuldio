@@ -6,6 +6,8 @@ import { connectDb, logger } from '@tuldio/core/lib';
 import { errorHandler } from './middleware/error-handler.js';
 import { defaultLimiter } from './lib/rate-limit.js';
 import { requestLogger } from './lib/request-logger.js';
+import { authMiddleware } from './middleware/auth.js';
+import { checkSubscription } from './middleware/check-subscription.js';
 import authRoutes from './routes/auth.routes.js';
 import clientsRoutes from './routes/clients.routes.js';
 import teamsRoutes from './routes/teams.routes.js';
@@ -14,6 +16,8 @@ import statsRoutes from './routes/stats.routes.js';
 import quotesRoutes from './routes/quotes.routes.js';
 import invoicesRoutes from './routes/invoices.routes.js';
 import adminRoutes from './routes/admin.routes.js';
+import subscriptionsRoutes from './routes/subscriptions.routes.js';
+import webhooksRoutes from './routes/webhooks.routes.js';
 
 const PORT = process.env.PORT || 3003;
 
@@ -27,6 +31,9 @@ app.use(
   }),
 );
 
+// Webhook route MUST be before express.json() — Stripe needs raw body
+app.use('/api/webhooks', express.raw({ type: 'application/json' }), webhooksRoutes);
+
 app.use(express.json());
 app.use(cookieParser());
 app.use(defaultLimiter);
@@ -35,14 +42,17 @@ app.use(requestLogger);
 // Public routes
 app.use('/api/auth', authRoutes);
 
-// Protected routes
-app.use('/api/clients', clientsRoutes);
+// Protected routes (no subscription check)
 app.use('/api/teams', teamsRoutes);
-app.use('/api/messages', messagesRoutes);
-app.use('/api/stats', statsRoutes);
-app.use('/api/quotes', quotesRoutes);
-app.use('/api/invoices', invoicesRoutes);
+app.use('/api/subscriptions', subscriptionsRoutes);
 app.use('/api/admin', adminRoutes);
+
+// Protected routes (with subscription check on writes)
+app.use('/api/clients', authMiddleware, checkSubscription, clientsRoutes);
+app.use('/api/messages', authMiddleware, checkSubscription, messagesRoutes);
+app.use('/api/stats', authMiddleware, checkSubscription, statsRoutes);
+app.use('/api/quotes', authMiddleware, checkSubscription, quotesRoutes);
+app.use('/api/invoices', authMiddleware, checkSubscription, invoicesRoutes);
 
 // Static files
 const FILES_DIR = process.env.FILES_DIR || '/var/tuldio/files';

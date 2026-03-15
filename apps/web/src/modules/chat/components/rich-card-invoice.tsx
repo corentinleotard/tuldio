@@ -22,7 +22,7 @@ export function RichCardInvoice({ data }: RichCardInvoiceProps) {
   const [markingStatus, setMarkingStatus] = useState<string | null>(null);
 
   useEffect(() => {
-    apiFetch<InvoiceView>(`/api/invoices/${data.id}`)
+    apiFetch<InvoiceView>(`/api/invoices/${data.id}`, undefined, ['INVOICE_NOT_FOUND'])
       .then(setLiveData)
       .catch(() => {})
       .finally(() => setLoading(false));

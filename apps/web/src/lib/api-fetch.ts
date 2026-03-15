@@ -38,7 +38,7 @@ async function tryRefresh(): Promise<boolean> {
   return refreshPromise;
 }
 
-export async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
+export async function apiFetch<T>(path: string, options?: RequestInit, muteErrors?: string[]): Promise<T> {
   const isFormData = options?.body instanceof FormData;
   const doFetch = () =>
     fetch(`${API_URL}${path}`, {
@@ -76,7 +76,14 @@ export async function apiFetch<T>(path: string, options?: RequestInit): Promise<
       ? new ApiError(body.error.code, body.error.message, body.error.details)
       : new ApiError('UNKNOWN', 'Une erreur est survenue');
     // Don't toast on auth errors — handled by auth flow (redirect to login)
-    if (error.code !== 'UNAUTHORIZED') {
+    if (error.code === 'SUBSCRIPTION_INACTIVE') {
+      toast.error(error.message, {
+        action: {
+          label: 'S\'abonner',
+          onClick: () => { window.location.href = '/settings/subscription'; },
+        },
+      });
+    } else if (error.code !== 'UNAUTHORIZED' && !muteErrors?.includes(error.code)) {
       toast.error(error.message);
     }
     throw error;

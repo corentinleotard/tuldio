@@ -2,8 +2,6 @@ import { useState } from 'react';
 import {
   Home,
   CreditCard,
-  Bell,
-  Download,
   Cpu,
   MessageSquare,
   Smartphone,
@@ -13,15 +11,12 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/lib/auth-context';
 import { Avatar } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { ToggleSwitch } from '@/components/ui/toggle-switch';
 import { usePwa } from '@/components/pwa-install-prompt';
 import { SettingsRow } from '../components/settings-row';
 
 export function SettingsPage() {
   const { user, team, signOut } = useAuth();
   const navigate = useNavigate();
-  const [notifications, setNotifications] = useState(true);
-
   const subscriptionLabel =
     team?.subscriptionStatus === 'trial'
       ? 'Essai gratuit'
@@ -35,6 +30,12 @@ export function SettingsPage() {
     team?.subscriptionStatus === 'active' || team?.subscriptionStatus === 'trial'
       ? 'success'
       : 'warning';
+
+  const [trialDaysRemaining] = useState(() => {
+    if (!team?.trialEndsAt) return 0;
+    const diff = new Date(team.trialEndsAt).getTime() - Date.now();
+    return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
+  });
 
   const { canInstall, installed, install } = usePwa();
   const isIos = /iPhone|iPad|iPod/.test(navigator.userAgent);
@@ -87,10 +88,12 @@ export function SettingsPage() {
           iconClassName="bg-accent/10 text-accent"
           trailing={
             <Badge variant={subscriptionVariant}>
-              {team?.subscriptionStatus === 'trial' ? '47 jours restants' : subscriptionLabel}
+              {team?.subscriptionStatus === 'trial'
+                ? `${trialDaysRemaining} jours restants`
+                : subscriptionLabel}
             </Badge>
           }
-          onClick={() => {}}
+          onClick={() => navigate('/settings/subscription')}
         />
       </div>
 
@@ -144,20 +147,6 @@ export function SettingsPage() {
         </div>
       )}
 
-      {/* Preferences section */}
-      <div className="mb-6 overflow-hidden rounded-2xl border bg-card">
-        <p className="px-4 pt-3 text-xs font-medium uppercase text-muted-foreground">
-          Preferences
-        </p>
-        <SettingsRow
-          icon={Bell}
-          label="Notifications"
-          trailing={
-            <ToggleSwitch checked={notifications} onChange={setNotifications} />
-          }
-        />
-        <SettingsRow icon={Download} label="Exporter mes donnees" onClick={() => {}} />
-      </div>
 
       {/* Admin section — owners only */}
       {user?.god && (

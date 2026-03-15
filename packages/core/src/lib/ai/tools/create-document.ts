@@ -3,7 +3,7 @@ import type { TeamField } from '@tuldio/types';
 import { defineTool, lineSchema, type ToolResult } from './define-tool.js';
 import { HandledError } from '../../errors/handled-error.js';
 import { errorCodes } from '../../errors/error-codes.js';
-import { createQuote } from '../../../modules/quotes/index.js';
+import { createQuote, getQuote } from '../../../modules/quotes/index.js';
 import { createInvoice, createInvoiceFromQuote, updateInvoiceStatusUc } from '../../../modules/invoices/index.js';
 import { getTeam } from '../../../modules/teams/index.js';
 import { getClient } from '../../../modules/clients/index.js';
@@ -116,6 +116,28 @@ The result includes showTutorial and hasReadinessErrors booleans. The frontend h
         throw new HandledError(errorCodes.invalidInput);
       }
       const quoteId = ctx.resolveRef(args.sourceQuoteRef, 'quote');
+
+      // Pre-check readiness before creating the invoice when initialStatus is set.
+      // Without this, the invoice is persisted as draft and the status transition fails,
+      // leaving an orphaned draft invoice in the DB.
+      if (args.initialStatus) {
+        const quote = await getQuote({ teamId: ctx.teamId, quoteId });
+        const readiness = await checkReadiness({
+          teamId: ctx.teamId,
+          clientId: quote.clientId,
+          documentType: 'invoice',
+          lines: quote.lines.map((l) => ({ description: l.description })),
+        });
+        if (readiness.errors.length > 0) {
+          return {
+            result: {
+              error: 'DOCUMENT_NOT_READY',
+              message: `Le document ne peut pas être envoyé : informations obligatoires manquantes: ${readiness.errors.map((e) => e.message).join(', ')}`,
+            },
+          };
+        }
+      }
+
       let invoice = await createInvoiceFromQuote({
         teamId: ctx.teamId,
         userId: ctx.userId,
@@ -188,6 +210,24 @@ The result includes showTutorial and hasReadinessErrors booleans. The frontend h
           document: { id: quote.id, type: 'quote' as const, number: quote.number },
         },
       };
+    }
+
+    // Pre-check readiness before creating the invoice when initialStatus is set
+    if (args.initialStatus) {
+      const readiness = await checkReadiness({
+        teamId: ctx.teamId,
+        clientId,
+        documentType: 'invoice',
+        lines: args.lines.map((l) => ({ description: l.description })),
+      });
+      if (readiness.errors.length > 0) {
+        return {
+          result: {
+            error: 'DOCUMENT_NOT_READY',
+            message: `Le document ne peut pas être envoyé : informations obligatoires manquantes: ${readiness.errors.map((e) => e.message).join(', ')}`,
+          },
+        };
+      }
     }
 
     let invoice = await createInvoice({

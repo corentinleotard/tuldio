@@ -204,6 +204,21 @@ export const errorCodes = {
     statusCode: 409,
     message: 'Un message est déjà en cours de traitement',
   },
+  subscriptionInactive: {
+    code: 'SUBSCRIPTION_INACTIVE',
+    statusCode: 403,
+    message: 'Ton abonnement n\'est plus actif',
+  },
+  aiLimitReached: {
+    code: 'AI_LIMIT_REACHED',
+    statusCode: 429,
+    message: 'Une erreur est survenue, reessaie plus tard',
+  },
+  checkoutFailed: {
+    code: 'CHECKOUT_FAILED',
+    statusCode: 500,
+    message: 'Impossible de creer la session de paiement',
+  },
 } as const;
 
 export type ErrorCode = (typeof errorCodes)[keyof typeof errorCodes];

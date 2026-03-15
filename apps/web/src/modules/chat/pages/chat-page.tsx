@@ -6,6 +6,7 @@ import { ChatInputBar } from '../components/chat-input-bar';
 import { QuickReplyBar } from '../components/quick-reply-bar';
 import { DesktopContextPanel } from '../components/desktop-context-panel';
 import { sendMessage, fetchMessages } from '../api/chat.api';
+import { Link } from 'react-router-dom';
 import type { Message, MessageMetadata } from '@tuldio/types';
 
 /** Map mutating tool names to React Query keys that should be invalidated */
@@ -25,10 +26,12 @@ function getToolNamesFromResponse(response: Message): string[] {
 }
 
 export function ChatPage() {
-  const { user } = useAuth();
+  const { user, team } = useAuth();
   const queryClient = useQueryClient();
   const [isSending, setIsSending] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
+
+  const isSubscriptionInactive = team?.subscriptionStatus === 'expired' || team?.subscriptionStatus === 'cancelled';
 
   const {
     data,
@@ -164,9 +167,19 @@ export function ChatPage() {
             </div>
           )}
 
+          {/* Subscription inactive banner */}
+          {isSubscriptionInactive && (
+            <div className="border-t bg-warning/10 px-4 py-3 text-center text-sm">
+              <span className="text-muted-foreground">Abonne-toi pour utiliser le chat. </span>
+              <Link to="/settings/subscription" className="font-semibold text-primary underline">
+                Voir les offres
+              </Link>
+            </div>
+          )}
+
           {/* Input bar */}
           <div className="bg-background pb-2 md:pb-4">
-            <ChatInputBar onSend={handleSend} disabled={isSending} onTypingChange={setIsTyping} />
+            <ChatInputBar onSend={handleSend} disabled={isSending || isSubscriptionInactive} onTypingChange={setIsTyping} />
           </div>
         </div>
 

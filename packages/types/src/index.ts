@@ -44,6 +44,7 @@ export interface TeamSummary {
   termsAcceptedAt: string | null;
   subscriptionStatus: 'trial' | 'active' | 'cancelled' | 'expired';
   trialEndsAt: string | null;
+  subscriptionPeriodEnd: string | null;
 }
 
 export interface AuthResponse {

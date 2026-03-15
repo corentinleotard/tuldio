@@ -13,6 +13,7 @@ import { SettingsPage } from '@/modules/settings/pages/settings-page';
 import { AiCostsPage } from '@/modules/settings/pages/ai-costs-page';
 import { DebugChatPage } from '@/modules/settings/pages/debug-chat-page';
 import { CompanyPage } from '@/modules/settings/pages/company-page';
+import { SubscriptionPage } from '@/modules/settings/pages/subscription-page';
 import { OnboardingPage } from '@/modules/onboarding/pages/onboarding-page';
 import { PwaProvider } from '@/components/pwa-install-prompt';
 import { Toaster } from 'sonner';
@@ -73,6 +74,7 @@ export function App() {
               <Route path="/stats" element={<StatsPage />} />
               <Route path="/settings" element={<SettingsPage />} />
               <Route path="/settings/company" element={<CompanyPage />} />
+              <Route path="/settings/subscription" element={<SubscriptionPage />} />
               <Route path="/settings/ai-costs" element={<AiCostsPage />} />
               <Route path="/settings/debug-chat" element={<DebugChatPage />} />
             </Route>

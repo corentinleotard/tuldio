@@ -14,5 +14,6 @@ export function toTeamSummary(row: TeamRow, fields: TeamField[]): TeamSummary {
     termsAcceptedAt: row.terms_accepted_at?.toISOString() ?? null,
     subscriptionStatus: row.subscription_status,
     trialEndsAt: row.trial_ends_at?.toISOString() ?? null,
+    subscriptionPeriodEnd: row.subscription_period_end?.toISOString() ?? null,
   };
 }

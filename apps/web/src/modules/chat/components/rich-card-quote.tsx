@@ -22,7 +22,7 @@ export function RichCardQuote({ data }: RichCardQuoteProps) {
   const [markingStatus, setMarkingStatus] = useState<string | null>(null);
 
   useEffect(() => {
-    apiFetch<QuoteView>(`/api/quotes/${data.id}`)
+    apiFetch<QuoteView>(`/api/quotes/${data.id}`, undefined, ['QUOTE_NOT_FOUND'])
       .then(setLiveData)
       .catch(() => {})
       .finally(() => setLoading(false));

@@ -6,3 +6,4 @@ export { errorCodes } from './errors/error-codes.js';
 export { lookupSiret } from './infra/sirene-api.js';
 export { storeFile } from './storage/store-file.js';
 export { getFilePath } from './storage/get-file-path.js';
+export { getStripe } from './stripe/stripe-client.js';

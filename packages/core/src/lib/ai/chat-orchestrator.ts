@@ -16,6 +16,8 @@ import { getInvoice } from '../../modules/invoices/index.js';
 import { HandledError } from '../errors/handled-error.js';
 import { errorCodes } from '../errors/error-codes.js';
 import { logger } from '../infra/logger.js';
+import { assertSubscriptionActive } from '../../modules/subscriptions/use-cases/assert-subscription-active.js';
+import { checkAiLimit } from '../../modules/subscriptions/use-cases/check-ai-limit.js';
 import type { Message, MessageMetadata, DebugTrace, DebugTraceRound, DebugTraceToolCall } from '@tuldio/types';
 
 const MAX_TOOL_ROUNDS = 10;
@@ -64,6 +66,10 @@ export async function processMessage(input: {
   processingUsers.add(userId);
 
   try {
+  // 0. Subscription + AI limit checks
+  await assertSubscriptionActive({ teamId });
+  await checkAiLimit({ teamId });
+
   // 1. Save user message
   await createMessage({ userId, teamId, role: 'user', content });
 
