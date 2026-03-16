@@ -28,6 +28,13 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
 
 export function RootRedirect() {
   const { user, isLoading } = useAuth();
+  const location = useLocation();
+
+  // Let /api/ paths pass through to the server (e.g. /api/d/:token public download links)
+  if (location.pathname.startsWith('/api/')) {
+    window.location.href = location.pathname;
+    return null;
+  }
 
   if (isLoading) {
     return (
