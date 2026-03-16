@@ -35,7 +35,7 @@ export function buildDocumentEmailHtml(input: {
           <p style="font-size: 15px; color: #1A1A1A; font-weight: 600; margin: 0;">${teamName}</p>
         </td></tr>
         <tr><td style="padding: 16px 32px;">
-          <p style="font-size: 11px; color: #9E9E9E; margin: 0;">Envoyé via Tuldio</p>
+          <p style="font-size: 11px; color: #9E9E9E; margin: 0;">Envoyé via <a href="https://www.tuldio.fr" style="color: #9E9E9E; text-decoration: underline;">Tuldio</a></p>
         </td></tr>
       </table>
     </td></tr>
