@@ -12,3 +12,13 @@ export async function fetchMessages(cursor?: string): Promise<Message[]> {
   const params = cursor ? `?cursor=${cursor}` : '';
   return apiFetch<Message[]>(`/api/messages${params}`);
 }
+
+export async function transcribeAudio(audioBlob: Blob): Promise<string> {
+  const formData = new FormData();
+  formData.append('file', audioBlob, 'recording.webm');
+  const result = await apiFetch<{ text: string }>('/api/messages/transcribe', {
+    method: 'POST',
+    body: formData,
+  });
+  return result.text;
+}

@@ -54,12 +54,12 @@ importers:
 
   apps/api:
     dependencies:
+      '@tuldio/common':
+        specifier: workspace:*
+        version: link:../../packages/common
       '@tuldio/core':
         specifier: workspace:*
         version: link:../../packages/core
-      '@tuldio/types':
-        specifier: workspace:*
-        version: link:../../packages/types
       cookie-parser:
         specifier: ^1.4.6
         version: 1.4.7
@@ -128,9 +128,9 @@ importers:
       '@tanstack/react-virtual':
         specifier: ^3.13.21
         version: 3.13.21(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@tuldio/types':
+      '@tuldio/common':
         specifier: workspace:*
-        version: link:../../packages/types
+        version: link:../../packages/common
       class-variance-authority:
         specifier: ^0.7.0
         version: 0.7.1
@@ -205,14 +205,19 @@ importers:
         specifier: ^3.4.0
         version: 3.4.19(tsx@4.21.0)(yaml@2.8.2)
 
+  packages/common: {}
+
   packages/core:
     dependencies:
       '@anthropic-ai/sdk':
         specifier: ^0.39.0
         version: 0.39.0
-      '@tuldio/types':
+      '@tuldio/common':
         specifier: workspace:*
-        version: link:../types
+        version: link:../common
+      openai:
+        specifier: ^6.29.0
+        version: 6.29.0(ws@8.19.0)(zod@3.25.76)
       pdfjs-dist:
         specifier: ^5.5.207
         version: 5.5.207
@@ -3915,6 +3920,18 @@ packages:
 
   oniguruma-to-es@4.3.4:
     resolution: {integrity: sha512-3VhUGN3w2eYxnTzHn+ikMI+fp/96KoRSVK9/kMTcFqj1NRDh2IhQCKvYxDnWePKRXY/AqH+Fuiyb7VHSzBjHfA==}
+
+  openai@6.29.0:
+    resolution: {integrity: sha512-YxoArl2BItucdO89/sN6edksV0x47WUTgkgVfCgX7EuEMhbirENsgYe5oO4LTjBL9PtdKtk2WqND1gSLcTd2yw==}
+    hasBin: true
+    peerDependencies:
+      ws: ^8.18.0
+      zod: ^3.25 || ^4.0
+    peerDependenciesMeta:
+      ws:
+        optional: true
+      zod:
+        optional: true
 
   optionator@0.9.4:
     resolution: {integrity: sha512-6IpQ7mKUxRcZNLIObR0hz7lxsapSSIYNZJwXPGeF0mTVqGKFIXj1DQcMoT22S3ROcLyY/rz0PWaWZ9ayWmad9g==}
@@ -9458,6 +9475,11 @@ snapshots:
       oniguruma-parser: 0.12.1
       regex: 6.1.0
       regex-recursion: 6.0.2
+
+  openai@6.29.0(ws@8.19.0)(zod@3.25.76):
+    optionalDependencies:
+      ws: 8.19.0
+      zod: 3.25.76
 
   optionator@0.9.4:
     dependencies:

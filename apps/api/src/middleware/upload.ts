@@ -72,3 +72,22 @@ export const uploadLogo: Middleware = multer({
   fileFilter: logoFilter,
   limits: { fileSize: 2 * MB },
 }).single('file') as unknown as Middleware;
+
+const audioFilter = (
+  _req: Express.Request,
+  file: Express.Multer.File,
+  cb: multer.FileFilterCallback,
+) => {
+  const allowed = ['audio/webm', 'audio/ogg', 'audio/mp4', 'audio/mpeg', 'audio/wav'];
+  if (allowed.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(new Error('Format audio non autorisé'));
+  }
+};
+
+export const uploadAudio: Middleware = multer({
+  storage: createStorage('audio'),
+  fileFilter: audioFilter,
+  limits: { fileSize: 10 * MB },
+}).single('file') as unknown as Middleware;

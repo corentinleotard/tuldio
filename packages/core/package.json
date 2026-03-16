@@ -16,12 +16,14 @@
     "./messages": "./src/modules/messages/index.ts",
     "./stats": "./src/modules/stats/index.ts",
     "./ai": "./src/lib/ai/chat-orchestrator.ts",
+    "./voice": "./src/lib/ai/whisper-client.ts",
     "./pdf": "./src/lib/pdf/index.ts",
     "./subscriptions": "./src/modules/subscriptions/index.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",
     "@tuldio/common": "workspace:*",
+    "openai": "^6.29.0",
     "pdfjs-dist": "^5.5.207",
     "pg": "^8.13.0",
     "puppeteer": "^24.38.0",
