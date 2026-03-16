@@ -1,5 +1,5 @@
 import type Anthropic from '@anthropic-ai/sdk';
-import type { ActiveState, Message } from '@tuldio/types';
+import type { ActiveState, Message } from '@tuldio/common';
 import { migrateStoredToolCall, type StoredRef } from './ref-map.js';
 
 const RECENT_MESSAGES_COUNT = 8;

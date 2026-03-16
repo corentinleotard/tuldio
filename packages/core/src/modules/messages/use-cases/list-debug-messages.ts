@@ -2,7 +2,7 @@ import { query } from '../../../lib/database/db.js';
 import { getCurrentUser } from '../../users/index.js';
 import { HandledError } from '../../../lib/errors/handled-error.js';
 import { errorCodes } from '../../../lib/errors/error-codes.js';
-import type { Message } from '@tuldio/types';
+import type { Message } from '@tuldio/common';
 
 interface DebugMessageRow {
   id: string;

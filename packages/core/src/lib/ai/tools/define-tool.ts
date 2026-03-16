@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { ActiveState } from '@tuldio/types';
+import type { ActiveState } from '@tuldio/common';
 import type { EntityType } from '../ref-map.js';
 
 export type ToolResult = {

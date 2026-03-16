@@ -1,5 +1,5 @@
 import type Anthropic from '@anthropic-ai/sdk';
-import type { ActiveState } from '@tuldio/types';
+import type { ActiveState } from '@tuldio/common';
 import { callClaude } from './claude-client.js';
 import { buildSystemPrompt } from './system-prompt.js';
 import { buildClaudeMessages, buildContextMessages, extractStoredToolCalls, type StoredToolCall } from './build-context.js';
@@ -18,7 +18,7 @@ import { errorCodes } from '../errors/error-codes.js';
 import { logger } from '../infra/logger.js';
 import { assertSubscriptionActive } from '../../modules/subscriptions/use-cases/assert-subscription-active.js';
 import { checkAiLimit } from '../../modules/subscriptions/use-cases/check-ai-limit.js';
-import type { Message, MessageMetadata, DebugTrace, DebugTraceRound, DebugTraceToolCall } from '@tuldio/types';
+import type { Message, MessageMetadata, DebugTrace, DebugTraceRound, DebugTraceToolCall } from '@tuldio/common';
 
 const MAX_TOOL_ROUNDS = 10;
 

@@ -1,5 +1,5 @@
 import Markdown from 'react-markdown';
-import type { Message } from '@tuldio/types';
+import type { Message } from '@tuldio/common';
 import { cn } from '@/lib/utils';
 
 const ALLOWED_ELEMENTS = ['p', 'strong', 'em', 'br', 'ul', 'ol', 'li'];

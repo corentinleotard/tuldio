@@ -1,14 +1,16 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Mail, Phone, MapPin, FileText, Pencil, Check, X, Building2 } from 'lucide-react';
-import type { ClientView, QuoteView, InvoiceView } from '@tuldio/types';
+import { Mail, Phone, MapPin, FileText, Pencil, Check, X, Building2, Download, Loader2 } from 'lucide-react';
+import type { ClientView, QuoteView, InvoiceView } from '@tuldio/common';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn, formatCurrency, formatMonthYear, formatDate, formatDocumentNumber } from '@/lib/utils';
 import { Avatar } from '@/components/ui/avatar';
-import { fetchQuotes, fetchInvoices } from '@/modules/documents/api/documents.api.js';
+import { fetchQuotes, fetchInvoices, sendDocumentEmail } from '@/modules/documents/api/documents.api.js';
 import { statusConfig, defaultStatus } from '@/modules/documents/components/status-config.js';
+import { viewDocument } from '@/lib/share-document';
+import { toast } from 'sonner';
 import { updateClient } from '../api/clients.api.js';
 
 interface ClientDetailProps {
@@ -315,30 +317,70 @@ export function ClientDetail({ client }: ClientDetailProps) {
         {recentDocs.length > 0 && (
           <div>
             <h3 className="mb-3 text-[13px] font-semibold">Derniers documents</h3>
-            <div className="flex flex-col gap-2">
-              {recentDocs.map((doc) => {
-                const badge = statusConfig[doc.status] ?? { ...defaultStatus, label: doc.status };
-                return (
-                  <div
-                    key={doc.id}
-                    className="flex items-center justify-between rounded-lg bg-secondary/30 px-3.5 py-2.5"
-                  >
-                    <div>
-                      <p className="text-[13px] font-semibold">{formatDocumentNumber(doc.number)}</p>
-                      <p className="text-xs text-muted-foreground">{formatDate(doc.createdAt)}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-sm font-bold">{formatCurrency(doc.totalTtc)}</p>
-                      <Badge variant={badge.variant} className="mt-0.5">
-                        {badge.label}
-                      </Badge>
-                    </div>
-                  </div>
-                );
-              })}
+            <div className="flex flex-col">
+              {recentDocs.map((doc) => (
+                <ClientDocumentRow key={doc.id} doc={doc} />
+              ))}
             </div>
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+function ClientDocumentRow({ doc }: { doc: Document }) {
+  const [sendingEmail, setSendingEmail] = useState(false);
+  const badge = statusConfig[doc.status] ?? { ...defaultStatus, label: doc.status };
+  const pdfUrl = `/api/${doc._type === 'quote' ? 'quotes' : 'invoices'}/${doc.id}/pdf`;
+
+  async function handleDownload() {
+    await viewDocument({ pdfUrl });
+  }
+
+  async function handleSendEmail() {
+    setSendingEmail(true);
+    try {
+      const updated = await sendDocumentEmail({ type: doc._type, id: doc.id });
+      const label = doc._type === 'quote' ? 'Devis' : 'Facture';
+      toast.success(`${label} ${formatDocumentNumber(updated.number)} envoyé à ${updated.clientEmail}`);
+    } catch {
+      // error toast already shown by apiFetch
+    } finally {
+      setSendingEmail(false);
+    }
+  }
+
+  return (
+    <div className="flex items-center gap-3 border-t border-border py-3 first:border-t-0">
+      <div className="min-w-0 flex-1">
+        <p className="text-[13px] font-semibold">{formatDocumentNumber(doc.number)}</p>
+        <p className="text-xs text-muted-foreground">{formatDate(doc.createdAt)}</p>
+      </div>
+      <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2 text-right">
+          <p className="text-sm font-bold">{formatCurrency(doc.totalTtc)}</p>
+          <Badge variant={badge.variant}>{badge.label}</Badge>
+        </div>
+        <div className="flex gap-1">
+          <button
+            type="button"
+            onClick={handleDownload}
+            className="rounded-md bg-primary-lightest p-1.5 text-primary transition-colors hover:bg-primary/15"
+            title="PDF"
+          >
+            <Download className="h-3.5 w-3.5" />
+          </button>
+          <button
+            type="button"
+            onClick={handleSendEmail}
+            disabled={sendingEmail}
+            className="rounded-md bg-primary-lightest p-1.5 text-primary transition-colors hover:bg-primary/15 disabled:opacity-50"
+            title="Email"
+          >
+            {sendingEmail ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Mail className="h-3.5 w-3.5" />}
+          </button>
+        </div>
       </div>
     </div>
   );

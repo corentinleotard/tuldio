@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import type { ClientView } from '@tuldio/types';
+import type { ClientView } from '@tuldio/common';
 
 interface GroupedClients {
   letter: string;

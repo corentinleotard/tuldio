@@ -1,5 +1,5 @@
 import type { Request, Response } from 'express';
-import type { BootstrapResponse } from '@tuldio/types';
+import type { BootstrapResponse } from '@tuldio/common';
 import { getCurrentUser } from '@tuldio/core/users';
 import { getTeam } from '@tuldio/core/teams';
 import { listMessages } from '@tuldio/core/messages';

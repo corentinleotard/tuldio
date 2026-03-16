@@ -1,4 +1,4 @@
-import type { TeamSummary, TeamField } from '@tuldio/types';
+import type { TeamSummary, TeamField } from '@tuldio/common';
 import type { TeamRow } from './team.entity.js';
 
 export function toTeamSummary(row: TeamRow, fields: TeamField[]): TeamSummary {

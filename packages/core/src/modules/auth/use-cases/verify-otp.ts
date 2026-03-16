@@ -1,4 +1,4 @@
-import type { AuthResponse } from '@tuldio/types';
+import type { AuthResponse } from '@tuldio/common';
 import { HandledError } from '../../../lib/errors/handled-error.js';
 import { errorCodes } from '../../../lib/errors/error-codes.js';
 import { logger } from '../../../lib/infra/logger.js';

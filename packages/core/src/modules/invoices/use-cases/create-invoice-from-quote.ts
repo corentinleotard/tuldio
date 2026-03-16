@@ -1,4 +1,4 @@
-import type { InvoiceView, InvoiceType } from '@tuldio/types';
+import type { InvoiceView, InvoiceType } from '@tuldio/common';
 import { HandledError } from '../../../lib/errors/handled-error.js';
 import { errorCodes } from '../../../lib/errors/error-codes.js';
 import { logger } from '../../../lib/infra/logger.js';
@@ -16,6 +16,7 @@ import { insertInvoice } from '../repository/insert-invoice.js';
 import { findInvoiceById } from '../repository/find-invoice-by-id.js';
 import { findInvoicesByQuote } from '../repository/find-invoices-by-quote.js';
 import { toInvoiceView } from './create-invoice.js';
+import { insertDocumentLog } from '../../documents/repository/insert-document-log.js';
 
 export async function createInvoiceFromQuote(input: {
   teamId: string;
@@ -204,6 +205,13 @@ export async function createInvoiceFromQuote(input: {
   });
 
   logger.info('invoice.created_from_quote', { teamId: input.teamId, invoiceId: invoice.id, quoteId: input.quoteId, number: invoice.number, invoiceType: resolvedInvoiceType });
+
+  await insertDocumentLog({
+    teamId: input.teamId,
+    documentType: 'invoice',
+    documentId: invoice.id,
+    event: 'created',
+  });
 
   const client = await findClientById({ teamId: input.teamId, clientId: quote.client_id });
   const full = await findInvoiceById({ teamId: input.teamId, invoiceId: invoice.id });

@@ -14,7 +14,7 @@
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "typecheck": "tsc -p packages/types --noEmit && tsc -p packages/core --noEmit && tsc -p apps/api --noEmit && tsc -p apps/web --noEmit && tsc -p apps/crons --noEmit",
+    "typecheck": "tsc -p packages/common --noEmit && tsc -p packages/core --noEmit && tsc -p apps/api --noEmit && tsc -p apps/web --noEmit && tsc -p apps/crons --noEmit",
     "test": "vitest",
     "eval": "ANTHROPIC_API_KEY=$(grep ANTHROPIC_API_KEY .env | cut -d= -f2) vitest run --reporter=verbose --config vitest.eval.config.ts",
     "db:migrate": "pnpm --filter @tuldio/api exec tsx --env-file=.env ../../packages/core/src/lib/database/migrate.ts",

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowLeft, ChevronDown, ChevronRight, Search, Wrench, Zap, Clock, Coins } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import type { Message, DebugTrace, DebugTraceRound } from '@tuldio/types';
+import type { Message, DebugTrace, DebugTraceRound } from '@tuldio/common';
 import { fetchUsers, fetchDebugMessages } from '../api/settings.api';
 
 function formatCost(cents: number): string {

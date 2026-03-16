@@ -1,4 +1,4 @@
-import type { MonthlyStatsView } from '@tuldio/types';
+import type { MonthlyStatsView } from '@tuldio/common';
 import { Card, CardContent } from '@/components/ui/card';
 import { formatCurrency } from '@/lib/utils';
 

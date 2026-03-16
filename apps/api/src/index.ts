@@ -18,6 +18,8 @@ import invoicesRoutes from './routes/invoices.routes.js';
 import adminRoutes from './routes/admin.routes.js';
 import subscriptionsRoutes from './routes/subscriptions.routes.js';
 import webhooksRoutes from './routes/webhooks.routes.js';
+import { wrapHandler } from './lib/wrap-handler.js';
+import { handlePublicDownload } from './controllers/handle-public-download.js';
 
 const PORT = process.env.PORT || 3003;
 
@@ -41,6 +43,9 @@ app.use(requestLogger);
 
 // Public routes
 app.use('/api/auth', authRoutes);
+
+// Public document download (no auth, token-based)
+app.get('/api/d/:token', wrapHandler(handlePublicDownload));
 
 // Protected routes (no subscription check)
 app.use('/api/teams', teamsRoutes);

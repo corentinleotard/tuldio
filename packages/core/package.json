@@ -11,6 +11,7 @@
     "./clients": "./src/modules/clients/index.ts",
     "./quotes": "./src/modules/quotes/index.ts",
     "./invoices": "./src/modules/invoices/index.ts",
+    "./documents": "./src/modules/documents/index.ts",
     "./expenses": "./src/modules/expenses/index.ts",
     "./messages": "./src/modules/messages/index.ts",
     "./stats": "./src/modules/stats/index.ts",
@@ -20,7 +21,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",
-    "@tuldio/types": "workspace:*",
+    "@tuldio/common": "workspace:*",
     "pdfjs-dist": "^5.5.207",
     "pg": "^8.13.0",
     "puppeteer": "^24.38.0",

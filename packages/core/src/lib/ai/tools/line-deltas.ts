@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { HandledError } from '../../errors/handled-error.js';
 import { errorCodes } from '../../errors/error-codes.js';
 import { resolveUnit } from '../../../modules/units/index.js';
-import type { DocumentLineView } from '@tuldio/types';
+import type { DocumentLineView } from '@tuldio/common';
 
 export const updatedLineSchema = z.object({
   lineId: z.string().uuid().describe('Line ID from get_document results'),

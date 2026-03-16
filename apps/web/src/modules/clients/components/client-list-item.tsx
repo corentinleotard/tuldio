@@ -1,5 +1,5 @@
 import { ChevronRight, Building2 } from 'lucide-react';
-import type { ClientView } from '@tuldio/types';
+import type { ClientView } from '@tuldio/common';
 import { Avatar } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 

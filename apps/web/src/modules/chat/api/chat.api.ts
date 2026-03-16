@@ -1,4 +1,4 @@
-import type { Message, MessageMetadata } from '@tuldio/types';
+import type { Message, MessageMetadata } from '@tuldio/common';
 import { apiFetch } from '@/lib/api-fetch';
 
 export async function sendMessage(content: string, metadata?: MessageMetadata): Promise<Message> {

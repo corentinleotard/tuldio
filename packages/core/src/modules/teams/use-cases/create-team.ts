@@ -1,4 +1,4 @@
-import type { TeamSummary } from '@tuldio/types';
+import type { TeamSummary } from '@tuldio/common';
 import { insertTeam } from '../repository/insert-team.js';
 import { seedTeamFields } from '../repository/seed-team-fields.js';
 import { toTeamSummary } from '../domain/team.view.js';

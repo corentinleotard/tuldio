@@ -1,4 +1,4 @@
-import type { QuoteView } from '@tuldio/types';
+import type { QuoteView } from '@tuldio/common';
 import { computeQuoteTotals, validateQuoteLine, canEditQuote } from '../domain/validators.js';
 import { isFieldTrue } from '../../teams/domain/team-field.entity.js';
 import { findQuoteById } from '../repository/find-quote-by-id.js';

@@ -1,4 +1,4 @@
-import type { Message } from '@tuldio/types';
+import type { Message } from '@tuldio/common';
 import type { MessageRow } from './message.entity.js';
 
 export type MessageView = Message;

@@ -99,7 +99,7 @@ apps/web/src/
 ## API files (`modules/*/api/*.api.ts`)
 
 - Use `apiFetch<T>()` from `@/lib/api-fetch` for all HTTP calls — never raw `fetch`
-- Import types from `@tuldio/types` only
+- Import types from `@tuldio/common` only
 - Never import from `@tuldio/core` (that's backend-only)
 - Path alias `@/` maps to `./src/`
 

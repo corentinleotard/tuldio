@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { TeamSummary, UpdateTeamSettingsRequest, TeamField } from '@tuldio/types';
+import type { TeamSummary, UpdateTeamSettingsRequest, TeamField } from '@tuldio/common';
 import { HandledError } from '../../../lib/errors/handled-error.js';
 import { errorCodes } from '../../../lib/errors/error-codes.js';
 import { updateTeamSettings as updateTeamSettingsRepo } from '../repository/update-team-settings.js';

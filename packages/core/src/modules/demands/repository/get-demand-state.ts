@@ -1,5 +1,5 @@
 import { query } from '../../../lib/database/db.js';
-import type { DemandState } from '@tuldio/types';
+import type { DemandState } from '@tuldio/common';
 
 export async function getDemandState(input: {
   userId: string;

@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tuldio — Voice Input Mockup</title>
+  <style>
+    /* ── Design tokens (from index.css) ── */
+    :root {
+      --background: hsl(36, 25%, 96%);
+      --foreground: hsl(0, 0%, 10%);
+      --card: hsl(0, 0%, 100%);
+      --card-foreground: hsl(0, 0%, 10%);
+      --primary: hsl(160, 48%, 21%);
+      --primary-foreground: hsl(0, 0%, 100%);
+      --primary-light: hsl(155, 44%, 33%);
+      --primary-lightest: hsl(154, 27%, 95%);
+      --secondary: hsl(36, 18%, 92%);
+      --muted-foreground: hsl(0, 0%, 42%);
+      --destructive: hsl(5, 63%, 47%);
+      --border: hsl(36, 16%, 89%);
+      --ring: hsl(160, 48%, 21%);
+      --radius: 0.75rem;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--background);
+      color: var(--foreground);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Layout ── */
+    .mockup-container {
+      max-width: 448px;
+      margin: 0 auto;
+      width: 100%;
+      padding: 24px 0 0;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+    .state-label {
+      text-align: center;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted-foreground);
+      margin-bottom: 12px;
+      padding: 0 16px;
+    }
+    .chat-section {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      padding: 0 0 16px;
+      gap: 48px;
+    }
+    .state-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    /* ── Message bubbles ── */
+    .messages { display: flex; flex-direction: column; gap: 8px; padding: 0 12px; }
+    .bubble {
+      max-width: 85%;
+      padding: 10px 16px;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    .bubble-ai {
+      align-self: flex-start;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 18px 18px 18px 6px;
+      color: var(--card-foreground);
+    }
+    .bubble-user {
+      align-self: flex-end;
+      background: var(--primary);
+      color: var(--primary-foreground);
+      border-radius: 18px 18px 6px 18px;
+    }
+
+    /* ── Input bar (shared) ── */
+    .input-wrapper { padding: 0 12px; }
+    .input-bar {
+      position: relative;
+      display: flex;
+      align-items: flex-end;
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      background: var(--card);
+      min-height: 44px;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .input-bar:focus-within,
+    .input-bar.active {
+      border-color: var(--ring);
+      box-shadow: 0 0 0 2px var(--ring);
+    }
+
+    /* Textarea */
+    .input-bar textarea {
+      flex: 1;
+      border: none;
+      background: transparent;
+      padding: 10px 48px 10px 16px;
+      font-size: 16px;
+      line-height: 24px;
+      resize: none;
+      outline: none;
+      font-family: inherit;
+      color: var(--foreground);
+      height: 44px;
+    }
+    .input-bar textarea::placeholder { color: var(--muted-foreground); }
+
+    /* Icon buttons */
+    .btn-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      border: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: opacity 0.15s, transform 0.1s, background 0.15s;
+      flex-shrink: 0;
+    }
+    .btn-icon:active { transform: scale(0.93); opacity: 0.7; }
+    .btn-icon svg { width: 16px; height: 16px; }
+
+    .btn-send {
+      position: absolute;
+      bottom: 6px;
+      right: 6px;
+      background: var(--primary);
+      color: var(--primary-foreground);
+    }
+    .btn-send.faded { opacity: 0.3; pointer-events: none; }
+
+    .btn-mic {
+      position: absolute;
+      bottom: 6px;
+      right: 42px;
+      background: transparent;
+      color: var(--muted-foreground);
+    }
+    .btn-mic:hover { color: var(--foreground); background: var(--secondary); }
+
+    /* ── STATE 1: Idle (normal input + mic) ── */
+    /* Just uses the shared styles above */
+
+    /* ── STATE 2: Recording ── */
+    .recording-bar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0 6px 0 16px;
+      height: 44px;
+      width: 100%;
+    }
+    .rec-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--destructive);
+      animation: pulse-dot 1.4s infinite;
+      flex-shrink: 0;
+    }
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.7); }
+    }
+    .rec-timer {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--foreground);
+      font-variant-numeric: tabular-nums;
+      min-width: 32px;
+    }
+    .waveform {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      height: 24px;
+      overflow: hidden;
+    }
+    .waveform-bar {
+      width: 3px;
+      border-radius: 2px;
+      background: var(--primary);
+      animation: wave 0.8s ease-in-out infinite alternate;
+    }
+    @keyframes wave {
+      0% { height: 4px; }
+      100% { height: var(--h); }
+    }
+    .btn-cancel {
+      background: transparent;
+      color: var(--muted-foreground);
+    }
+    .btn-cancel:hover { background: hsl(5, 63%, 95%); color: var(--destructive); }
+    .btn-stop {
+      background: var(--primary);
+      color: var(--primary-foreground);
+    }
+
+    /* ── STATE 3: Review ── */
+    .review-bar {
+      display: flex;
+      align-items: flex-end;
+      width: 100%;
+    }
+    .review-bar textarea {
+      flex: 1;
+      border: none;
+      background: transparent;
+      padding: 10px 84px 10px 16px;
+      font-size: 16px;
+      line-height: 24px;
+      resize: none;
+      outline: none;
+      font-family: inherit;
+      color: var(--foreground);
+      height: 68px;
+    }
+    .review-actions {
+      position: absolute;
+      bottom: 6px;
+      right: 6px;
+      display: flex;
+      gap: 4px;
+    }
+    .btn-rerecord {
+      background: transparent;
+      color: var(--muted-foreground);
+    }
+    .btn-rerecord:hover { background: var(--secondary); color: var(--foreground); }
+
+    /* ── STATE 4: Transcribing (loading) ── */
+    .transcribing-bar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0 16px;
+      height: 44px;
+      width: 100%;
+    }
+    .spinner {
+      width: 18px;
+      height: 18px;
+      border: 2px solid var(--border);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .transcribing-text {
+      font-size: 14px;
+      color: var(--muted-foreground);
+    }
+
+    /* ── Mobile frame ── */
+    .phone-frame {
+      background: var(--card);
+      border-radius: 24px;
+      border: 2px solid var(--border);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      height: 420px;
+    }
+    .phone-header {
+      background: var(--card);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 16px;
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--foreground);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .phone-header .avatar {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: var(--primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--primary-foreground);
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .phone-body {
+      flex: 1;
+      background: var(--background);
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      padding-bottom: 12px;
+      gap: 12px;
+    }
+
+    /* ── Page layout ── */
+    .page-title {
+      text-align: center;
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--foreground);
+      padding: 32px 16px 8px;
+    }
+    .page-subtitle {
+      text-align: center;
+      font-size: 14px;
+      color: var(--muted-foreground);
+      padding: 0 16px 32px;
+    }
+    .states-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 40px;
+      padding: 0 16px 48px;
+      max-width: 960px;
+      margin: 0 auto;
+      width: 100%;
+    }
+    @media (min-width: 768px) {
+      .states-grid { grid-template-columns: 1fr 1fr; }
+    }
+
+    /* ── Flow arrows ── */
+    .flow-section {
+      padding: 0 16px 48px;
+      max-width: 500px;
+      margin: 0 auto;
+      width: 100%;
+    }
+    .flow-step {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      padding: 12px 0;
+    }
+    .flow-num {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: var(--primary);
+      color: var(--primary-foreground);
+      font-size: 12px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+    .flow-text { font-size: 14px; line-height: 1.6; color: var(--foreground); }
+    .flow-text strong { font-weight: 600; }
+    .flow-connector {
+      width: 24px;
+      display: flex;
+      justify-content: center;
+      padding: 0;
+    }
+    .flow-connector .line {
+      width: 2px;
+      height: 16px;
+      background: var(--border);
+    }
+  </style>
+</head>
+<body>
+
+<div class="page-title">Voice Input — Mockup</div>
+<div class="page-subtitle">4 states of the input bar. Same component, no modal.</div>
+
+<div class="states-grid">
+
+  <!-- ════════ STATE 1: IDLE ════════ -->
+  <div class="state-group">
+    <div class="state-label">1 / Idle — Normal input</div>
+    <div class="phone-frame">
+      <div class="phone-header">
+        <div class="avatar">T</div>
+        Tuldio
+      </div>
+      <div class="phone-body">
+        <div class="messages">
+          <div class="bubble bubble-ai">Bonjour ! Comment je peux vous aider ?</div>
+        </div>
+        <div class="input-wrapper">
+          <div class="input-bar">
+            <textarea placeholder="Ecrivez un message..." readonly></textarea>
+            <!-- Mic button -->
+            <button class="btn-icon btn-mic" title="Dicter un message">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
+                <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                <line x1="12" x2="12" y1="19" y2="22"/>
+              </svg>
+            </button>
+            <!-- Send button (faded when empty) -->
+            <button class="btn-icon btn-send faded" title="Envoyer">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="m22 2-7 20-4-9-9-4z"/><path d="M22 2 11 13"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════ STATE 2: RECORDING ════════ -->
+  <div class="state-group">
+    <div class="state-label">2 / Recording — Listening</div>
+    <div class="phone-frame">
+      <div class="phone-header">
+        <div class="avatar">T</div>
+        Tuldio
+      </div>
+      <div class="phone-body">
+        <div class="messages">
+          <div class="bubble bubble-ai">Bonjour ! Comment je peux vous aider ?</div>
+        </div>
+        <div class="input-wrapper">
+          <div class="input-bar active">
+            <div class="recording-bar">
+              <div class="rec-dot"></div>
+              <span class="rec-timer">0:03</span>
+              <div class="waveform" id="waveform1">
+                <!-- JS generates bars -->
+              </div>
+              <button class="btn-icon btn-cancel" title="Annuler">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M18 6 6 18"/><path d="m6 6 12 12"/>
+                </svg>
+              </button>
+              <button class="btn-icon btn-stop" title="Terminer">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="6" y="6" width="12" height="12" rx="2"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════ STATE 3: TRANSCRIBING ════════ -->
+  <div class="state-group">
+    <div class="state-label">3 / Transcribing — Processing</div>
+    <div class="phone-frame">
+      <div class="phone-header">
+        <div class="avatar">T</div>
+        Tuldio
+      </div>
+      <div class="phone-body">
+        <div class="messages">
+          <div class="bubble bubble-ai">Bonjour ! Comment je peux vous aider ?</div>
+        </div>
+        <div class="input-wrapper">
+          <div class="input-bar">
+            <div class="transcribing-bar">
+              <div class="spinner"></div>
+              <span class="transcribing-text">Transcription en cours...</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════ STATE 4: REVIEW ════════ -->
+  <div class="state-group">
+    <div class="state-label">4 / Review — Edit & send</div>
+    <div class="phone-frame">
+      <div class="phone-header">
+        <div class="avatar">T</div>
+        Tuldio
+      </div>
+      <div class="phone-body">
+        <div class="messages">
+          <div class="bubble bubble-ai">Bonjour ! Comment je peux vous aider ?</div>
+        </div>
+        <div class="input-wrapper">
+          <div class="input-bar">
+            <div class="review-bar">
+              <textarea readonly>Fais moi un devis pour Martin Jean, pose de carrelage 45x45 dans la salle de bain, 12 mètres carrés à 62 euros le mètre carré</textarea>
+            </div>
+            <div class="review-actions">
+              <!-- Re-record -->
+              <button class="btn-icon btn-rerecord" title="Ré-enregistrer">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
+                  <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                  <line x1="12" x2="12" y1="19" y2="22"/>
+                </svg>
+              </button>
+              <!-- Send -->
+              <button class="btn-icon btn-send" title="Envoyer">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="m22 2-7 20-4-9-9-4z"/><path d="M22 2 11 13"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ════════ FLOW DIAGRAM ════════ -->
+<div class="page-title" style="font-size:18px; padding-top:0;">User Flow</div>
+<div class="flow-section">
+  <div class="flow-step">
+    <div class="flow-num">1</div>
+    <div class="flow-text"><strong>Tap mic</strong> — input bar transforms to recording mode. Red pulsing dot + timer + live waveform.</div>
+  </div>
+  <div class="flow-connector"><div class="line"></div></div>
+  <div class="flow-step">
+    <div class="flow-num">2</div>
+    <div class="flow-text"><strong>Speak</strong> — waveform animates in real time. Cancel (X) to abort, Stop (square) to finish. Auto-stops after <strong>5s of silence</strong> or 60s max.</div>
+  </div>
+  <div class="flow-connector"><div class="line"></div></div>
+  <div class="flow-step">
+    <div class="flow-num">3</div>
+    <div class="flow-text"><strong>Transcribing</strong> — audio is sent to Whisper API. Spinner + "Transcription en cours..." label. Usually under 2s.</div>
+  </div>
+  <div class="flow-connector"><div class="line"></div></div>
+  <div class="flow-step">
+    <div class="flow-num">4</div>
+    <div class="flow-text"><strong>Review</strong> — transcribed text appears in the textarea (editable). User can fix typos, re-record (mic icon), or send (arrow). Textarea auto-grows to fit the text.</div>
+  </div>
+  <div class="flow-connector"><div class="line"></div></div>
+  <div class="flow-step">
+    <div class="flow-num">5</div>
+    <div class="flow-text"><strong>Send</strong> — message enters normal chat flow. AI processes it as any typed message. Input bar returns to idle state.</div>
+  </div>
+</div>
+
+<script>
+  // Generate waveform bars with random heights
+  const waveform = document.getElementById('waveform1');
+  const barCount = 40;
+  for (let i = 0; i < barCount; i++) {
+    const bar = document.createElement('div');
+    bar.className = 'waveform-bar';
+    const h = Math.floor(Math.random() * 16) + 6;
+    bar.style.setProperty('--h', h + 'px');
+    bar.style.animationDelay = (Math.random() * 0.8).toFixed(2) + 's';
+    waveform.appendChild(bar);
+  }
+</script>
+
+</body>
+</html>

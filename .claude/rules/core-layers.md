@@ -22,7 +22,7 @@
 
 - 1 file = 1 exported async function
 - Orchestrates domain functions + repository calls
-- Returns `@tuldio/types` views — never raw DB rows
+- Returns `@tuldio/common` views — never raw DB rows
 - Throws `new HandledError(errorCodes.xxx)` for domain errors
 - Validate all inputs using domain validators before any DB operation
 - **Never use dynamic imports inside function bodies** — all imports must be top-level `import` statements at the top of the file. No `await import(...)` inside functions.

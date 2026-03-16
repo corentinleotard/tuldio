@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import type { TeamField } from '@tuldio/types';
+import type { TeamField } from '@tuldio/common';
 import { getField, getCustomFields, getVisibleFields, renderLegalMentions } from './shared.js';
 
 function makeField(overrides: Partial<TeamField> & { key: string; value: string }): TeamField {

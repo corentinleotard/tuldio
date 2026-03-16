@@ -1,4 +1,4 @@
-import type { QuoteView } from '@tuldio/types';
+import type { QuoteView } from '@tuldio/common';
 import { HandledError } from '../../../lib/errors/handled-error.js';
 import { errorCodes } from '../../../lib/errors/error-codes.js';
 import { findQuoteById } from '../repository/find-quote-by-id.js';

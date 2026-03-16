@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { TeamField } from '@tuldio/types';
+import type { TeamField } from '@tuldio/common';
 import { defineTool, lineSchema, type ToolResult } from './define-tool.js';
 import { HandledError } from '../../errors/handled-error.js';
 import { errorCodes } from '../../errors/error-codes.js';

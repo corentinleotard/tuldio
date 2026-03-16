@@ -1,30 +1,55 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { Loader2, Check } from 'lucide-react';
-import type { InvoiceView } from '@tuldio/types';
+import { Loader2, Check, X, Mail, Trash2 } from 'lucide-react';
+import { toast } from 'sonner';
+import type { InvoiceView } from '@tuldio/common';
+import { avoirTransitions } from '@tuldio/common/invoices';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { formatCurrency, formatDocumentNumber } from '@/lib/utils';
+import { cn, formatCurrency, formatDocumentNumber } from '@/lib/utils';
 import { apiFetch } from '@/lib/api-fetch';
 import { viewDocument } from '@/lib/share-document';
-import { statusConfig, defaultStatus } from '@/modules/documents/components/status-config';
+import { updateClient } from '@/modules/clients/api/clients.api';
+import {
+  statusConfig,
+  defaultStatus,
+  invoiceTransitions,
+  getStatusDotClass,
+} from '@/modules/documents/components/status-config';
+import { ClientInfoPrompt, getMissingClientFields } from './client-info-prompt';
 
-
-interface RichCardInvoiceProps {
-  data: InvoiceView;
+interface DocumentReadiness {
+  errors: { code: string; message: string }[];
 }
 
-export function RichCardInvoice({ data }: RichCardInvoiceProps) {
+interface RichCardInvoiceProps {
+  data: InvoiceView & { _readiness?: DocumentReadiness; _showTutorial?: boolean };
+  onLiveData?: (data: InvoiceView) => void;
+  onDeleted?: () => void;
+}
+
+export function RichCardInvoice({ data, onLiveData, onDeleted }: RichCardInvoiceProps) {
   const queryClient = useQueryClient();
   const [liveData, setLiveData] = useState<InvoiceView>(data);
   const [loading, setLoading] = useState(true);
-  const [markingStatus, setMarkingStatus] = useState<string | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [deleted, setDeleted] = useState(false);
+  const [pendingAction, setPendingAction] = useState<string | null>(null);
+  const onLiveDataRef = useRef(onLiveData);
+  const onDeletedRef = useRef(onDeleted);
+  onLiveDataRef.current = onLiveData;
+  onDeletedRef.current = onDeleted;
 
   useEffect(() => {
     apiFetch<InvoiceView>(`/api/invoices/${data.id}`, undefined, ['INVOICE_NOT_FOUND'])
-      .then(setLiveData)
-      .catch(() => {})
+      .then((fresh) => {
+        setLiveData(fresh);
+        onLiveDataRef.current?.(fresh);
+      })
+      .catch((err: { code?: string }) => {
+        if (err.code === 'INVOICE_NOT_FOUND') { setDeleted(true); onDeletedRef.current?.(); }
+      })
       .finally(() => setLoading(false));
   }, [data.id]);
 
@@ -32,89 +57,197 @@ export function RichCardInvoice({ data }: RichCardInvoiceProps) {
   const status = statusConfig[currentStatus] ?? defaultStatus;
   const isAvoir = liveData.invoiceType === 'avoir';
   const pdfUrl = `/api/invoices/${liveData.id}/pdf`;
+  const readinessErrors = data._readiness?.errors ?? [];
+
+  const transitions = (isAvoir ? avoirTransitions : invoiceTransitions)[currentStatus] ?? [];
+  const promoted = transitions[0] ?? null;
+  const pills = transitions.slice(1);
+
+  function getMissingFieldsForAction(action: string) {
+    return getMissingClientFields({
+      needsEmail: action === 'sent',
+      clientEmail: liveData.clientEmail,
+      readinessErrors,
+    });
+  }
 
   async function handleView() {
     await viewDocument({ pdfUrl });
   }
 
-  async function handleMarkSent() {
-    setMarkingStatus('sent');
+  const [confirmingCancel, setConfirmingCancel] = useState(false);
+
+  async function handleAction(action: string) {
+    if (action === 'cancelled') {
+      setConfirmingCancel(true);
+      return;
+    }
+    const missing = currentStatus === 'draft' ? getMissingFieldsForAction(action) : [];
+    if (missing.length > 0) {
+      setPendingAction(action);
+      return;
+    }
+    await executeAction(action);
+  }
+
+  async function executeAction(action: string) {
+    setBusy(action);
     try {
-      await apiFetch(`/api/invoices/${data.id}/status`, {
-        method: 'PUT',
-        body: JSON.stringify({ status: 'sent' }),
-      });
-      setLiveData((d) => d ? { ...d, status: 'sent' as const } : d);
-      queryClient.invalidateQueries({ queryKey: ['invoices'] });
+      if (action === 'sent') {
+        const updated = await apiFetch<InvoiceView>(`/api/invoices/${data.id}/send-email`, {
+          method: 'POST',
+        });
+        setLiveData(updated);
+        onLiveData?.(updated);
+        queryClient.invalidateQueries({ queryKey: ['invoices'] });
+        const label = updated.invoiceType === 'avoir' ? 'Avoir' : 'Facture';
+        toast.success(`${label} ${formatDocumentNumber(updated.number)} envoyée à ${updated.clientEmail}`);
+      } else if (action === 'paid') {
+        await apiFetch(`/api/invoices/${data.id}/paid`, { method: 'PUT' });
+        setLiveData((d) => ({ ...d, status: 'paid' as const }));
+        queryClient.invalidateQueries({ queryKey: ['invoices'] });
+      } else {
+        await apiFetch(`/api/invoices/${data.id}/status`, {
+          method: 'PUT',
+          body: JSON.stringify({ status: action }),
+        });
+        setLiveData((d) => ({ ...d, status: action as InvoiceView['status'] }));
+        queryClient.invalidateQueries({ queryKey: ['invoices'] });
+      }
+      setPendingAction(null);
     } catch {
-      // toast already shown by apiFetch
+      // error toast already shown by apiFetch
     } finally {
-      setMarkingStatus(null);
+      setBusy(null);
     }
   }
 
-  async function handleMarkPaid() {
-    setMarkingStatus('paid');
+  async function handleDelete() {
+    setBusy('delete');
     try {
-      await apiFetch(`/api/invoices/${data.id}/paid`, {
-        method: 'PUT',
-      });
-      setLiveData((d) => d ? { ...d, status: 'paid' as const } : d);
+      await apiFetch(`/api/invoices/${data.id}`, { method: 'DELETE' });
+      setDeleted(true);
+      onDeleted?.();
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
     } catch {
-      // toast already shown by apiFetch
+      // error toast already shown by apiFetch
     } finally {
-      setMarkingStatus(null);
+      setBusy(null);
     }
+  }
+
+  async function handlePromptSubmit(values: Record<string, string>) {
+    const action = pendingAction ?? 'sent';
+    setBusy(action);
+    try {
+      await updateClient({ id: liveData.clientId, ...values });
+      if (values.email) {
+        setLiveData((d) => ({ ...d, clientEmail: values.email }));
+      }
+      queryClient.invalidateQueries({ queryKey: ['clients'] });
+      await executeAction(action);
+    } catch {
+      setBusy(null);
+    }
+  }
+
+  function getPromotedIcon() {
+    if (!promoted) return null;
+    if (promoted === 'sent') return <Mail className="h-3.5 w-3.5" />;
+    if (promoted === 'cancelled') return <X className="h-3.5 w-3.5" />;
+    return <Check className="h-3.5 w-3.5" />;
+  }
+
+  function getPromotedLabel(): string {
+    if (!promoted) return '';
+    if (promoted === 'sent') return 'Envoyer';
+    if (promoted === 'cancelled') return 'Annuler';
+    if (promoted === 'paid') return 'Payée';
+    return statusConfig[promoted]?.label ?? promoted;
+  }
+
+  function getPromotedVariant(): 'default' | 'destructive' {
+    return promoted === 'cancelled' ? 'destructive' : 'default';
   }
 
   function renderActions() {
-    if (currentStatus === 'draft') {
+    if (transitions.length === 0) {
       return (
-        <div className="mt-3 flex gap-2">
-          <Button size="sm" variant="outline" className="flex-1" onClick={handleView}>
+        <div className="mt-3">
+          <Button size="sm" variant="outline" className="w-full" onClick={handleView}>
             Consulter
           </Button>
-          <Button
-            size="sm"
-            className="flex-1 gap-1.5"
-            disabled={markingStatus === 'sent'}
-            onClick={handleMarkSent}
-          >
-            {markingStatus === 'sent' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
-            Marquer envoyée
-          </Button>
-        </div>
-      );
-    }
-
-    if (currentStatus === 'sent' || currentStatus === 'overdue') {
-      return (
-        <div className="mt-3 flex gap-2">
-          <Button size="sm" variant="outline" className="flex-1" onClick={handleView}>
-            Consulter
-          </Button>
-          {!isAvoir && (
-            <Button
-              size="sm"
-              className="flex-1 gap-1"
-              disabled={markingStatus === 'paid'}
-              onClick={handleMarkPaid}
-            >
-              {markingStatus === 'paid' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
-              Payée
-            </Button>
-          )}
         </div>
       );
     }
 
     return (
-      <div className="mt-3">
-        <Button size="sm" variant="outline" onClick={handleView}>
-          Consulter
-        </Button>
+      <div className="mt-3 flex flex-col gap-2">
+        <div className="flex gap-2">
+          <Button size="sm" variant="outline" className="flex-1" onClick={handleView}>
+            Consulter
+          </Button>
+          <Button
+            size="sm"
+            variant={getPromotedVariant()}
+            className="flex-1 gap-1.5"
+            disabled={busy !== null}
+            onClick={() => handleAction(promoted!)}
+          >
+            {busy === promoted ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : getPromotedIcon()}
+            {getPromotedLabel()}
+          </Button>
+        </div>
+
+        {(pills.length > 0 || currentStatus === 'draft') && (
+          <div className="flex flex-wrap gap-1.5">
+            {pills.map((s) => {
+              const sc = statusConfig[s] ?? defaultStatus;
+              return (
+                <button
+                  key={s}
+                  type="button"
+                  disabled={busy !== null}
+                  onClick={() => handleAction(s)}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-2.5 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground disabled:opacity-50"
+                >
+                  {busy === s ? (
+                    <Loader2 className="h-2.5 w-2.5 animate-spin" />
+                  ) : (
+                    <span className={cn('h-1.5 w-1.5 rounded-full', getStatusDotClass(sc.variant))} />
+                  )}
+                  {sc.label}
+                </button>
+              );
+            })}
+            {currentStatus === 'draft' && (
+              <button
+                type="button"
+                disabled={busy !== null}
+                onClick={handleDelete}
+                className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-2.5 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive disabled:opacity-50"
+              >
+                {busy === 'delete' ? (
+                  <Loader2 className="h-2.5 w-2.5 animate-spin" />
+                ) : (
+                  <Trash2 className="h-2.5 w-2.5" />
+                )}
+                Supprimer
+              </button>
+            )}
+          </div>
+        )}
       </div>
+    );
+  }
+
+  if (deleted) {
+    return (
+      <Card className="mt-2 max-w-[88%] rounded-2xl">
+        <CardContent className="p-4">
+          <p className="text-sm text-muted-foreground">Facture supprimée</p>
+        </CardContent>
+      </Card>
     );
   }
 
@@ -137,12 +270,10 @@ export function RichCardInvoice({ data }: RichCardInvoiceProps) {
 
         {liveData.invoiceType !== 'acompte' && (
           <div className="mt-3 space-y-1">
-            {liveData.lines.map((line, i) => (
-              <div key={i} className="flex items-center justify-between text-sm">
+            {liveData.lines.map((line) => (
+              <div key={line.id} className="flex items-center justify-between text-sm">
                 <span className="min-w-0 truncate pr-2">{line.description}</span>
-                <span className="shrink-0 font-medium">
-                  {formatCurrency(line.totalHt)}
-                </span>
+                <span className="shrink-0 font-medium">{formatCurrency(line.totalHt)}</span>
               </div>
             ))}
           </div>
@@ -159,6 +290,37 @@ export function RichCardInvoice({ data }: RichCardInvoiceProps) {
             <div className="h-8 flex-1 rounded bg-muted" />
           </div>
         ) : renderActions()}
+
+        {pendingAction && (
+          <ClientInfoPrompt
+            key={pendingAction}
+            clientName={liveData.clientName ?? null}
+            missingFields={getMissingFieldsForAction(pendingAction)}
+            actionLabel={pendingAction === 'sent' ? 'Envoyer' : (statusConfig[pendingAction]?.label ?? pendingAction)}
+            onSubmit={handlePromptSubmit}
+            loading={busy !== null}
+          />
+        )}
+
+        {confirmingCancel && (
+          <div className="mt-3 flex items-center justify-between rounded-lg border border-destructive/30 bg-destructive/5 p-3">
+            <p className="text-sm text-destructive">Annuler cette facture ?</p>
+            <div className="flex gap-2">
+              <Button size="sm" variant="outline" className="h-7 px-3 text-xs" onClick={() => setConfirmingCancel(false)}>
+                Non
+              </Button>
+              <Button
+                size="sm"
+                variant="destructive"
+                className="h-7 px-3 text-xs"
+                disabled={busy !== null}
+                onClick={() => { setConfirmingCancel(false); executeAction('cancelled'); }}
+              >
+                {busy === 'cancelled' ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Oui, annuler'}
+              </Button>
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

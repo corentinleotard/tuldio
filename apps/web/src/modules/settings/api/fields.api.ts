@@ -1,4 +1,4 @@
-import type { TeamField, TeamSummary, UpdateTeamFieldRequest, CreateTeamFieldRequest, UpdateTeamSettingsRequest } from '@tuldio/types';
+import type { TeamField, TeamSummary, UpdateTeamFieldRequest, CreateTeamFieldRequest, UpdateTeamSettingsRequest } from '@tuldio/common';
 import { apiFetch, API_URL } from '@/lib/api-fetch';
 
 export async function fetchTeamFields(): Promise<TeamField[]> {

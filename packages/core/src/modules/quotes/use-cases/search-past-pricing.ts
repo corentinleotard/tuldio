@@ -1,5 +1,5 @@
 import { searchLinePricing } from '../repository/search-line-pricing.js';
-import type { PastPricingView } from '@tuldio/types';
+import type { PastPricingView } from '@tuldio/common';
 
 export async function searchPastPricing(input: {
   teamId: string;

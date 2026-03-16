@@ -5,6 +5,7 @@ import {
   type DocumentLineInput,
 } from '../../documents/domain/document-validators.js';
 import { computeTva, type DocumentTotals } from '../../documents/domain/document-math.js';
+import { invoiceTransitions, avoirTransitions } from '@tuldio/common/invoices';
 import type { InvoiceType } from './invoice.entity.js';
 import type { InvoiceLineRow } from './invoice.entity.js';
 
@@ -16,33 +17,18 @@ export function computeInvoiceTotals(lines: DocumentLineInput[]): DocumentTotals
   return computeDocumentLineTotals(lines);
 }
 
-const standardTransitions: Record<string, string[]> = {
-  draft: ['sent', 'paid', 'cancelled'],
-  sent: ['paid', 'overdue', 'cancelled'],
-  overdue: ['paid', 'cancelled'],
-  paid: ['cancelled'],
-};
-
-const avoirTransitions: Record<string, string[]> = {
-  draft: ['sent'],
-};
-
 export function validateInvoiceStatusTransition(input: {
   from: string;
   to: string;
   invoiceType?: InvoiceType;
 }): boolean {
-  const transitions = input.invoiceType === 'avoir' ? avoirTransitions : standardTransitions;
+  const transitions = input.invoiceType === 'avoir' ? avoirTransitions : invoiceTransitions;
   return validateStatusTransition({ ...input, transitions });
 }
 
 // Invoice lines can only be modified while the invoice is still a draft
 export function canEditInvoice(status: string): boolean {
   return status === 'draft';
-}
-
-export function canCancelInvoice(status: string): boolean {
-  return status !== 'paid' && status !== 'cancelled';
 }
 
 export function computeDueDate(input: { createdAt: Date; delayDays: number }): Date {

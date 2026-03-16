@@ -13,7 +13,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { buildSystemPrompt } from '../system-prompt.js';
 import { chatTools } from '../tool-registry.js';
 import type { StoredToolRounds } from '../build-context.js';
-import type { Message, ActiveState } from '@tuldio/types';
+import type { Message, ActiveState } from '@tuldio/common';
 import { buildClaudeMessages, buildContextMessages } from '../build-context.js';
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });

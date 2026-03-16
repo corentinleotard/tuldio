@@ -1,4 +1,4 @@
-import type { DocumentLineView, TvaGroupView } from '@tuldio/types';
+import type { DocumentLineView, TvaGroupView } from '@tuldio/common';
 import { groupByTva } from './document-math.js';
 
 interface LineRow {

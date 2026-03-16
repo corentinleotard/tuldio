@@ -1,4 +1,4 @@
-import type { QuoteView } from '@tuldio/types';
+import type { QuoteView } from '@tuldio/common';
 import { computeQuoteTotals, validateQuoteLine, defaultValidUntil } from '../domain/validators.js';
 import { isFieldTrue } from '../../teams/domain/team-field.entity.js';
 import { insertQuote } from '../repository/insert-quote.js';
@@ -8,6 +8,7 @@ import { getClientDisplayName } from '../../clients/domain/get-client-display-na
 import { upsertPrestation } from '../../prestations/repository/upsert-prestation.js';
 import { computeLineTotal, resolveTvaRate } from '../../documents/domain/document-math.js';
 import { findTeamFieldByKey } from '../../teams/repository/find-team-field-by-key.js';
+import { insertDocumentLog } from '../../documents/repository/insert-document-log.js';
 import { findTeamById } from '../../teams/repository/find-team-by-id.js';
 import { toLineViews, toTvaGroups } from '../../documents/domain/to-line-views.js';
 import { HandledError } from '../../../lib/errors/handled-error.js';
@@ -94,6 +95,13 @@ export async function createQuote(input: {
   const full = await findQuoteById({ teamId: input.teamId, quoteId: row.id });
 
   logger.info('quote.created', { teamId: input.teamId, quoteId: row.id, number: row.number, totalTtc });
+
+  await insertDocumentLog({
+    teamId: input.teamId,
+    documentType: 'quote',
+    documentId: row.id,
+    event: 'created',
+  });
 
   return {
     id: row.id,

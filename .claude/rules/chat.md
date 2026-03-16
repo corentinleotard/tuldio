@@ -63,7 +63,7 @@ Rich cards are stored as **snapshots** in the `messages` table (`rich_card` JSON
 
 ## Adding a New Rich Card Type
 
-1. Add the view type to `@tuldio/types`
+1. Add the view type to `@tuldio/common`
 2. Create `rich-card-{type}.tsx` in chat components
 3. Add case to `renderRichCard()` in `chat-message-list.tsx`
 4. Return `richCard: { type, data }` from the tool handler in `tool-registry.ts`

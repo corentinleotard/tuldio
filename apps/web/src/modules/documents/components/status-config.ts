@@ -1,4 +1,6 @@
-import type { QuoteView, InvoiceView } from '@tuldio/types';
+import type { QuoteView, InvoiceView } from '@tuldio/common';
+import { quoteTransitions as _quoteTransitions } from '@tuldio/common/quotes';
+import { invoiceUserTransitions as _invoiceTransitions } from '@tuldio/common/invoices';
 
 export type StatusVariant = 'default' | 'secondary' | 'info' | 'success' | 'destructive' | 'warning';
 
@@ -47,21 +49,8 @@ export function getStatusCssVar(variant: StatusVariant): string {
   return variantToCssVar[variant];
 }
 
-export const quoteTransitions: Record<QuoteView['status'], QuoteView['status'][]> = {
-  draft: ['sent', 'accepted', 'refused', 'cancelled'],
-  sent: ['accepted', 'refused', 'cancelled'],
-  accepted: [],
-  refused: [],
-  cancelled: [],
-};
-
-export const invoiceTransitions: Record<InvoiceView['status'], InvoiceView['status'][]> = {
-  draft: ['sent', 'paid', 'cancelled'],
-  sent: ['paid', 'overdue', 'cancelled'],
-  paid: ['cancelled'],
-  overdue: ['paid', 'cancelled'],
-  cancelled: [],
-};
+export const quoteTransitions = _quoteTransitions;
+export const invoiceTransitions = _invoiceTransitions;
 
 const allQuoteStatuses: QuoteView['status'][] = ['draft', 'sent', 'accepted', 'refused', 'cancelled'];
 const allInvoiceStatuses: InvoiceView['status'][] = ['draft', 'sent', 'paid', 'overdue', 'cancelled'];

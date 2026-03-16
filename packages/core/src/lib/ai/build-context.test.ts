@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { buildClaudeMessages, type StoredToolRounds } from './build-context.js';
-import type { Message } from '@tuldio/types';
+import type { Message } from '@tuldio/common';
 
 function makeMessage(overrides: Partial<Message> & { role: 'user' | 'assistant' }): Message {
   return {

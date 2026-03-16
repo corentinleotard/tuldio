@@ -1,4 +1,4 @@
-import type { TeamSummary } from '@tuldio/types';
+import type { TeamSummary } from '@tuldio/common';
 import { HandledError } from '../../../lib/errors/handled-error.js';
 import { errorCodes } from '../../../lib/errors/error-codes.js';
 import { findTeamById } from '../repository/find-team-by-id.js';

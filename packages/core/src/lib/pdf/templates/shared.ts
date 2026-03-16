@@ -1,6 +1,6 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import type { TeamField } from '@tuldio/types';
+import type { TeamField } from '@tuldio/common';
 
 const FILES_DIR = process.env.FILES_DIR ?? '/var/tuldio/files';
 

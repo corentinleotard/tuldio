@@ -1,5 +1,5 @@
 import type { Request, Response } from 'express';
-import type { CreateClientRequest } from '@tuldio/types';
+import type { CreateClientRequest } from '@tuldio/common';
 import { createClient } from '@tuldio/core/clients';
 import { getTeamId } from '../middleware/auth.js';
 

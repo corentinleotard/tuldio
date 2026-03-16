@@ -1,4 +1,4 @@
-import type { AuthUser } from '@tuldio/types';
+import type { AuthUser } from '@tuldio/common';
 import { insertUser } from '../repository/insert-user.js';
 
 export async function createUser(input: {

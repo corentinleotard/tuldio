@@ -7,7 +7,7 @@ import { QuickReplyBar } from '../components/quick-reply-bar';
 import { DesktopContextPanel } from '../components/desktop-context-panel';
 import { sendMessage, fetchMessages } from '../api/chat.api';
 import { Link } from 'react-router-dom';
-import type { Message, MessageMetadata } from '@tuldio/types';
+import type { Message, MessageMetadata } from '@tuldio/common';
 
 /** Map mutating tool names to React Query keys that should be invalidated */
 const TOOL_INVALIDATIONS: Record<string, string[][]> = {

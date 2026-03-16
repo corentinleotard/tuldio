@@ -6,6 +6,8 @@ interface ReadinessError {
   message: string;
 }
 
+const CLIENT_ERROR_CODES = new Set(['MISSING_CLIENT_ADDRESS', 'MISSING_CLIENT_SIRET']);
+
 interface DraftInfoBubbleProps {
   documentType: 'quote' | 'invoice';
   errors: ReadinessError[];
@@ -14,24 +16,21 @@ interface DraftInfoBubbleProps {
 
 export function DraftInfoBubble({ documentType, errors, showTutorial }: DraftInfoBubbleProps) {
   const isQuote = documentType === 'quote';
-  const hasErrors = errors.length > 0;
+  // Filter out client-level errors — those are handled by the inline prompt on the rich card
+  const teamErrors = errors.filter((e) => !CLIENT_ERROR_CODES.has(e.code));
+  const hasErrors = teamErrors.length > 0;
 
   return (
     <div className="mt-2 max-w-[92%] rounded-bubble-ai border bg-card px-4 py-3 text-sm text-card-foreground">
       <p className="text-muted-foreground">
         {isQuote ? 'Ton devis est en brouillon' : 'Ta facture est en brouillon'}, tu peux encore tout modifier.
         {' '}
-        {hasErrors
-          ? 'Ecris-moi ici ce que tu veux changer.'
-          : isQuote
-            ? "Ecris-moi ici ce que tu veux changer, ou dis-moi quand tu l'as envoyé."
-            : "Ecris-moi ici ce que tu veux changer, ou dis-moi quand tu l'as envoyée."
-        }
+        Ecris-moi ici ce que tu veux changer.
       </p>
 
       {hasErrors && (
         <div className="mt-2 space-y-1">
-          {errors.map((err) => (
+          {teamErrors.map((err) => (
             <p key={err.code} className="text-sm text-destructive">
               {err.message}
             </p>

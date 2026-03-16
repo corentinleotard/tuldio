@@ -4,7 +4,6 @@ import {
   buildAcompteLinesByAmount,
   buildAvoirLines,
   buildSoldeLines,
-  canCancelInvoice,
   canEditInvoice,
   computeDueDate,
   computeInvoiceTotals,
@@ -114,14 +113,6 @@ describe('canEditInvoice', () => {
   it('blocks editing cancelled invoices', () => {
     expect(canEditInvoice('cancelled')).toBe(false);
   });
-});
-
-describe('canCancelInvoice', () => {
-  it('allows draft', () => expect(canCancelInvoice('draft')).toBe(true));
-  it('allows sent', () => expect(canCancelInvoice('sent')).toBe(true));
-  it('allows overdue', () => expect(canCancelInvoice('overdue')).toBe(true));
-  it('rejects paid', () => expect(canCancelInvoice('paid')).toBe(false));
-  it('rejects already cancelled', () => expect(canCancelInvoice('cancelled')).toBe(false));
 });
 
 describe('computeDueDate', () => {

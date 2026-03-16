@@ -13,7 +13,7 @@ import {
   EyeOff,
   ImagePlus,
 } from 'lucide-react';
-import type { TeamField, FieldScope } from '@tuldio/types';
+import type { TeamField, FieldScope } from '@tuldio/common';
 import { useAuth } from '@/lib/auth-context';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';

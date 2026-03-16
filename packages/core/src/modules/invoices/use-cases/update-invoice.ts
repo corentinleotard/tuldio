@@ -1,4 +1,4 @@
-import type { InvoiceView } from '@tuldio/types';
+import type { InvoiceView } from '@tuldio/common';
 import { isFieldTrue } from '../../teams/domain/team-field.entity.js';
 import { computeInvoiceTotals, validateInvoiceLine, canEditInvoice } from '../domain/validators.js';
 import { findInvoiceById } from '../repository/find-invoice-by-id.js';

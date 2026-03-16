@@ -5,6 +5,7 @@ import {
   type DocumentLineInput,
 } from '../../documents/domain/document-validators.js';
 import type { DocumentTotals } from '../../documents/domain/document-math.js';
+import { quoteTransitions } from '@tuldio/common/quotes';
 
 export type { DocumentLineInput as QuoteLineInput };
 
@@ -13,11 +14,6 @@ export const validateQuoteLine = validateDocumentLine;
 export function computeQuoteTotals(lines: DocumentLineInput[]): DocumentTotals {
   return computeDocumentLineTotals(lines);
 }
-
-const quoteTransitions: Record<string, string[]> = {
-  draft: ['sent', 'accepted', 'refused'],
-  sent: ['accepted', 'refused', 'cancelled'],
-};
 
 export function validateQuoteStatusTransition(input: {
   from: string;

@@ -1,4 +1,4 @@
-import type { AuthResponse, BootstrapResponse } from '@tuldio/types';
+import type { AuthResponse, BootstrapResponse } from '@tuldio/common';
 import { apiFetch } from '@/lib/api-fetch';
 
 export async function sendOtp(email: string): Promise<void> {

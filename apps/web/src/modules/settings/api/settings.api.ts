@@ -1,4 +1,4 @@
-import type { AiCostsSummary, Message } from '@tuldio/types';
+import type { AiCostsSummary, Message } from '@tuldio/common';
 import { apiFetch } from '@/lib/api-fetch';
 
 export async function fetchAiCosts(): Promise<AiCostsSummary> {

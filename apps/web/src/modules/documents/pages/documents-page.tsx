@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { FileText, Loader2, ChevronLeft } from 'lucide-react';
-import type { QuoteView, InvoiceView } from '@tuldio/types';
+import type { QuoteView, InvoiceView } from '@tuldio/common';
 import { SegmentControl } from '@/components/ui/segment-control';
 import { SearchInput } from '@/components/ui/search-input';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -179,6 +179,11 @@ export function DocumentsPage() {
               document={selectedDocument}
               type={isQuotes ? 'quote' : 'invoice'}
               onStatusChange={handleStatusChange}
+              onDocumentUpdate={() => {
+                const listKey = isQuotes ? 'quotes' : 'invoices';
+                queryClient.invalidateQueries({ queryKey: [listKey] });
+                queryClient.invalidateQueries({ queryKey: [listKey, selectedId] });
+              }}
             />
           </div>
         ) : (

@@ -1,4 +1,4 @@
-import type { InvoiceView } from '@tuldio/types';
+import type { InvoiceView } from '@tuldio/common';
 import { HandledError } from '../../../lib/errors/handled-error.js';
 import { errorCodes } from '../../../lib/errors/error-codes.js';
 import { logger } from '../../../lib/infra/logger.js';
@@ -9,6 +9,7 @@ import { updateInvoiceAvoirId } from '../repository/update-invoice-avoir-id.js';
 import { findClientById } from '../../clients/repository/find-client-by-id.js';
 import { getClientDisplayName } from '../../clients/domain/get-client-display-name.js';
 import { toInvoiceView } from './create-invoice.js';
+import { insertDocumentLog } from '../../documents/repository/insert-document-log.js';
 
 export async function createAvoir(input: {
   teamId: string;
@@ -59,6 +60,13 @@ export async function createAvoir(input: {
     avoirNumber: avoir.number,
     sourceInvoiceId: source.id,
     sourceInvoiceNumber: source.number,
+  });
+
+  await insertDocumentLog({
+    teamId: input.teamId,
+    documentType: 'invoice',
+    documentId: avoir.id,
+    event: 'created',
   });
 
   const client = await findClientById({ teamId: input.teamId, clientId: source.client_id });

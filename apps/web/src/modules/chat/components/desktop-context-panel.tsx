@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { FileText } from 'lucide-react';
-import type { QuoteView, InvoiceView, MonthlyStatsView } from '@tuldio/types';
+import type { QuoteView, InvoiceView, MonthlyStatsView } from '@tuldio/common';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { formatCurrency, formatDocumentNumber } from '@/lib/utils';

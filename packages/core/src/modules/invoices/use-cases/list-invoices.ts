@@ -1,4 +1,4 @@
-import type { InvoiceView } from '@tuldio/types';
+import type { InvoiceView } from '@tuldio/common';
 import { findInvoicesByTeam } from '../repository/find-invoices-by-team.js';
 
 export async function listInvoices(input: {

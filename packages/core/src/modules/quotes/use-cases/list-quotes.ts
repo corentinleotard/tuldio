@@ -1,4 +1,4 @@
-import type { QuoteView } from '@tuldio/types';
+import type { QuoteView } from '@tuldio/common';
 import { findQuotesByTeam } from '../repository/find-quotes-by-team.js';
 
 export async function listQuotes(input: {

@@ -219,6 +219,16 @@ export const errorCodes = {
     statusCode: 500,
     message: 'Impossible de creer la session de paiement',
   },
+  clientEmailRequired: {
+    code: 'CLIENT_EMAIL_REQUIRED',
+    statusCode: 400,
+    message: "L'adresse email du client est requise pour l'envoi",
+  },
+  emailRateLimited: {
+    code: 'EMAIL_RATE_LIMITED',
+    statusCode: 429,
+    message: 'Un email a déjà été envoyé il y a moins d\'une minute',
+  },
 } as const;
 
 export type ErrorCode = (typeof errorCodes)[keyof typeof errorCodes];

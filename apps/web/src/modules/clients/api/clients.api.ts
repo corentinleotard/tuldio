@@ -1,4 +1,4 @@
-import type { ClientView } from '@tuldio/types';
+import type { ClientView } from '@tuldio/common';
 import { apiFetch } from '@/lib/api-fetch';
 
 export async function fetchClients(): Promise<ClientView[]> {

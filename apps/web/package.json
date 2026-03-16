@@ -11,7 +11,7 @@
   "dependencies": {
     "@tanstack/react-query": "^5.60.0",
     "@tanstack/react-virtual": "^3.13.21",
-    "@tuldio/types": "workspace:*",
+    "@tuldio/common": "workspace:*",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.0",
     "lucide-react": "^0.460.0",

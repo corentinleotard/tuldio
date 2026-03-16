@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { ToolContext } from './define-tool.js';
-import type { ClientView, QuoteView, InvoiceView } from '@tuldio/types';
+import type { ClientView, QuoteView, InvoiceView } from '@tuldio/common';
 import type { EntityType } from '../ref-map.js';
 
 // --- Mocks ---

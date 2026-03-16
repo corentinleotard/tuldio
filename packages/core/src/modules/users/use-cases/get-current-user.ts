@@ -1,4 +1,4 @@
-import type { AuthUser } from '@tuldio/types';
+import type { AuthUser } from '@tuldio/common';
 import { HandledError } from '../../../lib/errors/handled-error.js';
 import { errorCodes } from '../../../lib/errors/error-codes.js';
 import { findUserById } from '../repository/find-user-by-id.js';

@@ -1,4 +1,4 @@
-import type { InvoiceView } from '@tuldio/types';
+import type { InvoiceView } from '@tuldio/common';
 import { HandledError } from '../../../lib/errors/handled-error.js';
 import { errorCodes } from '../../../lib/errors/error-codes.js';
 import { findInvoiceById } from '../repository/find-invoice-by-id.js';

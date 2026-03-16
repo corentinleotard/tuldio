@@ -1,4 +1,4 @@
-import type { QuoteView } from '@tuldio/types';
+import type { QuoteView } from '@tuldio/common';
 import { HandledError } from '../../../lib/errors/handled-error.js';
 import { errorCodes } from '../../../lib/errors/error-codes.js';
 import { logger } from '../../../lib/infra/logger.js';
@@ -15,6 +15,7 @@ import { buildDocumentPdfInput } from '../../../lib/pdf/build-document-pdf-input
 import { findClientById } from '../../clients/repository/find-client-by-id.js';
 import { getClientDisplayName } from '../../clients/domain/get-client-display-name.js';
 import { toLineViews, toTvaGroups } from '../../documents/domain/to-line-views.js';
+import { insertDocumentLog } from '../../documents/repository/insert-document-log.js';
 
 export async function updateQuoteStatusUc(input: {
   teamId: string;
@@ -93,6 +94,14 @@ export async function updateQuoteStatusUc(input: {
   const client = await findClientById({ teamId: input.teamId, clientId: row.client_id });
 
   logger.info('quote.status_changed', { teamId: input.teamId, quoteId: input.quoteId, from: current.status, to: input.status });
+
+  await insertDocumentLog({
+    teamId: input.teamId,
+    documentType: 'quote',
+    documentId: input.quoteId,
+    event: 'status_changed',
+    metadata: { from: current.status, to: input.status },
+  });
 
   return {
     id: row.id,

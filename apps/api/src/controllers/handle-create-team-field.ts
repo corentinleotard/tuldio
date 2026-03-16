@@ -1,5 +1,5 @@
 import type { Request, Response } from 'express';
-import type { CreateTeamFieldRequest } from '@tuldio/types';
+import type { CreateTeamFieldRequest } from '@tuldio/common';
 import { createTeamField } from '@tuldio/core/teams';
 import { getTeamId } from '../middleware/auth.js';
 

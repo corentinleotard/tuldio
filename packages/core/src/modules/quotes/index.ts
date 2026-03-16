@@ -6,3 +6,4 @@ export { updateQuoteStatusUc } from './use-cases/update-quote-status-uc.js';
 export { downloadQuotePdf } from './use-cases/download-quote-pdf.js';
 export { deleteQuoteUc } from './use-cases/delete-quote-uc.js';
 export { searchPastPricing } from './use-cases/search-past-pricing.js';
+export { findQuoteTeamId } from './repository/find-quote-team-id.js';

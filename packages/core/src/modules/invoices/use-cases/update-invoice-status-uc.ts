@@ -1,4 +1,4 @@
-import type { InvoiceView } from '@tuldio/types';
+import type { InvoiceView } from '@tuldio/common';
 import { HandledError } from '../../../lib/errors/handled-error.js';
 import { errorCodes } from '../../../lib/errors/error-codes.js';
 import { logger } from '../../../lib/infra/logger.js';
@@ -19,6 +19,7 @@ import { toInvoiceView } from './create-invoice.js';
 import { createAvoir } from './create-avoir.js';
 import { findInvoicesByQuote } from '../repository/find-invoices-by-quote.js';
 import { findQuoteById } from '../../quotes/repository/find-quote-by-id.js';
+import { insertDocumentLog } from '../../documents/repository/insert-document-log.js';
 
 export async function updateInvoiceStatusUc(input: {
   teamId: string;
@@ -38,6 +39,14 @@ export async function updateInvoiceStatusUc(input: {
     const avoir = await createAvoir({ teamId: input.teamId, userId: input.userId, sourceInvoiceId: invoice.id });
     await updateInvoiceStatus({ teamId: input.teamId, invoiceId: invoice.id, status: 'cancelled' });
     logger.info('invoice.cancelled_with_avoir', { teamId: input.teamId, invoiceId: invoice.id, avoirId: avoir.id });
+
+    await insertDocumentLog({
+      teamId: input.teamId,
+      documentType: 'invoice',
+      documentId: invoice.id,
+      event: 'status_changed',
+      metadata: { from: invoice.status, to: 'cancelled', avoirId: avoir.id },
+    });
 
     // Return the cancelled source (not the avoir) — cancellation is the user's intent
     const full = await findInvoiceById({ teamId: input.teamId, invoiceId: invoice.id });
@@ -148,6 +157,14 @@ export async function updateInvoiceStatusUc(input: {
   });
 
   logger.info('invoice.status_changed', { teamId: input.teamId, invoiceId: input.invoiceId, from: invoice.status, to: input.status });
+
+  await insertDocumentLog({
+    teamId: input.teamId,
+    documentType: 'invoice',
+    documentId: input.invoiceId,
+    event: 'status_changed',
+    metadata: { from: invoice.status, to: input.status },
+  });
 
   const full = await findInvoiceById({ teamId: input.teamId, invoiceId: input.invoiceId });
   if (!full) throw new HandledError(errorCodes.invoiceNotFound);

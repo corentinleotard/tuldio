@@ -1,4 +1,4 @@
-import type { InvoiceView } from '@tuldio/types';
+import type { InvoiceView } from '@tuldio/common';
 import { isFieldTrue } from '../../teams/domain/team-field.entity.js';
 import { computeDueDate, computeInvoiceTotals, validateInvoiceLine } from '../domain/validators.js';
 import { insertInvoice } from '../repository/insert-invoice.js';
@@ -13,6 +13,7 @@ import { HandledError } from '../../../lib/errors/handled-error.js';
 import { errorCodes } from '../../../lib/errors/error-codes.js';
 import { logger } from '../../../lib/infra/logger.js';
 import type { InvoiceRow } from '../domain/invoice.entity.js';
+import { insertDocumentLog } from '../../documents/repository/insert-document-log.js';
 import type { InvoiceLineRow } from '../domain/invoice.entity.js';
 
 export function toInvoiceView(
@@ -109,6 +110,13 @@ export async function createInvoice(input: {
   });
 
   logger.info('invoice.created', { teamId: input.teamId, invoiceId: invoice.id, number: invoice.number, totalTtc });
+
+  await insertDocumentLog({
+    teamId: input.teamId,
+    documentType: 'invoice',
+    documentId: invoice.id,
+    event: 'created',
+  });
 
   const client = await findClientById({ teamId: input.teamId, clientId: input.clientId });
   const full = await findInvoiceById({ teamId: input.teamId, invoiceId: invoice.id });

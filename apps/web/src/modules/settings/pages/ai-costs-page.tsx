@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import type { AiCallView } from '@tuldio/types';
+import type { AiCallView } from '@tuldio/common';
 import { ArrowLeft, Cpu, Zap, Hash, Coins, Database, X, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { fetchAiCosts } from '../api/settings.api';

@@ -1,4 +1,4 @@
-import type { TeamSummary, UpdateTeamRequest } from '@tuldio/types';
+import type { TeamSummary, UpdateTeamRequest } from '@tuldio/common';
 import { apiFetch } from '@/lib/api-fetch';
 
 export async function updateTeam(data: UpdateTeamRequest): Promise<TeamSummary> {

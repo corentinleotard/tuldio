@@ -1,7 +1,7 @@
 import { createContext, useContext, useCallback, type ReactNode } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import type { AuthUser, TeamSummary, BootstrapResponse } from '@tuldio/types';
+import type { AuthUser, TeamSummary, BootstrapResponse } from '@tuldio/common';
 import { apiFetch } from '@/lib/api-fetch';
 
 interface AuthContextValue {

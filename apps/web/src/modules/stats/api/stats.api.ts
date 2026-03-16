@@ -1,4 +1,4 @@
-import type { MonthlyStatsView } from '@tuldio/types';
+import type { MonthlyStatsView } from '@tuldio/common';
 import { apiFetch } from '@/lib/api-fetch';
 
 export async function fetchMonthlyStats(input: {

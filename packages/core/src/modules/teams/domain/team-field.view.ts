@@ -1,4 +1,4 @@
-import type { TeamField } from '@tuldio/types';
+import type { TeamField } from '@tuldio/common';
 import type { TeamFieldRow } from './team-field.entity.js';
 
 export function toTeamField(row: TeamFieldRow): TeamField {

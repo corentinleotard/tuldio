@@ -358,6 +358,15 @@ export interface ActiveState {
   document: { id: string; type: 'quote' | 'invoice'; number: string } | null;
 }
 
+// Document Logs
+export interface DocumentLogView {
+  id: string;
+  event: 'created' | 'status_changed' | 'email_sent' | 'downloaded' | 'viewed' | 'signed';
+  recipientEmail: string | null;
+  metadata: Record<string, unknown>;
+  createdAt: string;
+}
+
 // Pagination
 export interface PaginatedResponse<T> {
   items: T[];

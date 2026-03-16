@@ -1,4 +1,4 @@
-import type { TeamField, UpdateTeamFieldRequest } from '@tuldio/types';
+import type { TeamField, UpdateTeamFieldRequest } from '@tuldio/common';
 import { HandledError } from '../../../lib/errors/handled-error.js';
 import { errorCodes } from '../../../lib/errors/error-codes.js';
 import { isFieldTrue } from '../domain/team-field.entity.js';

@@ -1,12 +1,13 @@
-import { User, Mail, Phone, MapPin } from 'lucide-react';
-import type { ClientView } from '@tuldio/types';
+import { User, Mail, Phone, MapPin, UserPlus } from 'lucide-react';
+import type { ClientView } from '@tuldio/common';
 
 interface RichCardClientPickerProps {
   data: ClientView[];
   onSelect: (client: ClientView) => void;
+  onCreateNew: () => void;
 }
 
-export function RichCardClientPicker({ data, onSelect }: RichCardClientPickerProps) {
+export function RichCardClientPicker({ data, onSelect, onCreateNew }: RichCardClientPickerProps) {
   return (
     <div className="mt-2 flex flex-col gap-2">
       {data.map((client) => (
@@ -46,6 +47,16 @@ export function RichCardClientPicker({ data, onSelect }: RichCardClientPickerPro
           </div>
         </button>
       ))}
+      <button
+        type="button"
+        onClick={onCreateNew}
+        className="flex items-center gap-3 rounded-xl border border-dashed border-border px-4 py-3 text-left transition-colors hover:border-primary/40 hover:bg-primary/5 active:opacity-70"
+      >
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground">
+          <UserPlus className="h-4 w-4" />
+        </div>
+        <p className="text-sm text-muted-foreground">Créer un nouveau client</p>
+      </button>
     </div>
   );
 }

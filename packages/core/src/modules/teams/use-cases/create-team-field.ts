@@ -1,4 +1,4 @@
-import type { TeamField, CreateTeamFieldRequest } from '@tuldio/types';
+import type { TeamField, CreateTeamFieldRequest } from '@tuldio/common';
 import { insertTeamField } from '../repository/insert-team-field.js';
 import { findTeamFields } from '../repository/find-team-fields.js';
 import { toTeamField } from '../domain/team-field.view.js';

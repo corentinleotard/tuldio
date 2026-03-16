@@ -1,8 +1,12 @@
 import { useState, useRef, useEffect } from 'react';
-import type { QuoteView, InvoiceView } from '@tuldio/types';
-import { Download, ChevronDown } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import type { QuoteView, InvoiceView, DocumentLogView } from '@tuldio/common';
+import { avoirTransitions } from '@tuldio/common/invoices';
+import { Download, ChevronDown, Mail, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { cn, formatCurrency, formatDate, formatShortDate, isSameDay, formatDocumentNumber } from '@/lib/utils';
 import { viewDocument } from '@/lib/share-document';
+import { sendDocumentEmail, fetchDocumentLogs } from '../api/documents.api.js';
 import {
   statusConfig,
   defaultStatus,
@@ -17,15 +21,23 @@ interface DocumentDetailProps {
   document: QuoteView | InvoiceView;
   type: 'quote' | 'invoice';
   onStatusChange: (status: string) => void;
+  onDocumentUpdate?: () => void;
 }
 
-export function DocumentDetail({ document: doc, type, onStatusChange }: DocumentDetailProps) {
+export function DocumentDetail({ document: doc, type, onStatusChange, onDocumentUpdate }: DocumentDetailProps) {
   const badge = statusConfig[doc.status] ?? { ...defaultStatus, label: doc.status };
   const invoiceType = type === 'invoice' ? (doc as InvoiceView).invoiceType : undefined;
   const typeLabel = type === 'quote' ? 'Devis' : invoiceType === 'avoir' ? 'Avoir' : invoiceType === 'acompte' ? "Facture d'acompte" : invoiceType === 'solde' ? 'Facture de solde' : 'Facture';
 
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [sendingEmail, setSendingEmail] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const logsQuery = useQuery({
+    queryKey: [type === 'quote' ? 'quotes' : 'invoices', doc.id, 'logs'],
+    queryFn: () => fetchDocumentLogs({ type, id: doc.id }),
+    enabled: true,
+  });
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -39,7 +51,6 @@ export function DocumentDetail({ document: doc, type, onStatusChange }: Document
     }
   }, [dropdownOpen]);
 
-  const avoirTransitions: Record<string, string[]> = { draft: ['sent'], sent: [], paid: [], overdue: [], cancelled: [] };
   const transitions = type === 'quote' ? quoteTransitions : invoiceType === 'avoir' ? avoirTransitions : invoiceTransitions;
   const nextStatuses = transitions[doc.status as keyof typeof transitions] ?? [];
   const allStatuses = getOrderedStatuses(type);
@@ -48,6 +59,57 @@ export function DocumentDetail({ document: doc, type, onStatusChange }: Document
   function handleStatusSelect(status: string) {
     setDropdownOpen(false);
     onStatusChange(status);
+  }
+
+  async function handleSendEmail() {
+    setSendingEmail(true);
+    try {
+      const updated = await sendDocumentEmail({ type, id: doc.id });
+      const docLabel = type === 'quote' ? 'Devis' : 'Facture';
+      toast.success(`${docLabel} ${formatDocumentNumber(updated.number)} envoyé à ${updated.clientEmail}`);
+      onDocumentUpdate?.();
+      logsQuery.refetch();
+    } catch {
+      // error toast already shown by apiFetch
+    } finally {
+      setSendingEmail(false);
+    }
+  }
+
+  const pdfUrl = doc.pdfUrl ?? `/api/${type === 'quote' ? 'quotes' : 'invoices'}/${doc.id}/pdf`;
+
+  function formatLogDate(iso: string): string {
+    const d = new Date(iso);
+    return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
+      + ' à '
+      + d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+  }
+
+  function getLogLabel(log: DocumentLogView): string {
+    switch (log.event) {
+      case 'email_sent':
+        return `Email envoyé à ${log.recipientEmail}`;
+      case 'downloaded':
+        return 'Document téléchargé par le client';
+      case 'status_changed': {
+        const meta = log.metadata as { from?: string; to?: string };
+        const toLabel = statusConfig[meta.to ?? '']?.label ?? meta.to;
+        return `Statut passé à ${toLabel}`;
+      }
+      case 'created':
+        return 'Document créé';
+      default:
+        return log.event;
+    }
+  }
+
+  function getLogDotClass(event: string): string {
+    switch (event) {
+      case 'email_sent': return 'bg-info';
+      case 'downloaded': return 'bg-success';
+      case 'status_changed': return 'bg-primary';
+      default: return 'bg-muted-foreground';
+    }
   }
 
   return (
@@ -99,7 +161,8 @@ export function DocumentDetail({ document: doc, type, onStatusChange }: Document
                       className={cn(
                         'flex w-full items-center gap-2.5 px-3.5 py-2.5 text-sm transition-colors',
                         isCurrent && 'bg-primary/5',
-                        isClickable && 'cursor-pointer hover:bg-secondary',
+                        isClickable && sc.variant === 'destructive' && 'cursor-pointer hover:bg-destructive/10',
+                        isClickable && sc.variant !== 'destructive' && 'cursor-pointer hover:bg-secondary',
                         !isClickable && !isCurrent && 'cursor-default opacity-40',
                       )}
                     >
@@ -176,6 +239,27 @@ export function DocumentDetail({ document: doc, type, onStatusChange }: Document
           )}
         </div>
 
+        {/* Action bar — ghost buttons */}
+        <div className="mb-5 flex gap-2 border-b border-border pb-5">
+          <button
+            type="button"
+            onClick={() => viewDocument({ pdfUrl })}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-primary-lightest px-4 py-2 text-[13px] font-semibold text-primary transition-colors hover:bg-primary/15"
+          >
+            <Download className="h-4 w-4" />
+            PDF
+          </button>
+          <button
+            type="button"
+            onClick={handleSendEmail}
+            disabled={sendingEmail}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-primary-lightest px-4 py-2 text-[13px] font-semibold text-primary transition-colors hover:bg-primary/15 disabled:opacity-50"
+          >
+            {sendingEmail ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
+            Email
+          </button>
+        </div>
+
         {/* Lines table */}
         <div className="mb-6 overflow-hidden rounded-[10px] border border-border bg-card">
           {/* Header — full on desktop, compact on mobile */}
@@ -237,17 +321,23 @@ export function DocumentDetail({ document: doc, type, onStatusChange }: Document
           </div>
         </div>
 
-        {/* Actions */}
-        <div className="flex gap-2.5">
-          <button
-            type="button"
-            onClick={() => viewDocument({ pdfUrl: doc.pdfUrl ?? `/api/${type === 'quote' ? 'quotes' : 'invoices'}/${doc.id}/pdf` })}
-            className="inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
-          >
-            <Download className="h-4 w-4" />
-            Télécharger PDF
-          </button>
-        </div>
+        {/* History timeline */}
+        {logsQuery.data && logsQuery.data.length > 0 && (
+          <div className="border-t border-border pt-5">
+            <p className="mb-3 text-[13px] font-semibold text-muted-foreground">Historique</p>
+            <div className="space-y-0">
+              {logsQuery.data.map((log) => (
+                <div key={log.id} className="flex items-start gap-3 border-t border-border py-2 first:border-t-0">
+                  <span className={cn('mt-1.5 h-2 w-2 shrink-0 rounded-full', getLogDotClass(log.event))} />
+                  <div>
+                    <p className="text-sm">{getLogLabel(log)}</p>
+                    <p className="text-xs text-muted-foreground">{formatLogDate(log.createdAt)}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
