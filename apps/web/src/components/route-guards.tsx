@@ -40,6 +40,16 @@ export function RootRedirect() {
   return <Navigate to={user ? '/chat' : '/login'} replace />;
 }
 
+export function GodGuard({ children }: { children: React.ReactNode }) {
+  const { user } = useAuth();
+
+  if (!user?.god) {
+    return <Navigate to="/chat" replace />;
+  }
+
+  return <>{children}</>;
+}
+
 export function GuestGuard({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuth();
 

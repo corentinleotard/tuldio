@@ -18,11 +18,15 @@
     "./ai": "./src/lib/ai/chat-orchestrator.ts",
     "./voice": "./src/lib/ai/whisper-client.ts",
     "./pdf": "./src/lib/pdf/index.ts",
-    "./subscriptions": "./src/modules/subscriptions/index.ts"
+    "./subscriptions": "./src/modules/subscriptions/index.ts",
+    "./god-prospection": "./src/modules/god-prospection/index.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",
     "@tuldio/common": "workspace:*",
+    "exceljs": "^4.4.0",
+    "imapflow": "^1.2.14",
+    "nodemailer": "^8.0.2",
     "openai": "^6.29.0",
     "pdfjs-dist": "^5.5.207",
     "pg": "^8.13.0",
@@ -36,6 +40,7 @@
     "zod": "^3.23.0"
   },
   "devDependencies": {
+    "@types/nodemailer": "^7.0.11",
     "@types/pg": "^8.11.0",
     "@types/react": "^18.3.28",
     "@types/react-dom": "^18.3.7",

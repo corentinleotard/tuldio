@@ -1,0 +1,51 @@
+import { findAllProspects } from '../repository/find-all-prospects.js';
+import { getDailyCount } from '../repository/god-send-log.js';
+
+const DEFAULT_DAILY_LIMIT = 10;
+
+export interface ProspectView {
+  id: string;
+  profession: string;
+  firstName: string;
+  fullName: string;
+  email: string;
+  phone: string | null;
+  status: string;
+}
+
+export interface ProspectListResult {
+  prospects: ProspectView[];
+  totalWithEmail: number;
+  totalSent: number;
+  totalUnsent: number;
+  dailyLimit: number;
+  dailyUsed: number;
+  dailyRemaining: number;
+}
+
+export async function listProspects(): Promise<ProspectListResult> {
+  const [rows, dailyUsed] = await Promise.all([findAllProspects(), getDailyCount()]);
+
+  const dailyLimit = Number(process.env.PROSPECTION_DAILY_LIMIT || DEFAULT_DAILY_LIMIT);
+  const totalWithEmail = rows.length;
+  const totalSent = rows.filter((p) => p.status === 'sent').length;
+  const totalUnsent = rows.filter((p) => p.status === 'new').length;
+
+  return {
+    prospects: rows.map((r) => ({
+      id: r.id,
+      profession: r.profession,
+      firstName: r.firstName,
+      fullName: r.fullName,
+      email: r.email,
+      phone: r.phone,
+      status: r.status,
+    })),
+    totalWithEmail,
+    totalSent,
+    totalUnsent,
+    dailyLimit,
+    dailyUsed,
+    dailyRemaining: Math.max(0, dailyLimit - dailyUsed),
+  };
+}

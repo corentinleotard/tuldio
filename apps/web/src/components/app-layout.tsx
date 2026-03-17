@@ -1,6 +1,7 @@
 import { NavLink, Outlet } from 'react-router-dom';
-import { MessageSquare, FileText, Users, BarChart3, Settings } from 'lucide-react';
+import { MessageSquare, FileText, Users, BarChart3, Settings, Megaphone } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/lib/auth-context';
 import { PwaInstallPrompt } from '@/components/pwa-install-prompt';
 
 const navItems = [
@@ -12,6 +13,9 @@ const navItems = [
 ];
 
 export function AppLayout() {
+  const { user } = useAuth();
+  const isGod = user?.god === true;
+
   return (
     <div className="flex min-h-0 flex-1 flex-col md:flex-row">
       {/* Desktop sidebar */}
@@ -37,6 +41,26 @@ export function AppLayout() {
               {item.desktopLabel}
             </NavLink>
           ))}
+
+          {isGod && (
+            <>
+              <div className="mx-3.5 my-2 border-t border-border" />
+              <NavLink
+                to="/god-prospection"
+                className={({ isActive }) =>
+                  cn(
+                    'flex items-center gap-3 rounded-lg px-3.5 py-2.5 text-sm transition-colors',
+                    isActive
+                      ? 'bg-primary/10 font-semibold text-primary'
+                      : 'font-medium text-muted-foreground hover:bg-secondary hover:text-foreground',
+                  )
+                }
+              >
+                <Megaphone className="h-[18px] w-[18px]" />
+                Prospection
+              </NavLink>
+            </>
+          )}
         </nav>
       </aside>
 

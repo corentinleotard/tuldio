@@ -20,6 +20,7 @@ import subscriptionsRoutes from './routes/subscriptions.routes.js';
 import webhooksRoutes from './routes/webhooks.routes.js';
 import { wrapHandler } from './lib/wrap-handler.js';
 import { handlePublicDownload } from './controllers/handle-public-download.js';
+import godProspectionRoutes from './routes/god-prospection.routes.js';
 
 const PORT = process.env.PORT || 3003;
 
@@ -58,6 +59,11 @@ app.use('/api/messages', authMiddleware, checkSubscription, messagesRoutes);
 app.use('/api/stats', authMiddleware, checkSubscription, statsRoutes);
 app.use('/api/quotes', authMiddleware, checkSubscription, quotesRoutes);
 app.use('/api/invoices', authMiddleware, checkSubscription, invoicesRoutes);
+
+// God mode — dev only
+if (process.env.NODE_ENV !== 'production') {
+  app.use('/api/god-prospection', godProspectionRoutes);
+}
 
 // Static files
 const FILES_DIR = process.env.FILES_DIR || '/var/tuldio/files';

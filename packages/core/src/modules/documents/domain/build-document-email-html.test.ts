@@ -19,7 +19,7 @@ describe('buildDocumentEmailHtml', () => {
     expect(html).toContain('https://app.tuldio.fr/api/d/abc123');
     expect(html).toContain('Télécharger le devis');
     expect(html).toContain('Martin BTP');
-    expect(html).toContain('https://www.tuldio.fr');
+    expect(html).toContain('https://tuldio.fr');
   });
 
   it('builds an invoice email with correct content', () => {
