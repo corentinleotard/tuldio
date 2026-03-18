@@ -60,10 +60,8 @@ app.use('/api/stats', authMiddleware, checkSubscription, statsRoutes);
 app.use('/api/quotes', authMiddleware, checkSubscription, quotesRoutes);
 app.use('/api/invoices', authMiddleware, checkSubscription, invoicesRoutes);
 
-// God mode — dev only
-if (process.env.NODE_ENV !== 'production') {
-  app.use('/api/god-prospection', godProspectionRoutes);
-}
+// God mode — protected by requireGod middleware
+app.use('/api/god-prospection', godProspectionRoutes);
 
 // Static files
 const FILES_DIR = process.env.FILES_DIR || '/var/tuldio/files';

@@ -145,6 +145,6 @@ async function run() {
 }
 
 run().catch(err => {
-  console.error('Sync failed:', err.message);
+  console.error('Sync failed:', err);
   process.exit(1);
 });
