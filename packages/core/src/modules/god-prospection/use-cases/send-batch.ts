@@ -2,7 +2,7 @@ import { findUnsentProspects } from '../repository/find-unsent-prospects.js';
 import { updateProspectStatus } from '../repository/update-prospect-status.js';
 import { getDailyCount, incrementDailyCount } from '../repository/god-send-log.js';
 import { sendEmail } from '../domain/smtp-client.js';
-import { buildProspectionEmailHtml } from '../domain/email-template.js';
+import { buildProspectionEmailHtml, getSubjectForProfession } from '../domain/email-template.js';
 import { signInviteToken } from '../../auth/domain/invite-token.js';
 import { logger } from '../../../lib/infra/logger.js';
 
@@ -36,7 +36,6 @@ const DRY_RUN = process.env.PROSPECTION_DRY_RUN === 'true';
 
 export async function sendBatch(input: {
   count: number;
-  subject: string;
   body: string;
   profession: string | null;
 }): Promise<SendBatchAccepted> {
@@ -84,7 +83,7 @@ export async function sendBatch(input: {
 
 async function runBatch(
   batch: Array<{ firstName: string; fullName: string; profession: string; email: string; phone: string | null; website: string | null }>,
-  input: { subject: string; body: string },
+  input: { body: string },
 ): Promise<void> {
   logger.info('god-prospection.batch-start', { count: batch.length, dryRun: DRY_RUN });
 
@@ -113,17 +112,19 @@ async function runBatch(
         inviteUrl,
       });
 
+      const subject = getSubjectForProfession(prospect.profession);
+
       if (DRY_RUN) {
         logger.info('god-prospection.dry-run', {
           to: prospect.email,
           nom: prospect.fullName,
-          subject: input.subject,
+          subject,
           bodyPreview: html.slice(0, 200),
         });
       } else {
         await sendEmail({
           to: prospect.email,
-          subject: input.subject,
+          subject,
           html,
         });
       }
@@ -133,7 +134,7 @@ async function runBatch(
         await updateProspectStatus({
           email: prospect.email,
           status: 'sent',
-          sentSubject: input.subject,
+          sentSubject: subject,
           sentBodyHtml: html,
         });
       }
@@ -164,8 +165,8 @@ async function runBatch(
 
 export async function sendTestEmail(input: {
   to: string;
-  subject: string;
   body: string;
+  profession: string;
 }): Promise<void> {
   const inviteToken = signInviteToken({
     payload: {
@@ -173,7 +174,7 @@ export async function sendTestEmail(input: {
       address: '12 rue de la Paix, 75002 Paris',
       phone: '01 42 86 75 30',
       website: null,
-      profession: 'Ostéopathe',
+      profession: input.profession,
       firstName: 'Jean',
     },
     secret: INVITE_SECRET,
@@ -184,16 +185,18 @@ export async function sendTestEmail(input: {
   const html = buildProspectionEmailHtml({
     firstName: 'Jean',
     fullName: 'DUPONT Jean',
-    profession: 'Ostéopathe',
+    profession: input.profession,
     body: input.body,
     inviteUrl,
   });
 
+  const subject = getSubjectForProfession(input.profession);
+
   await sendEmail({
     to: input.to,
-    subject: `[TEST] ${input.subject}`,
+    subject: `[TEST] ${subject}`,
     html,
   });
 
-  logger.info('god-prospection.test-sent', { to: input.to, inviteUrl });
+  logger.info('god-prospection.test-sent', { to: input.to, subject, inviteUrl });
 }

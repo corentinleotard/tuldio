@@ -78,7 +78,6 @@ export async function fetchReceivedEmails(input: {
 
 export async function sendBatch(input: {
   count: number;
-  subject: string;
   body: string;
   profession: string | null;
 }): Promise<SendBatchAccepted> {
@@ -90,8 +89,8 @@ export async function sendBatch(input: {
 
 export async function sendTestEmail(input: {
   to: string;
-  subject: string;
   body: string;
+  profession: string | null;
 }): Promise<void> {
   await apiFetch('/api/god-prospection/send-test', {
     method: 'POST',

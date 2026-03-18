@@ -34,6 +34,29 @@ const HEALTH_PROFESSIONS = new Set([
   'Ostéopathe', 'Chiropracteur', 'Diététicien',
 ]);
 
+const SUBJECT_BY_PROFESSION: Record<string, string> = {
+  'Ostéopathe': 'Vos mains soignent, laissez Tuldio s\'occuper de vos factures',
+  'Chiropracteur': 'Vos mains soignent, laissez Tuldio s\'occuper de vos factures',
+  'Diététicien': 'Moins de temps sur la paperasse, plus de temps pour vos patients',
+  'Wedding planner': 'Prêt à enfin découvrir le grand amour avec vos factures ?',
+  'Photographe mariage': 'Vos photos sont nettes, vos factures devraient l\'être aussi',
+  'Traiteur mariage': 'Vous régalez vos clients, on s\'occupe de la note',
+  'Maçon': 'Un devis en 30 secondes, sans poser la truelle',
+  'Terrassier': 'Un devis en 30 secondes, sans quitter le chantier',
+  'Plombier': 'Un devis en 30 secondes, sans quitter le chantier',
+  'Electricien': 'Un devis en 30 secondes, sans quitter le chantier',
+  'Menuisier': 'Des devis bien taillés, sans quitter l\'atelier',
+  'Peintre': 'Un devis en 30 secondes, sans poser le rouleau',
+  'Carreleur': 'Un devis en 30 secondes, sans quitter le chantier',
+};
+
+const DEFAULT_SUBJECT = 'Vos factures en 30 secondes, sans logiciel compliqué';
+
+/** Returns a catchy subject line tailored to the prospect's profession */
+export function getSubjectForProfession(profession: string): string {
+  return SUBJECT_BY_PROFESSION[profession] || DEFAULT_SUBJECT;
+}
+
 export function buildProspectionEmailHtml(input: {
   firstName: string;
   fullName: string;

@@ -29,7 +29,6 @@ interface SendControlsProps {
 export function SendControls(props: SendControlsProps) {
   const { data, profession, onProfessionChange, count, onCountChange } = props;
   const queryClient = useQueryClient();
-  const [subject, setSubject] = useState('Vos factures en 30 secondes');
   const [body, setBody] = useState(DEFAULT_BODY);
   const [testEmail, setTestEmail] = useState('');
 
@@ -76,19 +75,19 @@ export function SendControls(props: SendControlsProps) {
   });
 
   const handleSend = () => {
-    if (!subject.trim() || !body.trim()) {
-      toast.error('Remplis tous les champs');
+    if (!body.trim()) {
+      toast.error('Remplis le corps du message');
       return;
     }
-    sendMutation.mutate({ count: Math.min(count, data.dailyRemaining), subject, body, profession });
+    sendMutation.mutate({ count: Math.min(count, data.dailyRemaining), body, profession });
   };
 
   const handleTest = () => {
-    if (!testEmail.trim() || !subject.trim() || !body.trim()) {
-      toast.error('Remplis l\'email test + objet + corps');
+    if (!testEmail.trim() || !body.trim()) {
+      toast.error('Remplis l\'email test + corps');
       return;
     }
-    testMutation.mutate({ to: testEmail, subject, body });
+    testMutation.mutate({ to: testEmail, body, profession });
   };
 
   return (
@@ -117,17 +116,6 @@ export function SendControls(props: SendControlsProps) {
       )}
 
       <div>
-        <label className="mb-1 block text-sm font-medium">Objet</label>
-        <input
-          type="text"
-          value={subject}
-          onChange={(e) => setSubject(e.target.value)}
-          placeholder="Simplifiez votre facturation"
-          className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
-        />
-      </div>
-
-      <div>
         <label className="mb-1 block text-sm font-medium">Corps du message</label>
         <textarea
           value={body}
@@ -140,6 +128,8 @@ export function SendControls(props: SendControlsProps) {
           <code className="rounded bg-secondary px-1">{'{{fullName}}'}</code>{' '}
           <code className="rounded bg-secondary px-1">{'{{profession}}'}</code>{' '}
           <code className="rounded bg-secondary px-1">{'{{clients}}'}</code>
+          <br />
+          L'objet est généré automatiquement selon la profession du prospect.
         </p>
       </div>
 
