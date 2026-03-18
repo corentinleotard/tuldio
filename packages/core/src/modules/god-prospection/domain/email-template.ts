@@ -39,6 +39,7 @@ export function buildProspectionEmailHtml(input: {
   fullName: string;
   profession: string;
   body: string;
+  inviteUrl: string | null;
 }): string {
   const isHealth = HEALTH_PROFESSIONS.has(input.profession);
   const variables: Record<string, string> = {
@@ -60,12 +61,21 @@ export function buildProspectionEmailHtml(input: {
 
   const bodyHtml = linkifyUrls(escapeHtml(resolvedBody)).replace(/\n/g, '<br>');
 
+  const inviteBlock = input.inviteUrl
+    ? `<br><br>
+<div style="margin-top:12px;">
+  <span style="font-size:small;">Votre espace est déjà prêt avec vos informations, c'est gratuit 14 jours, sans carte bancaire :</span><br><br>
+  <a href="${escapeHtml(input.inviteUrl)}" style="display:inline-block;background-color:#1B4D3E;color:#ffffff;padding:10px 20px;border-radius:6px;text-decoration:none;font-size:small;font-weight:600;">Essayer Tuldio gratuitement</a>
+</div>`
+    : '';
+
   return `<!DOCTYPE html>
 <html lang="fr">
 <head><meta charset="UTF-8"></head>
 <body>
 <div style="font-size:small;">
 ${bodyHtml}
+${inviteBlock}
 </div>
 </body>
 </html>`;

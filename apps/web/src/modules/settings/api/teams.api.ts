@@ -14,7 +14,6 @@ export async function acceptTerms(): Promise<TeamSummary> {
   });
 }
 
-
 export async function uploadDocument(file: File): Promise<TeamSummary> {
   const formData = new FormData();
   formData.append('file', file);

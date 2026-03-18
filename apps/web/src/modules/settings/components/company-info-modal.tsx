@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { OtpInput } from '@/components/ui/otp-input';
-import { updateTeam, acceptTerms, uploadDocument } from '@/modules/onboarding/api/onboarding.api';
+import { updateTeam, acceptTerms, uploadDocument } from '@/modules/settings/api/teams.api';
 import { updateTeamField } from '@/modules/settings/api/fields.api';
 import { sendOtp, verifyOtp } from '@/modules/auth/api/auth.api';
 import { cn } from '@/lib/utils';
@@ -256,7 +256,7 @@ export function CompanyInfoModal({ open, onClose, onComplete, errors, documentTy
       {/* Modal */}
       <div
         className={cn(
-          'relative z-10 flex flex-col bg-background',
+          'relative z-10 flex flex-col bg-card',
           // Mobile: fullscreen. Desktop: centered modal.
           'h-full w-full md:h-auto md:max-h-[90vh] md:w-[540px] md:rounded-2xl md:border md:border-border md:shadow-lg',
         )}

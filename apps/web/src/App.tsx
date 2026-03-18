@@ -14,7 +14,6 @@ import { AiCostsPage } from '@/modules/settings/pages/ai-costs-page';
 import { DebugChatPage } from '@/modules/settings/pages/debug-chat-page';
 import { CompanyPage } from '@/modules/settings/pages/company-page';
 import { SubscriptionPage } from '@/modules/settings/pages/subscription-page';
-import { OnboardingPage } from '@/modules/onboarding/pages/onboarding-page';
 import { InvitePage } from '@/modules/auth/pages/invite-page';
 import { GodProspectionPage } from '@/modules/god-prospection/pages/god-prospection-page';
 import { PwaProvider } from '@/components/pwa-install-prompt';
@@ -55,15 +54,6 @@ export function App() {
             />
             {/* Invite landing — outside AppLayout */}
             <Route path="/invite/:token" element={<InvitePage />} />
-            {/* Onboarding — outside AppLayout */}
-            <Route
-              path="/onboarding"
-              element={
-                <AuthGuard>
-                  <OnboardingPage />
-                </AuthGuard>
-              }
-            />
             {/* App routes — inside AppLayout */}
             <Route
               element={

@@ -16,8 +16,6 @@ Entre les {{clients}} et la paperasse, combien de temps vous perdez chaque semai
 
 On a créé Tuldio pour les professionnels comme vous. Vous envoyez un vocal ou tapez un message, et votre facture est prête en 30 secondes. Pas de logiciel compliqué, pas de formulaire, juste une conversation.
 
-C'est gratuit 14 jours, sans carte bancaire : https://tuldio.fr
-
 Corentin`;
 
 interface SendControlsProps {

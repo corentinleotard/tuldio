@@ -105,14 +105,12 @@ async function runBatch(
       });
       const inviteUrl = `${APP_URL}/invite/${inviteToken}`;
 
-      // Append invite block to email body
-      const bodyWithInvite = input.body + `\n\nVotre espace est déjà prêt avec vos informations : ${inviteUrl}`;
-
       const html = buildProspectionEmailHtml({
         firstName: prospect.firstName,
         fullName: prospect.fullName,
         profession: prospect.profession,
-        body: bodyWithInvite,
+        body: input.body,
+        inviteUrl,
       });
 
       if (DRY_RUN) {
@@ -183,13 +181,12 @@ export async function sendTestEmail(input: {
   });
   const inviteUrl = `${APP_URL}/invite/${inviteToken}`;
 
-  const bodyWithInvite = input.body + `\n\nVotre espace est déjà prêt avec vos informations : ${inviteUrl}`;
-
   const html = buildProspectionEmailHtml({
     firstName: 'Jean',
     fullName: 'DUPONT Jean',
     profession: 'Ostéopathe',
-    body: bodyWithInvite,
+    body: input.body,
+    inviteUrl,
   });
 
   await sendEmail({
