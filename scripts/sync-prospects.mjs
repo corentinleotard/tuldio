@@ -83,13 +83,13 @@ async function run() {
     if (!prod) {
       // New prospect — insert into prod with dev data + dev status
       await prodPool.query(
-        `INSERT INTO god_prospects (${DATA_COLS.join(', ')}, status, created_at)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+        `INSERT INTO god_prospects (${DATA_COLS.join(', ')}, status, contacted_via, sent_at, created_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
          ON CONFLICT (email) DO NOTHING`,
         [
           dev.profession, dev.first_name, dev.full_name, dev.email, dev.phone,
           dev.source, dev.scraped, dev.icp_score, dev.icp_reason, dev.website, dev.page_text,
-          'new', dev.created_at,
+          dev.status, dev.contacted_via, dev.sent_at, dev.created_at,
         ],
       );
       pushCount++;

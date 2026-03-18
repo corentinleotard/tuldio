@@ -13,9 +13,11 @@ import {
 
 const DEFAULT_BODY = `Bonjour {{firstName}},
 
-Entre les {{clients}} et la paperasse, combien de temps vous perdez chaque semaine sur vos factures et vos devis ?
+Je contacte quelques {{professionPlural}} pour leur poser une question : vous faites vos devis comment aujourd'hui ? Word, Excel, papier ?
 
-On a créé Tuldio pour les professionnels comme vous. Vous envoyez un vocal ou tapez un message, et votre facture est prête en 30 secondes. Pas de logiciel compliqué, pas de formulaire, juste une conversation.
+J'ai créé un outil qui permet de faire un devis en 30 sec depuis le téléphone, juste en envoyant un message ou un vocal.
+
+Si ça vous parle, votre espace est déjà prêt :
 
 Corentin`;
 
@@ -151,6 +153,7 @@ export function SendControls(props: SendControlsProps) {
           Variables : <code className="rounded bg-secondary px-1">{'{{firstName}}'}</code>{' '}
           <code className="rounded bg-secondary px-1">{'{{fullName}}'}</code>{' '}
           <code className="rounded bg-secondary px-1">{'{{profession}}'}</code>{' '}
+          <code className="rounded bg-secondary px-1">{'{{professionPlural}}'}</code>{' '}
           <code className="rounded bg-secondary px-1">{'{{clients}}'}</code>
           <br />
           L'objet est généré automatiquement selon la profession du prospect.

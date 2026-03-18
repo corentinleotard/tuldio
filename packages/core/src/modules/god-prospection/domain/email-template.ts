@@ -34,6 +34,22 @@ const HEALTH_PROFESSIONS = new Set([
   'Ostéopathe', 'Chiropracteur', 'Diététicien',
 ]);
 
+const PROFESSION_PLURAL: Record<string, string> = {
+  'Photographe mariage': 'photographes de mariage',
+  'Vidéaste mariage': 'vidéastes de mariage',
+  'DJ / Musicien mariage': 'DJ et musiciens de mariage',
+  'Traiteur mariage': 'traiteurs de mariage',
+  'Décorateur mariage': 'décorateurs de mariage',
+  'Wedding planner': 'wedding planners',
+  'Fleuriste mariage': 'fleuristes de mariage',
+  'Pâtissier mariage': 'pâtissiers de mariage',
+  'Organisateur événementiel': 'organisateurs événementiels',
+};
+
+function getProfessionPlural(profession: string): string {
+  return PROFESSION_PLURAL[profession] || profession.toLowerCase() + 's';
+}
+
 const SUBJECT_BY_PROFESSION: Record<string, string> = {
   'Ostéopathe': 'Vos mains soignent, laissez Tuldio s\'occuper de vos factures',
   'Chiropracteur': 'Vos mains soignent, laissez Tuldio s\'occuper de vos factures',
@@ -69,6 +85,7 @@ export function buildProspectionEmailHtml(input: {
     firstName: input.firstName ? capitalizeFirstName(input.firstName) : '',
     fullName: input.fullName.split(' ').map((w) => capitalizeFirstName(w)).join(' '),
     profession: input.profession,
+    professionPlural: getProfessionPlural(input.profession),
     clients: isHealth ? 'patients' : 'clients',
   };
 

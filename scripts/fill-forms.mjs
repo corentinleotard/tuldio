@@ -507,11 +507,10 @@ const specificUrl = args.find((_, i, a) => a[i - 1] === '--url');
 
 // Target list — update before each run
 const SITES = [
-  { url: 'https://abenergies-aveyron.fr/', name: 'AB Energies', profession: 'Plombier' },
-  { url: 'https://macon-et-tradition.fr/', name: 'Maçon et Tradition', profession: 'Maçon' },
-  { url: 'https://raka-peinture.fr/', name: 'RAKA Peinture', profession: 'Peintre' },
-  { url: 'https://menuiseriebarthez.com/contact/', name: 'Menuiserie Barthez', profession: 'Menuisier' },
-  { url: 'https://menuiserie-puech.fr/', name: 'Menuiserie Puech', profession: 'Menuisier' },
+  { url: 'https://www.js-festival-location.fr/', name: 'JS Festival Location', profession: 'Décorateur mariage' },
+  { url: 'https://www.st-elix-location.com/', name: 'Saint Elix Location', profession: 'Décorateur mariage' },
+  { url: 'https://www.estrellapapatya.fr/', name: 'Estrella Papatya', profession: 'Décorateur mariage' },
+  { url: 'https://www.gers-evenement-mariage.fr/', name: 'GEM Événement', profession: 'DJ / Musicien mariage' },
 ];
 
 (async () => {
