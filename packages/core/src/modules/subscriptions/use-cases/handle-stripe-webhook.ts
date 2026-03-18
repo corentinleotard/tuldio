@@ -2,6 +2,7 @@ import type Stripe from 'stripe';
 import { getStripe } from '../../../lib/stripe/stripe-client.js';
 import { logger } from '../../../lib/infra/logger.js';
 import { updateSubscriptionStatus } from '../repository/update-subscription-status.js';
+import { findTeamIdByCustomer } from '../repository/find-team-id-by-customer.js';
 
 function getSubscriptionPeriod(subscription: Stripe.Subscription): {
   start: Date | null;
@@ -13,6 +14,21 @@ function getSubscriptionPeriod(subscription: Stripe.Subscription): {
     start: new Date(item.current_period_start * 1000),
     end: new Date(item.current_period_end * 1000),
   };
+}
+
+function extractCustomerId(customer: string | Stripe.Customer | Stripe.DeletedCustomer | null): string | null {
+  if (!customer) return null;
+  return typeof customer === 'string' ? customer : customer.id;
+}
+
+async function resolveTeamId(input: { customerId: string | null; metadata?: Stripe.Metadata | null }): Promise<string | null> {
+  // Primary: look up team by stripe_customer_id in our DB
+  if (input.customerId) {
+    const teamId = await findTeamIdByCustomer({ stripeCustomerId: input.customerId });
+    if (teamId) return teamId;
+  }
+  // Fallback: metadata (for checkout.session.completed where customer may not be stored yet)
+  return input.metadata?.teamId ?? null;
 }
 
 export async function handleStripeWebhook(input: {
@@ -31,9 +47,10 @@ export async function handleStripeWebhook(input: {
   switch (event.type) {
     case 'checkout.session.completed': {
       const session = event.data.object as Stripe.Checkout.Session;
-      const teamId = session.metadata?.teamId;
+      const customerId = extractCustomerId(session.customer);
+      const teamId = await resolveTeamId({ customerId, metadata: session.metadata });
       if (!teamId) {
-        logger.warn('checkout.session.completed without teamId metadata');
+        logger.warn('checkout.session.completed: cannot resolve teamId', { customerId });
         return;
       }
 
@@ -42,10 +59,6 @@ export async function handleStripeWebhook(input: {
         : session.subscription?.id;
 
       if (subscriptionId) {
-        // Ensure subscription carries teamId for future events (updated/deleted)
-        await stripe.subscriptions.update(subscriptionId, {
-          metadata: { teamId },
-        });
         const subscription = await stripe.subscriptions.retrieve(subscriptionId, {
           expand: ['items'],
         });
@@ -53,7 +66,7 @@ export async function handleStripeWebhook(input: {
         await updateSubscriptionStatus({
           teamId,
           subscriptionStatus: 'active',
-          stripeCustomerId: typeof session.customer === 'string' ? session.customer : session.customer?.id ?? null,
+          stripeCustomerId: customerId,
           stripeSubscriptionId: subscriptionId,
           subscriptionPeriodStart: period.start,
           subscriptionPeriodEnd: period.end,
@@ -65,9 +78,10 @@ export async function handleStripeWebhook(input: {
 
     case 'customer.subscription.updated': {
       const subscription = event.data.object as Stripe.Subscription;
-      const teamId = subscription.metadata?.teamId;
+      const customerId = extractCustomerId(subscription.customer);
+      const teamId = await resolveTeamId({ customerId, metadata: subscription.metadata });
       if (!teamId) {
-        logger.warn('customer.subscription.updated without teamId metadata');
+        logger.warn('customer.subscription.updated: cannot resolve teamId', { customerId });
         return;
       }
 
@@ -78,21 +92,24 @@ export async function handleStripeWebhook(input: {
           : 'active' as const;
 
       const period = getSubscriptionPeriod(subscription);
+      // Stripe uses cancel_at (timestamp) OR cancel_at_period_end (boolean) depending on API version
+      const isCancelling = subscription.cancel_at_period_end || subscription.cancel_at !== null;
       await updateSubscriptionStatus({
         teamId,
         subscriptionStatus: status,
         subscriptionPeriodStart: period.start,
         subscriptionPeriodEnd: period.end,
-        cancelAtPeriodEnd: subscription.cancel_at_period_end,
+        cancelAtPeriodEnd: isCancelling,
       });
       break;
     }
 
     case 'customer.subscription.deleted': {
       const subscription = event.data.object as Stripe.Subscription;
-      const teamId = subscription.metadata?.teamId;
+      const customerId = extractCustomerId(subscription.customer);
+      const teamId = await resolveTeamId({ customerId, metadata: subscription.metadata });
       if (!teamId) {
-        logger.warn('customer.subscription.deleted without teamId metadata');
+        logger.warn('customer.subscription.deleted: cannot resolve teamId', { customerId });
         return;
       }
 
@@ -109,7 +126,7 @@ export async function handleStripeWebhook(input: {
 
     case 'invoice.payment_failed': {
       const invoice = event.data.object as Stripe.Invoice;
-      const customerId = typeof invoice.customer === 'string' ? invoice.customer : invoice.customer?.id;
+      const customerId = extractCustomerId(invoice.customer);
       logger.warn('Stripe payment failed', { customerId });
       break;
     }
