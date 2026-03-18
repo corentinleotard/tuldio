@@ -190,7 +190,7 @@ export async function createInvoiceFromQuote(input: {
     }
   }
 
-  const invoice = await insertInvoice({
+  const { id: invoiceId } = await insertInvoice({
     teamId: input.teamId,
     createdBy: input.userId,
     clientId: quote.client_id,
@@ -204,17 +204,17 @@ export async function createInvoiceFromQuote(input: {
     invoiceType: resolvedInvoiceType,
   });
 
-  logger.info('invoice.created_from_quote', { teamId: input.teamId, invoiceId: invoice.id, quoteId: input.quoteId, number: invoice.number, invoiceType: resolvedInvoiceType });
+  logger.info('invoice.created_from_quote', { teamId: input.teamId, invoiceId, quoteId: input.quoteId, invoiceType: resolvedInvoiceType });
 
   await insertDocumentLog({
     teamId: input.teamId,
     documentType: 'invoice',
-    documentId: invoice.id,
+    documentId: invoiceId,
     event: 'created',
   });
 
   const client = await findClientById({ teamId: input.teamId, clientId: quote.client_id });
-  const full = await findInvoiceById({ teamId: input.teamId, invoiceId: invoice.id });
+  const full = await findInvoiceById({ teamId: input.teamId, invoiceId });
 
   return toInvoiceView(full!, {
     clientName: client ? getClientDisplayName(client) : undefined,

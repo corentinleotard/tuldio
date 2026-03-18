@@ -4,6 +4,7 @@ import { HandledError } from '../../../lib/errors/handled-error.js';
 import { errorCodes } from '../../../lib/errors/error-codes.js';
 import { updateTeamSettings as updateTeamSettingsRepo } from '../repository/update-team-settings.js';
 import { refreshDraftDocuments } from '../repository/refresh-draft-documents.js';
+import { findTeamById } from '../repository/find-team-by-id.js';
 import { findTeamFields } from '../repository/find-team-fields.js';
 import { toTeamSummary } from '../domain/team.view.js';
 import { toTeamField } from '../domain/team-field.view.js';
@@ -29,7 +30,7 @@ export async function updateTeamSettings(input: {
     throw new HandledError(errorCodes.invalidInput);
   }
 
-  const row = await updateTeamSettingsRepo({
+  await updateTeamSettingsRepo({
     teamId: input.teamId,
     ...parsed.data,
   });
@@ -40,8 +41,9 @@ export async function updateTeamSettings(input: {
     invoicePaymentDelayDays: parsed.data.invoicePaymentDelayDays,
   });
 
+  const row = await findTeamById(input.teamId);
   const fieldRows = await findTeamFields(input.teamId);
   const fields: TeamField[] = fieldRows.map(toTeamField);
 
-  return toTeamSummary(row, fields);
+  return toTeamSummary(row!, fields);
 }

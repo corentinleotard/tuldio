@@ -22,7 +22,8 @@ export async function acceptTerms(input: { teamId: string }): Promise<TeamSummar
     await upsertTeamField({ teamId: input.teamId, fieldId, value: defaultValue });
   }
 
-  const updated = await acceptTermsRepo(input);
+  await acceptTermsRepo(input);
+  const updated = await findTeamById(input.teamId);
   const finalFields = missingDefaults.length > 0 ? await findTeamFields(input.teamId) : fieldRows;
-  return toTeamSummary(updated, finalFields.map(toTeamField));
+  return toTeamSummary(updated!, finalFields.map(toTeamField));
 }

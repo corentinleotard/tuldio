@@ -1,7 +1,6 @@
 import { z } from 'zod';
 import { query } from '../../../lib/database/db.js';
 import { generateId } from '../../../lib/infra/id.js';
-import type { ExpenseRow } from '../domain/expense.entity.js';
 
 const insertExpenseSchema = z.object({
   teamId: z.string().uuid(),
@@ -21,14 +20,13 @@ export async function insertExpense(input: {
   vendor: string;
   receiptUrl?: string;
   date: Date;
-}): Promise<ExpenseRow> {
+}): Promise<{ id: string }> {
   const validated = insertExpenseSchema.parse(input);
   const id = generateId();
 
-  const result = await query<ExpenseRow>(
+  await query(
     `INSERT INTO expenses (id, team_id, created_by, amount, category, vendor, receipt_url, date)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-     RETURNING id, team_id, created_by, amount, category, vendor, receipt_url, date, created_at`,
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
     [
       id,
       validated.teamId,
@@ -41,5 +39,5 @@ export async function insertExpense(input: {
     ],
   );
 
-  return result.rows[0]!;
+  return { id };
 }

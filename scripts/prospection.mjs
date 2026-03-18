@@ -99,17 +99,29 @@ async function db(text, params = []) {
 }
 
 /**
- * Insert prospects into DB. Skips duplicates by email (ON CONFLICT DO NOTHING).
- * NEVER updates existing rows — existing data is sacred.
+ * Insert prospects into DB. On duplicate email, fill in enrichment fields
+ * (website, icp_score, icp_reason, phone, page_text) without overwriting existing data.
+ * Only updates prospects with status = 'new' — never touch sent/error rows.
  */
 async function insertProspects(prospects) {
   if (prospects.length === 0) return { inserted: 0, skipped: 0 };
 
+  // Deduplicate by email within the batch — keep the one with more data
+  const byEmail = new Map();
+  for (const p of prospects) {
+    const key = p.email.toLowerCase().trim();
+    const existing = byEmail.get(key);
+    if (!existing || (p.website && !existing.website) || (p.icpScore && !existing.icpScore)) {
+      byEmail.set(key, p);
+    }
+  }
+  const deduped = [...byEmail.values()];
+
   let inserted = 0;
   const BATCH_SIZE = 100;
 
-  for (let i = 0; i < prospects.length; i += BATCH_SIZE) {
-    const batch = prospects.slice(i, i + BATCH_SIZE);
+  for (let i = 0; i < deduped.length; i += BATCH_SIZE) {
+    const batch = deduped.slice(i, i + BATCH_SIZE);
     const values = [];
     const placeholders = [];
 
@@ -137,13 +149,22 @@ async function insertProspects(prospects) {
     const result = await db(
       `INSERT INTO god_prospects (profession, first_name, full_name, email, phone, source, scraped, icp_score, icp_reason, website, page_text)
        VALUES ${placeholders.join(', ')}
-       ON CONFLICT (email) DO NOTHING`,
+       ON CONFLICT (email) DO UPDATE SET
+         website = COALESCE(EXCLUDED.website, god_prospects.website),
+         icp_score = COALESCE(EXCLUDED.icp_score, god_prospects.icp_score),
+         icp_reason = COALESCE(EXCLUDED.icp_reason, god_prospects.icp_reason),
+         phone = COALESCE(EXCLUDED.phone, god_prospects.phone),
+         page_text = COALESCE(EXCLUDED.page_text, god_prospects.page_text),
+         scraped = EXCLUDED.scraped OR god_prospects.scraped,
+         updated_at = now()
+       WHERE god_prospects.status = 'new'`,
       values,
     );
+    // rowCount includes both inserts and updates — track separately via xmax
     inserted += result.rowCount ?? 0;
   }
 
-  const skipped = prospects.length - inserted;
+  const skipped = deduped.length - inserted;
   return { inserted, skipped };
 }
 
@@ -235,6 +256,8 @@ const JUNK_EMAIL_PATTERNS = [
   'wix', 'sentry', 'example', 'google', 'o2switch', 'monsite', 'wordpress',
   'ovh.net', 'gandi.net', 'noreply', 'no-reply', 'test@', 'admin@',
   'webmaster@', 'postmaster@', 'support@', 'info@wix', 'hostinger',
+  'annuairefrancais', 'votre@', 'email.com', 'your@', 'exemple',
+  'contact@local.fr', 'demo@', 'sample@', 'placeholder',
 ];
 
 function isProEmail(email) {
@@ -744,12 +767,22 @@ async function enrichWithWebScraping(entries, scrapeState) {
         }
         console.log(`    ${evaluation.score >= 6 ? '✓' : '✗'} ${entry.fullName} → ${evaluation.score}/10 (${evaluation.reason})`);
 
-        scrapeState.found[key] = {
-          email: entry.email, phone: entry.phone,
-          website, icpScore: evaluation.score, icpReason: evaluation.reason,
-        };
-      } else if (entry.email || entry.phone) {
+        // Only persist to scrape-state if we found a valid pro email
+        if (entry.email && isProEmail(entry.email) && isValidEmailFormat(entry.email)) {
+          scrapeState.found[key] = {
+            email: entry.email, phone: entry.phone,
+            website, icpScore: evaluation.score, icpReason: evaluation.reason,
+          };
+        } else {
+          // Junk email or disqualified — don't mark as found so it can be retried
+          delete scrapeState.scraped[key];
+          delete scrapeState.found[key];
+        }
+      } else if (entry.email && isProEmail(entry.email) && isValidEmailFormat(entry.email)) {
         scrapeState.found[key] = { email: entry.email, phone: entry.phone };
+      } else {
+        // No valid email found — allow retry next run
+        delete scrapeState.scraped[key];
       }
     } catch { /* continue */ }
 

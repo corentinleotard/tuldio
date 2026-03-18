@@ -61,7 +61,7 @@ export async function updateInvoice(input: {
     totalHt: computeLineTotal({ quantity: l.quantity, unitPrice: l.unitPrice }),
   }));
 
-  const row = await updateInvoiceLines({
+  await updateInvoiceLines({
     teamId: input.teamId,
     invoiceId: input.invoiceId,
     lines: insertLines,
@@ -71,12 +71,10 @@ export async function updateInvoice(input: {
     prestationDate: input.prestationDate,
   });
 
-  if (!row) throw new HandledError(errorCodes.invoiceNotFound);
-
-  logger.info('invoice.updated', { teamId: input.teamId, invoiceId: input.invoiceId, number: row.number, totalTtc });
-
   const full = await findInvoiceById({ teamId: input.teamId, invoiceId: input.invoiceId });
   if (!full) throw new HandledError(errorCodes.invoiceNotFound);
+
+  logger.info('invoice.updated', { teamId: input.teamId, invoiceId: input.invoiceId, number: full.number, totalTtc });
 
   return toInvoiceView(full);
 }

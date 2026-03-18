@@ -1,7 +1,6 @@
 import { z } from 'zod';
 import { query } from '../../../lib/database/db.js';
 import { generateId } from '../../../lib/infra/id.js';
-import type { UserRow } from '../domain/user.entity.js';
 
 const insertUserSchema = z.object({
   teamId: z.string().uuid(),
@@ -15,16 +14,16 @@ export async function insertUser(input: {
   email: string | null;
   name: string;
   role: 'owner' | 'member';
-}): Promise<UserRow> {
+}): Promise<{ id: string }> {
   const validated = insertUserSchema.parse(input);
   const id = generateId();
 
-  const result = await query<UserRow>(
+  const result = await query<{ id: string }>(
     `INSERT INTO users (id, team_id, email, name, role)
      VALUES ($1, $2, $3, $4, $5)
-     RETURNING id, team_id, email, phone, name, role, god, created_at`,
+     RETURNING id`,
     [id, validated.teamId, validated.email, validated.name, validated.role],
   );
 
-  return result.rows[0]!;
+  return { id: result.rows[0]!.id };
 }

@@ -196,7 +196,11 @@ export function SubscriptionPage() {
           <div className="mb-4 rounded-2xl border bg-card p-5">
             <div className="mb-4 flex items-center justify-between">
               <span className="text-lg font-bold">Tuldio Pro</span>
-              <Badge variant="success">Actif</Badge>
+              {team?.cancelAtPeriodEnd ? (
+                <Badge variant="warning">Annulation prevue</Badge>
+              ) : (
+                <Badge variant="success">Actif</Badge>
+              )}
             </div>
 
             <div className="mb-1 flex items-baseline gap-1">
@@ -207,11 +211,19 @@ export function SubscriptionPage() {
             <div className="my-4 h-px bg-border" />
 
             <div className="flex items-center justify-between py-2">
-              <span className="text-sm text-muted-foreground">Prochain paiement</span>
+              <span className="text-sm text-muted-foreground">
+                {team?.cancelAtPeriodEnd ? 'Acces jusqu\'au' : 'Prochain paiement'}
+              </span>
               <span className="text-sm font-semibold">
                 {formatDate(team?.subscriptionPeriodEnd ?? null)}
               </span>
             </div>
+
+            {team?.cancelAtPeriodEnd && (
+              <p className="mt-2 text-sm text-muted-foreground">
+                Ton abonnement ne sera pas renouvele. Tu peux te reabonner a tout moment.
+              </p>
+            )}
           </div>
 
           <button

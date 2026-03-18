@@ -10,6 +10,7 @@ export interface ProspectListResult {
     phone: string | null;
     status: string;
   }>;
+  professions: string[];
   totalWithEmail: number;
   totalSent: number;
   totalUnsent: number;
@@ -79,6 +80,7 @@ export async function sendBatch(input: {
   count: number;
   subject: string;
   body: string;
+  profession: string | null;
 }): Promise<SendBatchAccepted> {
   return apiFetch('/api/god-prospection/send', {
     method: 'POST',
@@ -145,4 +147,24 @@ export interface ProspectReport {
 
 export async function fetchReport(): Promise<ProspectReport> {
   return apiFetch('/api/god-prospection/report');
+}
+
+export interface SendQueueProspect {
+  id: string;
+  profession: string;
+  fullName: string;
+  email: string;
+  phone: string | null;
+  website: string | null;
+  icpScore: number | null;
+  icpReason: string | null;
+}
+
+export async function fetchSendQueue(input: {
+  profession: string | null;
+  limit: number;
+}): Promise<SendQueueProspect[]> {
+  const params = new URLSearchParams({ limit: String(input.limit) });
+  if (input.profession) params.set('profession', input.profession);
+  return apiFetch(`/api/god-prospection/send-queue?${params}`);
 }

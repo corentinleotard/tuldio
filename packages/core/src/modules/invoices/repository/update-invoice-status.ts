@@ -1,11 +1,10 @@
 import { query } from '../../../lib/database/db.js';
-import type { InvoiceRow } from '../domain/invoice.entity.js';
 
 export async function updateInvoiceStatus(input: {
   teamId: string;
   invoiceId: string;
   status: string;
-}): Promise<InvoiceRow> {
+}): Promise<void> {
   let extraSets = '';
   if (input.status === 'sent') {
     extraSets = ', sent_at = NOW()';
@@ -15,13 +14,10 @@ export async function updateInvoiceStatus(input: {
     extraSets = ', cancelled_at = NOW()';
   }
 
-  const result = await query<InvoiceRow>(
+  await query(
     `UPDATE invoices
      SET status = $1${extraSets}
-     WHERE id = $2 AND team_id = $3
-     RETURNING id, team_id, created_by, client_id, quote_id, number, title, total_ht, total_ttc, status, invoice_type, source_invoice_id, situation_number, avoir_id, pdf_url, sent_at, paid_at, cancelled_at, due_date, prestation_date, created_at`,
+     WHERE id = $2 AND team_id = $3`,
     [input.status, input.invoiceId, input.teamId],
   );
-
-  return result.rows[0]!;
 }

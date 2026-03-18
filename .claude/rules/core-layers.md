@@ -14,9 +14,17 @@
 - Use parameterized raw SQL via `db.query()` from `../../../lib/database/db.js`
 - Use `generateId()` from `../../../lib/infra/id.js` for new records
 - Insert functions validate with Zod schema before writing
-- Return plain objects — never expose pg internals
+- Return plain objects -- never expose pg internals
 - File naming: `find-*.ts`, `insert-*.ts`, `delete-*.ts`, `update-*.ts`
-- All queries MUST filter by `teamId` (or `userId` for messages) — enforced at this layer
+- All queries MUST filter by `teamId` (or `userId` for messages) -- enforced at this layer
+
+### Return type rules (single source of truth for full rows)
+
+- **`find-*` functions** are the single source of truth for reading full entity rows. Only these functions list all columns in their SELECT.
+- **`insert-*` functions** return `{ id: string }` with `RETURNING id` only -- never the full row.
+- **`update-*` / `delete-*` functions** return `void` -- no RETURNING clause.
+- **When a caller needs the fresh entity after a mutation**, it calls the `find-*` function explicitly. Never duplicate the column list in RETURNING clauses.
+- This means each entity has exactly ONE place where all columns are listed (`find-*-by-id.ts`). Adding a column only requires updating that one query.
 
 ## Use-case files (`use-cases/*.ts`)
 

@@ -1,4 +1,5 @@
 import { insertMessage } from '../repository/insert-message.js';
+import { findMessageById } from '../repository/find-message-by-id.js';
 import { toMessageView, type MessageView } from '../domain/message.view.js';
 
 export async function createMessage(input: {
@@ -12,7 +13,8 @@ export async function createMessage(input: {
   quickReplies?: string[];
   debugTrace?: unknown;
 }): Promise<MessageView> {
-  const message = await insertMessage(input);
+  const { id } = await insertMessage(input);
+  const message = await findMessageById({ id, userId: input.userId });
 
-  return toMessageView(message);
+  return toMessageView(message!);
 }

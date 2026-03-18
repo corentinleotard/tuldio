@@ -12,9 +12,8 @@ import { getClientDisplayName } from '../../clients/domain/get-client-display-na
 import { HandledError } from '../../../lib/errors/handled-error.js';
 import { errorCodes } from '../../../lib/errors/error-codes.js';
 import { logger } from '../../../lib/infra/logger.js';
-import type { InvoiceRow } from '../domain/invoice.entity.js';
+import type { InvoiceRow, InvoiceLineRow } from '../domain/invoice.entity.js';
 import { insertDocumentLog } from '../../documents/repository/insert-document-log.js';
-import type { InvoiceLineRow } from '../domain/invoice.entity.js';
 
 export function toInvoiceView(
   row: InvoiceRow & { lines?: InvoiceLineRow[] },
@@ -97,7 +96,7 @@ export async function createInvoice(input: {
     totalHt: computeLineTotal({ quantity: l.quantity, unitPrice: l.unitPrice }),
   }));
 
-  const invoice = await insertInvoice({
+  const { id: invoiceId } = await insertInvoice({
     teamId: input.teamId,
     createdBy: input.userId,
     clientId: input.clientId,
@@ -109,17 +108,17 @@ export async function createInvoice(input: {
     dueDate: input.dueDate ?? computeDueDate({ createdAt: new Date(), delayDays: team?.invoice_payment_delay_days ?? 30 }),
   });
 
-  logger.info('invoice.created', { teamId: input.teamId, invoiceId: invoice.id, number: invoice.number, totalTtc });
+  logger.info('invoice.created', { teamId: input.teamId, invoiceId, totalTtc });
 
   await insertDocumentLog({
     teamId: input.teamId,
     documentType: 'invoice',
-    documentId: invoice.id,
+    documentId: invoiceId,
     event: 'created',
   });
 
   const client = await findClientById({ teamId: input.teamId, clientId: input.clientId });
-  const full = await findInvoiceById({ teamId: input.teamId, invoiceId: invoice.id });
+  const full = await findInvoiceById({ teamId: input.teamId, invoiceId });
 
   return toInvoiceView(full!, {
     clientName: client ? getClientDisplayName(client) : undefined,

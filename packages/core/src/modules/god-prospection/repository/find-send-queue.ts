@@ -1,19 +1,20 @@
 import { query } from '../../../lib/database/db.js';
 
-interface UnsentProspect {
+export interface SendQueueProspect {
   id: string;
   profession: string;
-  firstName: string;
   fullName: string;
   email: string;
   phone: string | null;
   website: string | null;
+  icpScore: number | null;
+  icpReason: string | null;
 }
 
-export async function findUnsentProspects(input: {
-  limit: number;
+export async function findSendQueue(input: {
   profession: string | null;
-}): Promise<UnsentProspect[]> {
+  limit: number;
+}): Promise<SendQueueProspect[]> {
   const params: Array<string | number> = [];
   let where = `WHERE status = 'new'`;
 
@@ -24,8 +25,9 @@ export async function findUnsentProspects(input: {
 
   params.push(input.limit);
 
-  const result = await query<UnsentProspect>(
-    `SELECT id, profession, first_name AS "firstName", full_name AS "fullName", email, phone, website
+  const result = await query<SendQueueProspect>(
+    `SELECT id, profession, full_name AS "fullName", email, phone, website,
+            icp_score AS "icpScore", icp_reason AS "icpReason"
      FROM god_prospects
      ${where}
      ORDER BY icp_score DESC NULLS LAST, created_at ASC

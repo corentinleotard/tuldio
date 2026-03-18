@@ -1,6 +1,6 @@
 import { query } from '../../../lib/database/db.js';
 import { generateId } from '../../../lib/infra/id.js';
-import type { InvoiceRow, InvoiceType } from '../domain/invoice.entity.js';
+import type { InvoiceType } from '../domain/invoice.entity.js';
 import type { InsertDocumentLine } from '../../documents/domain/document-validators.js';
 
 export type { InsertDocumentLine as InsertInvoiceLine };
@@ -19,7 +19,7 @@ export async function insertInvoice(input: {
   invoiceType?: InvoiceType;
   sourceInvoiceId?: string;
   situationNumber?: number;
-}): Promise<InvoiceRow> {
+}): Promise<{ id: string }> {
   const id = generateId();
   const invoiceType = input.invoiceType ?? 'standard';
   // Draft invoices get a temporary number — real sequential number assigned when leaving draft
@@ -28,10 +28,9 @@ export async function insertInvoice(input: {
   await query('BEGIN');
 
   try {
-    const result = await query<InvoiceRow>(
+    await query(
       `INSERT INTO invoices (id, team_id, created_by, client_id, quote_id, number, title, total_ht, total_ttc, due_date, prestation_date, invoice_type, source_invoice_id, situation_number)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
-       RETURNING id, team_id, created_by, client_id, quote_id, number, title, total_ht, total_ttc, status, invoice_type, source_invoice_id, situation_number, avoir_id, pdf_url, sent_at, paid_at, cancelled_at, due_date, prestation_date, created_at`,
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)`,
       [id, input.teamId, input.createdBy, input.clientId, input.quoteId ?? null, number, input.title ?? null, input.totalHt, input.totalTtc, input.dueDate ?? null, input.prestationDate ?? new Date(), invoiceType, input.sourceInvoiceId ?? null, input.situationNumber ?? null],
     );
 
@@ -52,7 +51,7 @@ export async function insertInvoice(input: {
     }
 
     await query('COMMIT');
-    return result.rows[0]!;
+    return { id };
   } catch (error) {
     await query('ROLLBACK');
     throw error;

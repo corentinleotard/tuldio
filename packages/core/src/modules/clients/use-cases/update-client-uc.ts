@@ -53,9 +53,11 @@ export async function updateClientUc(input: {
     }
   }
 
-  const updated = await updateClient({ ...input, email });
+  await updateClient({ ...input, email });
 
   logger.info('client.updated', { teamId: input.teamId, clientId: input.clientId });
 
-  return toClientView(updated);
+  const updated = await findClientById({ teamId, clientId });
+
+  return toClientView(updated!);
 }

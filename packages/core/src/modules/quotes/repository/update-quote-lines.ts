@@ -1,6 +1,5 @@
 import { query } from '../../../lib/database/db.js';
 import { generateId } from '../../../lib/infra/id.js';
-import type { QuoteRow } from '../domain/quote.entity.js';
 import type { InsertQuoteLine } from './insert-quote.js';
 
 export async function updateQuoteLines(input: {
@@ -10,7 +9,7 @@ export async function updateQuoteLines(input: {
   totalHt: number;
   totalTtc: number;
   title?: string | null;
-}): Promise<QuoteRow | null> {
+}): Promise<void> {
   await query('BEGIN');
 
   try {
@@ -23,17 +22,16 @@ export async function updateQuoteLines(input: {
       params.push(input.title);
     }
 
-    const result = await query<QuoteRow>(
+    const result = await query(
       `UPDATE quotes
        SET ${setClauses.join(', ')}
-       WHERE id = $3 AND team_id = $4 AND status = 'draft'
-       RETURNING id, team_id, created_by, client_id, number, title, total_ht, total_ttc, status, pdf_url, valid_until, sent_at, accepted_at, refused_at, cancelled_at, created_at`,
+       WHERE id = $3 AND team_id = $4 AND status = 'draft'`,
       params,
     );
 
-    if (result.rows.length === 0) {
+    if (result.rowCount === 0) {
       await query('ROLLBACK');
-      return null;
+      return;
     }
 
     // Safe to delete lines now — we've confirmed team ownership
@@ -56,7 +54,6 @@ export async function updateQuoteLines(input: {
     }
 
     await query('COMMIT');
-    return result.rows[0]!;
   } catch (error) {
     await query('ROLLBACK');
     throw error;

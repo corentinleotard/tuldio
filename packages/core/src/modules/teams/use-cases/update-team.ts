@@ -25,11 +25,11 @@ export async function updateTeam(input: {
     throw new HandledError(errorCodes.teamNotFound);
   }
 
-  let teamRow = existing;
   if (input.name) {
-    teamRow = await updateTeamName({ teamId: input.teamId, name: input.name.trim() });
+    await updateTeamName({ teamId: input.teamId, name: input.name.trim() });
   }
 
+  const teamRow = input.name ? await findTeamById(input.teamId) : existing;
   const fieldRows = await findTeamFields(input.teamId);
-  return toTeamSummary(teamRow, fieldRows.map(toTeamField));
+  return toTeamSummary(teamRow!, fieldRows.map(toTeamField));
 }

@@ -57,6 +57,7 @@ export async function handleStripeWebhook(input: {
           stripeSubscriptionId: subscriptionId,
           subscriptionPeriodStart: period.start,
           subscriptionPeriodEnd: period.end,
+          cancelAtPeriodEnd: false,
         });
       }
       break;
@@ -82,6 +83,7 @@ export async function handleStripeWebhook(input: {
         subscriptionStatus: status,
         subscriptionPeriodStart: period.start,
         subscriptionPeriodEnd: period.end,
+        cancelAtPeriodEnd: subscription.cancel_at_period_end,
       });
       break;
     }
@@ -98,6 +100,7 @@ export async function handleStripeWebhook(input: {
         teamId,
         subscriptionStatus: 'cancelled',
         stripeSubscriptionId: null,
+        cancelAtPeriodEnd: false,
         subscriptionPeriodStart: null,
         subscriptionPeriodEnd: null,
       });

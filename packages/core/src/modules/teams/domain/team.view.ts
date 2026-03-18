@@ -13,6 +13,7 @@ export function toTeamSummary(row: TeamRow, fields: TeamField[]): TeamSummary {
     invoicePaymentDelayDays: row.invoice_payment_delay_days,
     termsAcceptedAt: row.terms_accepted_at?.toISOString() ?? null,
     subscriptionStatus: row.subscription_status,
+    cancelAtPeriodEnd: row.cancel_at_period_end,
     trialEndsAt: row.trial_ends_at?.toISOString() ?? null,
     subscriptionPeriodEnd: row.subscription_period_end?.toISOString() ?? null,
   };

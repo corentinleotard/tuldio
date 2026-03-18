@@ -2,6 +2,7 @@ import { HandledError } from '../../../lib/errors/handled-error.js';
 import { errorCodes } from '../../../lib/errors/error-codes.js';
 import { logger } from '../../../lib/infra/logger.js';
 import { insertClient } from '../repository/insert-client.js';
+import { findClientById } from '../repository/find-client-by-id.js';
 import { findClientByEmail } from '../repository/find-client-by-email.js';
 import { findClientByPhone } from '../repository/find-client-by-phone.js';
 import { findClientBySiret } from '../repository/find-client-by-siret.js';
@@ -55,9 +56,11 @@ export async function createClient(input: {
     }
   }
 
-  const client = await insertClient({ ...input, email });
+  const { id: clientId } = await insertClient({ ...input, email });
 
-  logger.info('client.created', { teamId: input.teamId, clientId: client.id });
+  logger.info('client.created', { teamId: input.teamId, clientId });
 
-  return toClientView(client);
+  const client = await findClientById({ teamId, clientId });
+
+  return toClientView(client!);
 }

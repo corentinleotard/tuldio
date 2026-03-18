@@ -7,6 +7,7 @@ export async function updateSubscriptionStatus(input: {
   stripeSubscriptionId?: string | null;
   subscriptionPeriodStart?: Date | null;
   subscriptionPeriodEnd?: Date | null;
+  cancelAtPeriodEnd?: boolean;
 }): Promise<void> {
   const sets: string[] = ['subscription_status = $2'];
   const params: unknown[] = [input.teamId, input.subscriptionStatus];
@@ -33,6 +34,12 @@ export async function updateSubscriptionStatus(input: {
   if (input.subscriptionPeriodEnd !== undefined) {
     sets.push(`subscription_period_end = $${paramIndex}`);
     params.push(input.subscriptionPeriodEnd);
+    paramIndex++;
+  }
+
+  if (input.cancelAtPeriodEnd !== undefined) {
+    sets.push(`cancel_at_period_end = $${paramIndex}`);
+    params.push(input.cancelAtPeriodEnd);
     paramIndex++;
   }
 

@@ -1,6 +1,5 @@
 import { query } from '../../../lib/database/db.js';
 import { generateId } from '../../../lib/infra/id.js';
-import type { InvoiceRow } from '../domain/invoice.entity.js';
 import type { InsertInvoiceLine } from './insert-invoice.js';
 
 export async function updateInvoiceLines(input: {
@@ -11,7 +10,7 @@ export async function updateInvoiceLines(input: {
   totalTtc: number;
   title?: string | null;
   prestationDate?: Date;
-}): Promise<InvoiceRow | null> {
+}): Promise<void> {
   await query('BEGIN');
 
   try {
@@ -28,17 +27,16 @@ export async function updateInvoiceLines(input: {
       params.push(input.prestationDate);
     }
 
-    const result = await query<InvoiceRow>(
+    const result = await query(
       `UPDATE invoices
        SET ${setClauses.join(', ')}
-       WHERE id = $3 AND team_id = $4 AND status = 'draft'
-       RETURNING id, team_id, created_by, client_id, quote_id, number, title, total_ht, total_ttc, status, invoice_type, source_invoice_id, situation_number, avoir_id, pdf_url, sent_at, paid_at, cancelled_at, due_date, prestation_date, created_at`,
+       WHERE id = $3 AND team_id = $4 AND status = 'draft'`,
       params,
     );
 
-    if (result.rows.length === 0) {
+    if (result.rowCount === 0) {
       await query('ROLLBACK');
-      return null;
+      return;
     }
 
     await query('DELETE FROM invoice_lines WHERE invoice_id = $1', [input.invoiceId]);
@@ -60,7 +58,6 @@ export async function updateInvoiceLines(input: {
     }
 
     await query('COMMIT');
-    return result.rows[0]!;
   } catch (error) {
     await query('ROLLBACK');
     throw error;

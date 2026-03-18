@@ -15,6 +15,7 @@ export interface ProspectView {
 
 export interface ProspectListResult {
   prospects: ProspectView[];
+  professions: string[];
   totalWithEmail: number;
   totalSent: number;
   totalUnsent: number;
@@ -31,6 +32,9 @@ export async function listProspects(): Promise<ProspectListResult> {
   const totalSent = rows.filter((p) => p.status === 'sent').length;
   const totalUnsent = rows.filter((p) => p.status === 'new').length;
 
+  const unsent = rows.filter((p) => p.status === 'new');
+  const professions = [...new Set(unsent.map((p) => p.profession))].sort();
+
   return {
     prospects: rows.map((r) => ({
       id: r.id,
@@ -41,6 +45,7 @@ export async function listProspects(): Promise<ProspectListResult> {
       phone: r.phone,
       status: r.status,
     })),
+    professions,
     totalWithEmail,
     totalSent,
     totalUnsent,

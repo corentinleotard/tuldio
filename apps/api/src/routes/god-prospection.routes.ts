@@ -10,6 +10,7 @@ import { handleListSent } from '../controllers/god-prospection/handle-list-sent.
 import { handleListReceived } from '../controllers/god-prospection/handle-list-received.js';
 import { handleReply } from '../controllers/god-prospection/handle-reply.js';
 import { handleReport } from '../controllers/god-prospection/handle-report.js';
+import { handleSendQueue } from '../controllers/god-prospection/handle-send-queue.js';
 
 const router: RouterType = Router();
 
@@ -24,5 +25,6 @@ router.get('/sent', wrapHandler(handleListSent));
 router.get('/received', wrapHandler(handleListReceived));
 router.post('/reply', wrapHandler(handleReply));
 router.get('/report', wrapHandler(handleReport));
+router.get('/send-queue', wrapHandler(handleSendQueue));
 
 export default router;

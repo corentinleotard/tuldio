@@ -5,3 +5,4 @@ export { listReceivedEmails, type ReceivedEmail } from './use-cases/list-receive
 export { replyToEmail } from './use-cases/reply-to-email.js';
 export { upsertProspects } from './repository/upsert-prospects.js';
 export { getProspectReport, type ProspectReport } from './use-cases/get-prospect-report.js';
+export { findSendQueue, type SendQueueProspect } from './repository/find-send-queue.js';

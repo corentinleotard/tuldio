@@ -38,6 +38,7 @@ export async function sendBatch(input: {
   count: number;
   subject: string;
   body: string;
+  profession: string | null;
 }): Promise<SendBatchAccepted> {
   if (currentBatch.running) {
     return { accepted: false, batchSize: 0, dailyUsed: await getDailyCount(), dailyRemaining: 0 };
@@ -52,7 +53,7 @@ export async function sendBatch(input: {
     return { accepted: true, batchSize: 0, dailyUsed, dailyRemaining: remaining };
   }
 
-  const batch = await findUnsentProspects({ limit: toSend });
+  const batch = await findUnsentProspects({ limit: toSend, profession: input.profession });
 
   if (batch.length === 0) {
     return { accepted: true, batchSize: 0, dailyUsed, dailyRemaining: remaining };

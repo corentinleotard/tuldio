@@ -1,7 +1,6 @@
 import { z } from 'zod';
 import { query } from '../../../lib/database/db.js';
 import { generateId } from '../../../lib/infra/id.js';
-import type { MessageRow } from '../domain/message.entity.js';
 
 const insertMessageSchema = z.object({
   userId: z.string().uuid(),
@@ -27,14 +26,13 @@ export async function insertMessage(input: {
   richCard?: unknown;
   quickReplies?: string[];
   debugTrace?: unknown;
-}): Promise<MessageRow> {
+}): Promise<{ id: string }> {
   const validated = insertMessageSchema.parse(input);
   const id = generateId();
 
-  const result = await query<MessageRow>(
+  await query(
     `INSERT INTO messages (id, user_id, team_id, role, content, attachments, tool_calls, rich_card, quick_replies, debug_trace)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-     RETURNING id, user_id, team_id, role, content, attachments, tool_calls, rich_card, quick_replies, debug_trace, created_at`,
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
     [
       id,
       validated.userId,
@@ -49,5 +47,5 @@ export async function insertMessage(input: {
     ],
   );
 
-  return result.rows[0]!;
+  return { id };
 }

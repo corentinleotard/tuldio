@@ -20,17 +20,23 @@ C'est gratuit 14 jours, sans carte bancaire : https://tuldio.fr
 
 Corentin`;
 
-export function SendControls(props: { data: ProspectListResult }) {
-  const { data } = props;
+interface SendControlsProps {
+  data: ProspectListResult;
+  profession: string | null;
+  onProfessionChange: (v: string | null) => void;
+  count: number;
+  onCountChange: (v: number) => void;
+}
+
+export function SendControls(props: SendControlsProps) {
+  const { data, profession, onProfessionChange, count, onCountChange } = props;
   const queryClient = useQueryClient();
-  const [count, setCount] = useState(Math.min(data.dailyRemaining, 5));
   const [subject, setSubject] = useState('Vos factures en 30 secondes');
   const [body, setBody] = useState(DEFAULT_BODY);
   const [testEmail, setTestEmail] = useState('');
 
   const [polling, setPolling] = useState(false);
 
-  // Poll batch status only when a batch was launched
   const { data: batchStatus } = useQuery({
     queryKey: ['god-prospection', 'batch-status'],
     queryFn: fetchBatchStatus,
@@ -43,8 +49,7 @@ export function SendControls(props: { data: ProspectListResult }) {
   useEffect(() => {
     if (batchStatus && !batchStatus.running && batchStatus.total > 0) {
       setPolling(false);
-      queryClient.invalidateQueries({ queryKey: ['god-prospection', 'prospects'] });
-      queryClient.invalidateQueries({ queryKey: ['god-prospection', 'sent'] });
+      queryClient.invalidateQueries({ queryKey: ['god-prospection'] });
     }
   }, [batchStatus, queryClient]);
 
@@ -77,7 +82,7 @@ export function SendControls(props: { data: ProspectListResult }) {
       toast.error('Remplis tous les champs');
       return;
     }
-    sendMutation.mutate({ count: Math.min(count, data.dailyRemaining), subject, body });
+    sendMutation.mutate({ count: Math.min(count, data.dailyRemaining), subject, body, profession });
   };
 
   const handleTest = () => {
@@ -164,7 +169,23 @@ export function SendControls(props: { data: ProspectListResult }) {
         </div>
       </div>
 
-      <div className="flex items-center gap-3 border-t border-border pt-4">
+      <div className="flex flex-wrap items-center gap-3 border-t border-border pt-4">
+        <div className="flex items-center gap-2">
+          <label className="text-sm font-medium">Cible :</label>
+          <select
+            value={profession ?? ''}
+            onChange={(e) => onProfessionChange(e.target.value || null)}
+            className="rounded-md border border-border bg-background px-3 py-2 text-sm"
+          >
+            <option value="">Toutes professions</option>
+            {data.professions.map((p) => (
+              <option key={p} value={p}>
+                {p}
+              </option>
+            ))}
+          </select>
+        </div>
+
         <div className="flex items-center gap-2">
           <label className="text-sm font-medium">Nombre :</label>
           <input
@@ -172,7 +193,7 @@ export function SendControls(props: { data: ProspectListResult }) {
             min={1}
             max={data.dailyRemaining}
             value={count}
-            onChange={(e) => setCount(Number(e.target.value))}
+            onChange={(e) => onCountChange(Number(e.target.value))}
             className="w-20 rounded-md border border-border bg-background px-3 py-2 text-sm"
           />
         </div>

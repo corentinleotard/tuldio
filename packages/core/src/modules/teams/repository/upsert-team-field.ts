@@ -1,5 +1,4 @@
 import { query } from '../../../lib/database/db.js';
-import type { TeamFieldRow } from '../domain/team-field.entity.js';
 
 export async function upsertTeamField(input: {
   teamId: string;
@@ -7,7 +6,7 @@ export async function upsertTeamField(input: {
   value?: string;
   showQuote?: boolean;
   showInvoice?: boolean;
-}): Promise<TeamFieldRow> {
+}): Promise<void> {
   const sets: string[] = [];
   const params: unknown[] = [];
   let idx = 1;
@@ -25,20 +24,12 @@ export async function upsertTeamField(input: {
     params.push(input.showInvoice);
   }
 
-  if (sets.length === 0) {
-    const result = await query<TeamFieldRow>(
-      'SELECT id, team_id, key, label, value, zone, scope, show_quote, show_invoice, sort_order, is_system FROM team_fields WHERE id = $1 AND team_id = $2',
-      [input.fieldId, input.teamId],
-    );
-    return result.rows[0]!;
-  }
+  if (sets.length === 0) return;
 
   params.push(input.fieldId, input.teamId);
 
-  const result = await query<TeamFieldRow>(
-    `UPDATE team_fields SET ${sets.join(', ')} WHERE id = $${idx} AND team_id = $${idx + 1} RETURNING id, team_id, key, label, value, zone, scope, show_quote, show_invoice, sort_order, is_system`,
+  await query(
+    `UPDATE team_fields SET ${sets.join(', ')} WHERE id = $${idx} AND team_id = $${idx + 1}`,
     params,
   );
-
-  return result.rows[0]!;
 }

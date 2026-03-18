@@ -95,8 +95,12 @@ export async function updateQuoteStatusUc(input: {
     await updateQuotePdfUrl({ teamId: input.teamId, quoteId: current.id, pdfUrl });
   }
 
-  const row = await updateQuoteStatus(input);
-  const client = await findClientById({ teamId: input.teamId, clientId: row.client_id });
+  await updateQuoteStatus(input);
+
+  const updated = await findQuoteById({ teamId: input.teamId, quoteId: input.quoteId });
+  if (!updated) throw new HandledError(errorCodes.quoteNotFound);
+
+  const client = await findClientById({ teamId: input.teamId, clientId: updated.client_id });
 
   logger.info('quote.status_changed', { teamId: input.teamId, quoteId: input.quoteId, from: current.status, to: input.status });
 
@@ -109,23 +113,23 @@ export async function updateQuoteStatusUc(input: {
   });
 
   return {
-    id: row.id,
-    number: row.number,
-    clientId: row.client_id,
+    id: updated.id,
+    number: updated.number,
+    clientId: updated.client_id,
     clientName: client ? getClientDisplayName(client) : undefined,
     clientEmail: client?.email ?? undefined,
-    title: row.title,
-    lines: toLineViews(current.lines),
-    totalHt: row.total_ht,
-    totalTtc: row.total_ttc,
-    tvaGroups: toTvaGroups(current.lines),
-    status: row.status,
-    pdfUrl: pdfUrl ?? row.pdf_url,
-    validUntil: row.valid_until?.toISOString() ?? null,
-    sentAt: row.sent_at?.toISOString() ?? null,
-    acceptedAt: row.accepted_at?.toISOString() ?? null,
-    refusedAt: row.refused_at?.toISOString() ?? null,
-    cancelledAt: row.cancelled_at?.toISOString() ?? null,
-    createdAt: row.created_at.toISOString(),
+    title: updated.title,
+    lines: toLineViews(updated.lines),
+    totalHt: updated.total_ht,
+    totalTtc: updated.total_ttc,
+    tvaGroups: toTvaGroups(updated.lines),
+    status: updated.status,
+    pdfUrl: pdfUrl ?? updated.pdf_url,
+    validUntil: updated.valid_until?.toISOString() ?? null,
+    sentAt: updated.sent_at?.toISOString() ?? null,
+    acceptedAt: updated.accepted_at?.toISOString() ?? null,
+    refusedAt: updated.refused_at?.toISOString() ?? null,
+    cancelledAt: updated.cancelled_at?.toISOString() ?? null,
+    createdAt: updated.created_at.toISOString(),
   };
 }

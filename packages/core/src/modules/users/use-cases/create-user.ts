@@ -1,5 +1,6 @@
 import type { AuthUser } from '@tuldio/common';
 import { insertUser } from '../repository/insert-user.js';
+import { findUserById } from '../repository/find-user-by-id.js';
 
 export async function createUser(input: {
   teamId: string;
@@ -7,14 +8,15 @@ export async function createUser(input: {
   name: string;
   role: 'owner' | 'member';
 }): Promise<AuthUser> {
-  const user = await insertUser(input);
+  const { id } = await insertUser(input);
+  const user = await findUserById(id);
 
   return {
-    id: user.id,
-    email: user.email,
-    name: user.name,
-    teamId: user.team_id,
-    role: user.role,
-    god: user.god,
+    id: user!.id,
+    email: user!.email,
+    name: user!.name,
+    teamId: user!.team_id,
+    role: user!.role,
+    god: user!.god,
   };
 }

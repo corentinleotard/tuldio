@@ -69,7 +69,7 @@ export async function updateQuote(input: {
     totalHt: computeLineTotal({ quantity: l.quantity, unitPrice: l.unitPrice }),
   }));
 
-  const row = await updateQuoteLines({
+  await updateQuoteLines({
     teamId: input.teamId,
     quoteId: input.quoteId,
     lines: insertLines,
@@ -78,28 +78,27 @@ export async function updateQuote(input: {
     title: input.title,
   });
 
-  if (!row) throw new HandledError(errorCodes.quoteNotFound);
-
-  logger.info('quote.updated', { teamId: input.teamId, quoteId: input.quoteId, number: row.number, totalTtc });
-
   const full = await findQuoteById({ teamId: input.teamId, quoteId: input.quoteId });
+  if (!full) throw new HandledError(errorCodes.quoteNotFound);
+
+  logger.info('quote.updated', { teamId: input.teamId, quoteId: input.quoteId, number: full.number, totalTtc });
 
   return {
-    id: row.id,
-    number: row.number,
-    clientId: row.client_id,
-    title: row.title,
-    lines: toLineViews(full!.lines),
-    totalHt: row.total_ht,
-    totalTtc: row.total_ttc,
-    tvaGroups: toTvaGroups(full!.lines),
-    status: row.status,
+    id: full.id,
+    number: full.number,
+    clientId: full.client_id,
+    title: full.title,
+    lines: toLineViews(full.lines),
+    totalHt: full.total_ht,
+    totalTtc: full.total_ttc,
+    tvaGroups: toTvaGroups(full.lines),
+    status: full.status,
     pdfUrl: null,
-    validUntil: row.valid_until?.toISOString() ?? null,
-    sentAt: row.sent_at?.toISOString() ?? null,
-    acceptedAt: row.accepted_at?.toISOString() ?? null,
-    refusedAt: row.refused_at?.toISOString() ?? null,
-    cancelledAt: row.cancelled_at?.toISOString() ?? null,
-    createdAt: row.created_at.toISOString(),
+    validUntil: full.valid_until?.toISOString() ?? null,
+    sentAt: full.sent_at?.toISOString() ?? null,
+    acceptedAt: full.accepted_at?.toISOString() ?? null,
+    refusedAt: full.refused_at?.toISOString() ?? null,
+    cancelledAt: full.cancelled_at?.toISOString() ?? null,
+    createdAt: full.created_at.toISOString(),
   };
 }

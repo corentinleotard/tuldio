@@ -37,12 +37,12 @@ export async function createAvoir(input: {
   const avoirLines = buildAvoirLines(source.lines);
   const totals = computeInvoiceTotals(avoirLines);
 
-  const avoir = await insertInvoice({
+  const { id: avoirId } = await insertInvoice({
     teamId: input.teamId,
     createdBy: input.userId,
     clientId: source.client_id,
     quoteId: source.quote_id ?? undefined,
-    title: source.title ? `Avoir — ${source.title}` : null,
+    title: source.title ? `Avoir -- ${source.title}` : null,
     prestationDate: source.prestation_date ?? undefined,
     lines: avoirLines,
     totalHt: totals.totalHt,
@@ -52,12 +52,11 @@ export async function createAvoir(input: {
   });
 
   // Set back-reference on source invoice
-  await updateInvoiceAvoirId({ teamId: input.teamId, invoiceId: source.id, avoirId: avoir.id });
+  await updateInvoiceAvoirId({ teamId: input.teamId, invoiceId: source.id, avoirId });
 
   logger.info('avoir.created', {
     teamId: input.teamId,
-    avoirId: avoir.id,
-    avoirNumber: avoir.number,
+    avoirId,
     sourceInvoiceId: source.id,
     sourceInvoiceNumber: source.number,
   });
@@ -65,12 +64,12 @@ export async function createAvoir(input: {
   await insertDocumentLog({
     teamId: input.teamId,
     documentType: 'invoice',
-    documentId: avoir.id,
+    documentId: avoirId,
     event: 'created',
   });
 
   const client = await findClientById({ teamId: input.teamId, clientId: source.client_id });
-  const full = await findInvoiceById({ teamId: input.teamId, invoiceId: avoir.id });
+  const full = await findInvoiceById({ teamId: input.teamId, invoiceId: avoirId });
 
   return toInvoiceView(full!, {
     clientName: client ? getClientDisplayName(client) : undefined,

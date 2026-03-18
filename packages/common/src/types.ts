@@ -43,6 +43,7 @@ export interface TeamSummary {
   invoicePaymentDelayDays: number;
   termsAcceptedAt: string | null;
   subscriptionStatus: 'trial' | 'active' | 'cancelled' | 'expired' | null;
+  cancelAtPeriodEnd: boolean;
   trialEndsAt: string | null;
   subscriptionPeriodEnd: string | null;
 }

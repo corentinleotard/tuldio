@@ -51,7 +51,7 @@ loadEnv();
 // ─── Config ───────────────────────────────────────────────────────────
 const DATA_DIR = path.resolve('data');
 const SCRAPE_STATE_FILE = path.join(DATA_DIR, 'scrape-state-events-coaches.json');
-const WEB_SCRAPE_DAILY_LIMIT = 50; // Bump to 100-500 for production
+const WEB_SCRAPE_DAILY_LIMIT = 100; // Bump to 100-500 for production
 
 // Mariages.net categories → URL slugs + profession labels
 // Tier 1 first, then Tier 2-3 (uncomment to add)
@@ -223,6 +223,34 @@ function isValidEmailFormat(email) {
   const [local, domain] = email.split('@');
   if (local.startsWith('.') || local.endsWith('.') || local.includes('..')) return false;
   if (domain.startsWith('.') || domain.includes('..')) return false;
+  // Reject image filenames scraped as emails (logo@2x.png, icon@3x.png)
+  if (/\.(png|jpg|jpeg|gif|svg|webp|ico)$/i.test(email)) return false;
+  return true;
+}
+
+/** Reject emails from domains that don't match the prospect's website */
+function emailMatchesWebsite(email, website) {
+  if (!email || !website) return true; // Can't validate, allow
+  const emailDomain = email.split('@')[1]?.toLowerCase();
+  const siteDomain = website.toLowerCase().replace('www.', '');
+  if (emailDomain === siteDomain) return true;
+  // Allow contact@subdomain.site or similar
+  if (emailDomain?.endsWith('.' + siteDomain)) return true;
+  if (siteDomain?.endsWith('.' + emailDomain)) return true;
+  return false;
+}
+
+/** Reject names that are clearly promo text, not business names */
+function isValidBusinessName(name) {
+  if (!name || name.length < 2 || name.length > 80) return false;
+  // Promo/promotional text patterns
+  if (/\d+%\s*(de\s+)?remise/i.test(name)) return false;
+  if (/dernières?\s+disponibilit/i.test(name)) return false;
+  if (/promotion\s+pour/i.test(name)) return false;
+  if (/offert|gratuit|promo/i.test(name)) return false;
+  if (/jeux?\s+en\s+bois/i.test(name)) return false;
+  // Too short single word (likely generic)
+  if (name.length <= 3 && !name.includes(' ')) return false;
   return true;
 }
 
@@ -375,6 +403,7 @@ async function scrapeMariagesNet() {
 
         for (const p of providers) {
           if (fetched >= MARIAGES_PER_CATEGORY) break;
+          if (!isValidBusinessName(p.name)) continue;
           const key = normalizeName(p.name);
           if (!key || seen.has(key)) continue;
           seen.add(key);
@@ -693,6 +722,7 @@ async function saveToDatabase(entries) {
 
   const valid = entries.filter(e =>
     e.email && isProEmail(e.email) && isValidEmailFormat(e.email)
+    && emailMatchesWebsite(e.email, e.website)
   );
 
   console.log(`  Valid entries with pro email: ${valid.length}`);

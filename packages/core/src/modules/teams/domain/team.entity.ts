@@ -17,6 +17,7 @@ export const teamSchema = z.object({
   subscription_status: z.enum(['trial', 'active', 'cancelled', 'expired']).nullable(),
   subscription_period_start: z.date().nullable(),
   subscription_period_end: z.date().nullable(),
+  cancel_at_period_end: z.boolean(),
   ai_cost_limit_cents: z.number().int(),
   created_at: z.date(),
 });

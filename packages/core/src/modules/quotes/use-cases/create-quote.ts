@@ -78,7 +78,7 @@ export async function createQuote(input: {
 
   const validUntil = defaultValidUntil({ createdAt: new Date(), days: team?.quote_validity_days ?? 30 });
 
-  const row = await insertQuote({
+  const { id } = await insertQuote({
     teamId: input.teamId,
     createdBy: input.userId,
     clientId: input.clientId,
@@ -90,37 +90,35 @@ export async function createQuote(input: {
   });
 
   const client = await findClientById({ teamId: input.teamId, clientId: input.clientId });
+  const full = await findQuoteById({ teamId: input.teamId, quoteId: id });
 
-  // Re-fetch lines for view (we need the generated IDs)
-  const full = await findQuoteById({ teamId: input.teamId, quoteId: row.id });
-
-  logger.info('quote.created', { teamId: input.teamId, quoteId: row.id, number: row.number, totalTtc });
+  logger.info('quote.created', { teamId: input.teamId, quoteId: id, number: full!.number, totalTtc });
 
   await insertDocumentLog({
     teamId: input.teamId,
     documentType: 'quote',
-    documentId: row.id,
+    documentId: id,
     event: 'created',
   });
 
   return {
-    id: row.id,
-    number: row.number,
-    clientId: row.client_id,
+    id: full!.id,
+    number: full!.number,
+    clientId: full!.client_id,
     clientName: client ? getClientDisplayName(client) : undefined,
     clientEmail: client?.email ?? undefined,
-    title: row.title,
+    title: full!.title,
     lines: toLineViews(full!.lines),
-    totalHt: row.total_ht,
-    totalTtc: row.total_ttc,
+    totalHt: full!.total_ht,
+    totalTtc: full!.total_ttc,
     tvaGroups: toTvaGroups(full!.lines),
-    status: row.status,
+    status: full!.status,
     pdfUrl: null,
-    validUntil: row.valid_until?.toISOString() ?? null,
+    validUntil: full!.valid_until?.toISOString() ?? null,
     sentAt: null,
     acceptedAt: null,
     refusedAt: null,
     cancelledAt: null,
-    createdAt: row.created_at.toISOString(),
+    createdAt: full!.created_at.toISOString(),
   };
 }

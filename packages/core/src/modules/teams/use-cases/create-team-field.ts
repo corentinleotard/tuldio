@@ -1,5 +1,6 @@
 import type { TeamField, CreateTeamFieldRequest } from '@tuldio/common';
 import { insertTeamField } from '../repository/insert-team-field.js';
+import { findTeamFieldById } from '../repository/find-team-field-by-id.js';
 import { findTeamFields } from '../repository/find-team-fields.js';
 import { toTeamField } from '../domain/team-field.view.js';
 
@@ -23,7 +24,7 @@ export async function createTeamField(input: {
   const showQuote = scope !== 'invoice';
   const showInvoice = scope !== 'quote';
 
-  const row = await insertTeamField({
+  const { id } = await insertTeamField({
     teamId: input.teamId,
     key,
     label: input.label,
@@ -36,5 +37,6 @@ export async function createTeamField(input: {
     isSystem: false,
   });
 
-  return toTeamField(row);
+  const row = await findTeamFieldById({ teamId: input.teamId, fieldId: id });
+  return toTeamField(row!);
 }

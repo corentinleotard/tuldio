@@ -1,7 +1,6 @@
 import { query } from '../../../lib/database/db.js';
 import { HandledError } from '../../../lib/errors/handled-error.js';
 import { errorCodes } from '../../../lib/errors/error-codes.js';
-import type { ClientRow } from '../domain/client.entity.js';
 
 export async function updateClient(input: {
   teamId: string;
@@ -14,7 +13,7 @@ export async function updateClient(input: {
   email?: string;
   phone?: string;
   address?: string;
-}): Promise<ClientRow> {
+}): Promise<void> {
   const fields: string[] = [];
   const params: unknown[] = [];
   let idx = 1;
@@ -23,11 +22,7 @@ export async function updateClient(input: {
   const hasUpdate = updatableKeys.some((k) => input[k] !== undefined);
 
   if (!hasUpdate) {
-    const result = await query<ClientRow>(
-      `SELECT id, team_id, first_name, last_name, company_name, siret, tva_number, email, phone, address, notes, created_at FROM clients WHERE id = $1 AND team_id = $2`,
-      [input.clientId, input.teamId],
-    );
-    return result.rows[0]!;
+    return;
   }
 
   if (input.firstName !== undefined) {
@@ -69,14 +64,11 @@ export async function updateClient(input: {
   const teamIdIdx = idx;
 
   try {
-    const result = await query<ClientRow>(
+    await query(
       `UPDATE clients SET ${fields.join(', ')}
-       WHERE id = $${clientIdIdx} AND team_id = $${teamIdIdx}
-       RETURNING id, team_id, first_name, last_name, company_name, siret, tva_number, email, phone, address, notes, created_at`,
+       WHERE id = $${clientIdIdx} AND team_id = $${teamIdIdx}`,
       params,
     );
-
-    return result.rows[0]!;
   } catch (err: unknown) {
     const pgError = err as { code?: string; constraint?: string };
     if (pgError.code === '23505') {

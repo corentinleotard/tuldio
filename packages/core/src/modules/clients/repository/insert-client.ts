@@ -3,7 +3,6 @@ import { query } from '../../../lib/database/db.js';
 import { generateId } from '../../../lib/infra/id.js';
 import { HandledError } from '../../../lib/errors/handled-error.js';
 import { errorCodes } from '../../../lib/errors/error-codes.js';
-import type { ClientRow } from '../domain/client.entity.js';
 
 const insertClientSchema = z.object({
   teamId: z.string().uuid(),
@@ -27,15 +26,15 @@ export async function insertClient(input: {
   email?: string;
   phone?: string;
   address?: string;
-}): Promise<ClientRow> {
+}): Promise<{ id: string }> {
   const validated = insertClientSchema.parse(input);
   const id = generateId();
 
   try {
-    const result = await query<ClientRow>(
+    const result = await query<{ id: string }>(
       `INSERT INTO clients (id, team_id, first_name, last_name, company_name, siret, tva_number, email, phone, address)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-       RETURNING id, team_id, first_name, last_name, company_name, siret, tva_number, email, phone, address, notes, created_at`,
+       RETURNING id`,
       [
         id,
         validated.teamId,

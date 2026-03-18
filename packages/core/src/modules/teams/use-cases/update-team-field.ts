@@ -56,7 +56,7 @@ export async function updateTeamField(input: {
     }
   }
 
-  const row = await upsertTeamField({
+  await upsertTeamField({
     teamId,
     fieldId,
     value,
@@ -64,6 +64,7 @@ export async function updateTeamField(input: {
     showInvoice: effectiveShowInvoice,
   });
 
+  const row = await findTeamFieldById({ teamId, fieldId });
   if (!row) throw new HandledError(errorCodes.teamNotFound);
 
   if (row.key === 'tva_exempt' && row.value !== current.value) {

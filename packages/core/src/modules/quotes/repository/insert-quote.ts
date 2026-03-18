@@ -1,6 +1,5 @@
 import { query } from '../../../lib/database/db.js';
 import { generateId } from '../../../lib/infra/id.js';
-import type { QuoteRow } from '../domain/quote.entity.js';
 import type { InsertDocumentLine } from '../../documents/domain/document-validators.js';
 
 export type { InsertDocumentLine as InsertQuoteLine };
@@ -14,7 +13,7 @@ export async function insertQuote(input: {
   lines: InsertDocumentLine[];
   totalHt: number;
   totalTtc: number;
-}): Promise<QuoteRow> {
+}): Promise<{ id: string }> {
   const id = generateId();
   // Draft quotes get a temporary number — real sequential number assigned when leaving draft
   const number = `BROUILLON-${id}`;
@@ -22,10 +21,10 @@ export async function insertQuote(input: {
   await query('BEGIN');
 
   try {
-    const result = await query<QuoteRow>(
+    await query(
       `INSERT INTO quotes (id, team_id, created_by, client_id, number, title, total_ht, total_ttc, valid_until)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-       RETURNING id, team_id, created_by, client_id, number, title, total_ht, total_ttc, status, pdf_url, valid_until, sent_at, accepted_at, refused_at, cancelled_at, created_at`,
+       RETURNING id`,
       [id, input.teamId, input.createdBy, input.clientId, number, input.title ?? null, input.totalHt, input.totalTtc, input.validUntil ?? null],
     );
 
@@ -46,7 +45,7 @@ export async function insertQuote(input: {
     }
 
     await query('COMMIT');
-    return result.rows[0]!;
+    return { id };
   } catch (error) {
     await query('ROLLBACK');
     throw error;
