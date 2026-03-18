@@ -40,6 +40,7 @@ export async function createCheckoutSession(input: {
       customer: customerId,
       customer_update: { name: 'auto', address: 'auto' },
       mode: 'subscription',
+      allow_promotion_codes: true,
       line_items: [{ price: priceId, quantity: 1 }],
       success_url: input.successUrl,
       cancel_url: input.cancelUrl,
