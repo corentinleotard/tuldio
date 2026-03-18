@@ -6,6 +6,7 @@ import { handleListProspects } from '../controllers/god-prospection/handle-list-
 import { handleSendBatch } from '../controllers/god-prospection/handle-send-batch.js';
 import { handleSendTest } from '../controllers/god-prospection/handle-send-test.js';
 import { handleBatchStatus } from '../controllers/god-prospection/handle-batch-status.js';
+import { handleCancelBatch } from '../controllers/god-prospection/handle-cancel-batch.js';
 import { handleListSent } from '../controllers/god-prospection/handle-list-sent.js';
 import { handleListReceived } from '../controllers/god-prospection/handle-list-received.js';
 import { handleReply } from '../controllers/god-prospection/handle-reply.js';
@@ -21,6 +22,7 @@ router.get('/prospects', wrapHandler(handleListProspects));
 router.post('/send', wrapHandler(handleSendBatch));
 router.post('/send-test', wrapHandler(handleSendTest));
 router.get('/batch-status', wrapHandler(handleBatchStatus));
+router.post('/cancel', wrapHandler(handleCancelBatch));
 router.get('/sent', wrapHandler(handleListSent));
 router.get('/received', wrapHandler(handleListReceived));
 router.post('/reply', wrapHandler(handleReply));

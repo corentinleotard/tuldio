@@ -16,6 +16,14 @@ export const chatLimiter = rateLimit({
   message: { error: { code: 'RATE_LIMITED', message: 'Trop de messages, réessayez dans une minute' } },
 });
 
+export const inviteCodeLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: { code: 'RATE_LIMITED', message: 'Trop de tentatives' } },
+});
+
 export const otpLimiter = rateLimit({
   windowMs: 60 * 1000, // 1 minute
   max: 5,

@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Send, Loader2, FlaskConical } from 'lucide-react';
+import { Send, Loader2, FlaskConical, OctagonX } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import {
   sendBatch,
   sendTestEmail,
   fetchBatchStatus,
+  cancelBatch,
   type ProspectListResult,
 } from '../api/god-prospection.api';
 
@@ -74,6 +75,18 @@ export function SendControls(props: SendControlsProps) {
     onError: () => toast.error("Erreur lors de l'envoi du test"),
   });
 
+  const cancelMutation = useMutation({
+    mutationFn: cancelBatch,
+    onSuccess: (result) => {
+      if (result.cancelled) {
+        toast.success('Annulation demandée, les emails restants ne seront pas envoyés');
+      } else {
+        toast.info('Aucun envoi en cours');
+      }
+    },
+    onError: () => toast.error("Erreur lors de l'annulation"),
+  });
+
   const handleSend = () => {
     if (!body.trim()) {
       toast.error('Remplis le corps du message');
@@ -106,12 +119,23 @@ export function SendControls(props: SendControlsProps) {
       </div>
 
       {isRunning && batchStatus && (
-        <div className="flex items-center gap-3 rounded-md bg-primary/5 px-4 py-3 text-sm">
-          <Loader2 className="h-4 w-4 animate-spin text-primary" />
-          <span>
-            Envoi en cours : {batchStatus.sent}/{batchStatus.total}
-            {batchStatus.errors > 0 && ` (${batchStatus.errors} erreur(s))`}
-          </span>
+        <div className="flex items-center justify-between rounded-md bg-primary/5 px-4 py-3 text-sm">
+          <div className="flex items-center gap-3">
+            <Loader2 className="h-4 w-4 animate-spin text-primary" />
+            <span>
+              Envoi en cours : {batchStatus.sent}/{batchStatus.total}
+              {batchStatus.errors > 0 && ` (${batchStatus.errors} erreur(s))`}
+            </span>
+          </div>
+          <Button
+            variant="destructive"
+            size="sm"
+            onClick={() => cancelMutation.mutate()}
+            disabled={cancelMutation.isPending}
+          >
+            <OctagonX className="mr-1.5 h-3.5 w-3.5" />
+            Stop
+          </Button>
         </div>
       )}
 

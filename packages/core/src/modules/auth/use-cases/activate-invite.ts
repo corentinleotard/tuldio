@@ -5,6 +5,7 @@ import { logger } from '../../../lib/infra/logger.js';
 import { decodeInviteToken, hashInviteToken } from '../domain/invite-token.js';
 import { findInviteAccount } from '../repository/find-invite-account.js';
 import { insertInviteAccount } from '../repository/insert-invite-account.js';
+import { findInviteCode } from '../repository/find-invite-code.js';
 import { generateRefreshToken } from '../domain/validators.js';
 import { insertRefreshToken } from '../repository/insert-refresh-token.js';
 import { createUser } from '../../users/index.js';
@@ -15,22 +16,35 @@ import { query } from '../../../lib/database/db.js';
 import { getProfessionExample } from '../domain/profession-example.js';
 
 export async function activateInvite(input: {
-  token: string;
+  token?: string | null;
+  code?: string | null;
 }): Promise<{ auth: AuthResponse; refreshToken: string }> {
-  const secret = process.env.INVITE_JWT_SECRET;
-  if (!secret && process.env.NODE_ENV === 'production') {
-    throw new Error('INVITE_JWT_SECRET is required in production');
-  }
-
-  // Decode and verify the JWT
   let payload;
-  try {
-    payload = decodeInviteToken({ token: input.token, secret: secret || 'dev-invite-secret-change-in-production' });
-  } catch {
+  let tokenHash: string;
+
+  if (input.code) {
+    // Short code path (from prospection emails)
+    const codeResult = await findInviteCode({ code: input.code });
+    if (!codeResult || codeResult.expiresAt < new Date()) {
+      throw new HandledError(errorCodes.invalidInviteToken);
+    }
+    payload = { ...codeResult.payload, exp: Math.floor(codeResult.expiresAt.getTime() / 1000) };
+    tokenHash = `code:${input.code}`;
+  } else if (input.token) {
+    // Legacy JWT path
+    const secret = process.env.INVITE_JWT_SECRET;
+    if (!secret && process.env.NODE_ENV === 'production') {
+      throw new Error('INVITE_JWT_SECRET is required in production');
+    }
+    try {
+      payload = decodeInviteToken({ token: input.token, secret: secret || 'dev-invite-secret-change-in-production' });
+    } catch {
+      throw new HandledError(errorCodes.invalidInviteToken);
+    }
+    tokenHash = hashInviteToken({ token: input.token });
+  } else {
     throw new HandledError(errorCodes.invalidInviteToken);
   }
-
-  const tokenHash = hashInviteToken({ token: input.token });
 
   // Check if this token was already used → return existing account
   const existing = await findInviteAccount({ tokenHash });

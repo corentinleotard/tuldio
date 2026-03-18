@@ -102,6 +102,10 @@ export async function fetchBatchStatus(): Promise<BatchStatus> {
   return apiFetch('/api/god-prospection/batch-status');
 }
 
+export async function cancelBatch(): Promise<{ cancelled: boolean }> {
+  return apiFetch('/api/god-prospection/cancel', { method: 'POST' });
+}
+
 export async function replyToEmail(input: {
   to: string;
   subject: string;

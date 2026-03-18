@@ -15,6 +15,7 @@ import { DebugChatPage } from '@/modules/settings/pages/debug-chat-page';
 import { CompanyPage } from '@/modules/settings/pages/company-page';
 import { SubscriptionPage } from '@/modules/settings/pages/subscription-page';
 import { InvitePage } from '@/modules/auth/pages/invite-page';
+import { InviteCodePage } from '@/modules/auth/pages/invite-code-page';
 import { GodProspectionPage } from '@/modules/god-prospection/pages/god-prospection-page';
 import { PwaProvider } from '@/components/pwa-install-prompt';
 import { Toaster } from 'sonner';
@@ -54,6 +55,7 @@ export function App() {
             />
             {/* Invite landing — outside AppLayout */}
             <Route path="/invite/:token" element={<InvitePage />} />
+            <Route path="/i/:code" element={<InviteCodePage />} />
             {/* App routes — inside AppLayout */}
             <Route
               element={

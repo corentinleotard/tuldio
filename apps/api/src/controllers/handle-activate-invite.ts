@@ -4,10 +4,11 @@ import { signAccessToken } from '../lib/jwt.js';
 import { setAccessCookie, setRefreshCookie } from '../lib/cookies.js';
 
 export async function handleActivateInvite(req: Request, res: Response): Promise<void> {
-  const { token } = req.body as { token?: string };
+  const { token, code } = req.body as { token?: string; code?: string };
 
   const { auth, refreshToken } = await activateInvite({
-    token: token ?? '',
+    token: token ?? null,
+    code: code ?? null,
   });
 
   const accessToken = signAccessToken({

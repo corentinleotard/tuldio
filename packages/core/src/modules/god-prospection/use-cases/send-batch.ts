@@ -3,10 +3,9 @@ import { updateProspectStatus } from '../repository/update-prospect-status.js';
 import { getDailyCount, incrementDailyCount } from '../repository/god-send-log.js';
 import { sendEmail } from '../domain/smtp-client.js';
 import { buildProspectionEmailHtml, getSubjectForProfession } from '../domain/email-template.js';
-import { signInviteToken } from '../../auth/domain/invite-token.js';
+import { insertInviteCode } from '../../auth/repository/insert-invite-code.js';
 import { logger } from '../../../lib/infra/logger.js';
 
-const INVITE_SECRET = process.env.INVITE_JWT_SECRET || 'dev-invite-secret-change-in-production';
 const APP_URL = process.env.APP_URL || 'https://app.tuldio.fr';
 
 const DEFAULT_DAILY_LIMIT = 10;
@@ -27,9 +26,19 @@ export interface BatchStatus {
 }
 
 let currentBatch: BatchStatus = { running: false, sent: 0, errors: 0, total: 0 };
+let cancelRequested = false;
 
 export function getBatchStatus(): BatchStatus {
   return { ...currentBatch };
+}
+
+export function cancelBatch(): { cancelled: boolean } {
+  if (!currentBatch.running) {
+    return { cancelled: false };
+  }
+  cancelRequested = true;
+  logger.info('god-prospection.cancel-requested', { sent: currentBatch.sent, total: currentBatch.total });
+  return { cancelled: true };
 }
 
 const DRY_RUN = process.env.PROSPECTION_DRY_RUN === 'true';
@@ -64,6 +73,7 @@ export async function sendBatch(input: {
   }
 
   currentBatch = { running: true, sent: 0, errors: 0, total: batch.length };
+  cancelRequested = false;
 
   // Fire-and-forget — run in background
   runBatch(batch, input).catch((err) => {
@@ -88,21 +98,24 @@ async function runBatch(
   logger.info('god-prospection.batch-start', { count: batch.length, dryRun: DRY_RUN });
 
   for (const [i, prospect] of batch.entries()) {
+    if (cancelRequested) {
+      logger.info('god-prospection.batch-cancelled', { sent: currentBatch.sent, skipped: batch.length - i });
+      break;
+    }
+
     try {
-      // Generate invite token with prospect data
-      const inviteToken = signInviteToken({
-        payload: {
-          name: prospect.fullName.split(' ').map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' '),
-          address: null,
-          phone: prospect.phone,
-          website: prospect.website,
-          profession: prospect.profession,
-          firstName: prospect.firstName || null,
-        },
-        secret: INVITE_SECRET,
-        expiresInDays: 30,
-      });
-      const inviteUrl = `${APP_URL}/invite/${inviteToken}`;
+      // Generate short invite code and store payload in DB
+      const invitePayload = {
+        name: prospect.fullName.split(' ').map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' '),
+        address: null,
+        phone: prospect.phone,
+        website: prospect.website,
+        profession: prospect.profession,
+        firstName: prospect.firstName || null,
+      };
+      const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+      const code = await insertInviteCode({ payload: invitePayload, expiresAt });
+      const inviteUrl = `${APP_URL}/i/${code}`;
 
       const html = buildProspectionEmailHtml({
         firstName: prospect.firstName,
@@ -160,6 +173,7 @@ async function runBatch(
     }
   }
 
+  cancelRequested = false;
   currentBatch.running = false;
 }
 
@@ -168,19 +182,17 @@ export async function sendTestEmail(input: {
   body: string;
   profession: string;
 }): Promise<void> {
-  const inviteToken = signInviteToken({
-    payload: {
-      name: 'Cabinet Dupont Ostéopathie',
-      address: '12 rue de la Paix, 75002 Paris',
-      phone: '01 42 86 75 30',
-      website: null,
-      profession: input.profession,
-      firstName: 'Jean',
-    },
-    secret: INVITE_SECRET,
-    expiresInDays: 30,
-  });
-  const inviteUrl = `${APP_URL}/invite/${inviteToken}`;
+  const invitePayload = {
+    name: 'Cabinet Dupont Ostéopathie',
+    address: '12 rue de la Paix, 75002 Paris',
+    phone: '01 42 86 75 30',
+    website: null,
+    profession: input.profession,
+    firstName: 'Jean',
+  };
+  const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+  const code = await insertInviteCode({ payload: invitePayload, expiresAt });
+  const inviteUrl = `${APP_URL}/i/${code}`;
 
   const html = buildProspectionEmailHtml({
     firstName: 'Jean',
