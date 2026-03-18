@@ -66,7 +66,7 @@ export function buildProspectionEmailHtml(input: {
 }): string {
   const isHealth = HEALTH_PROFESSIONS.has(input.profession);
   const variables: Record<string, string> = {
-    firstName: capitalizeFirstName(input.firstName),
+    firstName: input.firstName ? capitalizeFirstName(input.firstName) : '',
     fullName: input.fullName.split(' ').map((w) => capitalizeFirstName(w)).join(' '),
     profession: input.profession,
     clients: isHealth ? 'patients' : 'clients',
@@ -80,7 +80,9 @@ export function buildProspectionEmailHtml(input: {
     }
   }
 
-  const resolvedBody = interpolateVariables(input.body, variables);
+  let resolvedBody = interpolateVariables(input.body, variables);
+  // Clean up "Bonjour ," when firstName is empty
+  resolvedBody = resolvedBody.replace(/ +([,!?])/g, '$1');
 
   const bodyHtml = linkifyUrls(escapeHtml(resolvedBody)).replace(/\n/g, '<br>');
 

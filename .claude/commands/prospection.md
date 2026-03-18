@@ -358,6 +358,43 @@ SELECT full_name, profession, website, contacted_via, status FROM god_prospects 
 5. Lancer envoi email sur les prospects qualifies (icp_score >= 7)
 6. Nettoyer les emails junk dans la DB
 
+## Envoi d'emails -- Dev/Prod workflow
+
+**IMPORTANT : ne JAMAIS executer ces scripts ou les modifier sans approbation explicite de l'utilisateur.**
+
+Les emails sont envoyes depuis **prod** (pour que les liens d'invitation fonctionnent). Les prospects sont scrapes sur **dev**. Un script de sync fait le pont.
+
+### Flow complet
+
+1. **Scraper sur dev** : `node scripts/prospection.mjs` (ou events-coaches)
+2. **Ouvrir le tunnel SSH** : `ssh -L 5433:localhost:5432 user@server -N` (dans un terminal separe)
+3. **Synchroniser dev → prod** : `pnpm prospects:sync` (necessite `DATABASE_URL_PROD` dans `.env`)
+4. **Envoyer depuis prod** : ouvrir `app.tuldio.fr`, page god-prospection, cliquer Envoyer
+5. **Bouton Stop** : arrete l'envoi en cours (les prospects non envoyes restent `new`)
+6. **Re-synchroniser** : `pnpm prospects:sync` (tire les statuts `sent`/`error` de prod vers dev)
+
+### Sync bidirectionnel (`scripts/sync-prospects.mjs`)
+
+- **Dev possede** : donnees prospect (nom, telephone, site, ICP, profession)
+- **Prod possede** : etat d'envoi (status, sent_at, sent_subject, sent_body_html, contacted_via)
+- Dev → Prod : push nouveaux prospects + MAJ enrichissement (jamais ecrasement du status prod)
+- Prod → Dev : pull statuts d'envoi (sent, error) pour que le UI dev soit a jour
+- Premier sync : prod est vide, tout est insere comme `new`
+
+### Subjects par profession
+
+Les sujets d'email sont generes automatiquement par profession (`getSubjectForProfession()` dans `email-template.ts`). Pas de champ sujet dans le UI.
+
+### Invite links
+
+Les emails contiennent un lien court `app.tuldio.fr/i/{code}` (8-11 chars). Le code est stocke dans la table `invite_codes` sur prod. Plus de long JWT dans l'URL.
+
+### Pre-requis
+
+- `DATABASE_URL_PROD` dans `.env` (connection string vers la DB prod, via tunnel SSH)
+- Migration `038-invite-codes.sql` appliquee sur prod
+- Tunnel SSH ouvert quand on execute `pnpm prospects:sync`
+
 ## Frontend
 
 Page `/prospection` avec 2 onglets :
