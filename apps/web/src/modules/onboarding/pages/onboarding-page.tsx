@@ -527,11 +527,11 @@ export function OnboardingPage() {
           <Checkbox checked={termsAccepted} onChange={setTermsAccepted} className="mt-0.5" />
           <p className="text-[13px] leading-relaxed text-muted-foreground">
             J&apos;accepte les{' '}
-            <a href="https://tuldio.com/cgu" target="_blank" rel="noopener noreferrer" className="text-primary underline">
+            <a href="https://tuldio.fr/cgu" target="_blank" rel="noopener noreferrer" className="text-primary underline">
               conditions générales d&apos;utilisation
             </a>{' '}
             et la{' '}
-            <a href="https://tuldio.com/confidentialite" target="_blank" rel="noopener noreferrer" className="text-primary underline">
+            <a href="https://tuldio.fr/confidentialite" target="_blank" rel="noopener noreferrer" className="text-primary underline">
               politique de confidentialité
             </a>
             . Je certifie que les informations fournies sont exactes.

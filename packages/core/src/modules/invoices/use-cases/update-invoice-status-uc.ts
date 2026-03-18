@@ -4,6 +4,7 @@ import { errorCodes } from '../../../lib/errors/error-codes.js';
 import { logger } from '../../../lib/infra/logger.js';
 import { validateInvoiceStatusTransition, acompteTotalExceedsQuote } from '../domain/validators.js';
 import { validateDocumentReady } from '../../documents/domain/validate-document-ready.js';
+import { categorizeReadinessErrors } from '../../documents/domain/categorize-readiness-errors.js';
 import { fetchDocumentContext } from '../../documents/repository/fetch-document-context.js';
 import { findInvoiceById } from '../repository/find-invoice-by-id.js';
 import { updateInvoiceStatus } from '../repository/update-invoice-status.js';
@@ -114,6 +115,10 @@ export async function updateInvoiceStatusUc(input: {
       lines: invoice.lines,
     });
     if (readinessErrors.length > 0) {
+      const { teamErrors } = categorizeReadinessErrors({ errors: readinessErrors });
+      if (teamErrors.length > 0) {
+        throw new HandledError(errorCodes.companyInfoRequired, teamErrors[0]!.message, readinessErrors);
+      }
       throw new HandledError(errorCodes.documentNotReady, readinessErrors[0]!.message, readinessErrors);
     }
   }

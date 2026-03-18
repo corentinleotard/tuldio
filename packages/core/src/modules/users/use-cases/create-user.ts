@@ -3,7 +3,7 @@ import { insertUser } from '../repository/insert-user.js';
 
 export async function createUser(input: {
   teamId: string;
-  email: string;
+  email: string | null;
   name: string;
   role: 'owner' | 'member';
 }): Promise<AuthUser> {

@@ -23,7 +23,12 @@ packages/
   types/        # API contract types (shared between API and web)
 ```
 
-Coding conventions are in `.claude/rules/` — auto-loaded per path.
+## URLs
+
+- **Website**: `https://tuldio.fr` (Astro, `apps/website/`) - marketing, CGU, confidentialite
+- **App**: `https://app.tuldio.fr` (React, `apps/web/`) - the product, invite links, chat
+
+Coding conventions are in `.claude/rules/` - auto-loaded per path.
 
 ## Mindset
 

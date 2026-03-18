@@ -2,7 +2,7 @@ import { query } from '../../../lib/database/db.js';
 
 export async function updateSubscriptionStatus(input: {
   teamId: string;
-  subscriptionStatus: 'trial' | 'active' | 'cancelled' | 'expired';
+  subscriptionStatus: 'trial' | 'active' | 'cancelled' | 'expired' | null;
   stripeCustomerId?: string | null;
   stripeSubscriptionId?: string | null;
   subscriptionPeriodStart?: Date | null;

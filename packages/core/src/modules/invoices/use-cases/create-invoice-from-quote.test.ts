@@ -10,13 +10,22 @@ async function seedTeamAndUser(teamId: string) {
     `INSERT INTO users (id, team_id, email, name) VALUES ($1, $2, $3, 'Test User')`,
     [userId, teamId, `test-${userId}@test.com`],
   );
+  // Seed required team fields for document readiness validation
+  await query(
+    `INSERT INTO team_fields (id, team_id, key, label, value, zone, scope, show_quote, show_invoice, sort_order, is_system)
+     VALUES ($1, $2, 'siret', 'SIRET', '12345678901234', 'identity', 'both', true, true, 0, true),
+            ($3, $2, 'address', 'Adresse', '1 rue de Paris, 75001 Paris', 'identity', 'both', true, true, 1, true),
+            ($4, $2, 'tva_number', 'N TVA', 'FR32123456789', 'identity', 'both', true, true, 6, true),
+            ($5, $2, 'payment_terms', 'Conditions de paiement', 'Paiement a reception de facture', 'payment', 'quote', true, false, 0, true)`,
+    [generateId(), teamId, generateId(), generateId(), generateId()],
+  );
   return userId;
 }
 
 async function seedClient(teamId: string) {
   const clientId = generateId();
   await query(
-    `INSERT INTO clients (id, team_id, first_name, last_name) VALUES ($1, $2, 'Jean', 'Martin')`,
+    `INSERT INTO clients (id, team_id, first_name, last_name, address) VALUES ($1, $2, 'Jean', 'Martin', '2 rue du Moulin, 69001 Lyon')`,
     [clientId, teamId],
   );
   return clientId;
@@ -25,8 +34,8 @@ async function seedClient(teamId: string) {
 async function seedQuote(input: { teamId: string; userId: string; clientId: string; status: string }) {
   const quoteId = generateId();
   await query(
-    `INSERT INTO quotes (id, team_id, created_by, client_id, number, title, total_ht, total_ttc, status)
-     VALUES ($1, $2, $3, $4, $5, 'Devis test', 10000, 12000, $6)`,
+    `INSERT INTO quotes (id, team_id, created_by, client_id, number, title, total_ht, total_ttc, status, pdf_url)
+     VALUES ($1, $2, $3, $4, $5, 'Devis test', 10000, 12000, $6, '/files/pdfs/test.pdf')`,
     [quoteId, input.teamId, input.userId, input.clientId, `DEV-${generateId().slice(0, 8)}`, input.status],
   );
   await query(

@@ -3,7 +3,7 @@ import { z } from 'zod';
 export const userSchema = z.object({
   id: z.string().uuid(),
   team_id: z.string().uuid(),
-  email: z.string().email(),
+  email: z.string().email().nullable(),
   phone: z.string().nullable(),
   name: z.string(),
   role: z.enum(['owner', 'member']),

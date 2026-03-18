@@ -11,7 +11,7 @@ export async function handleCreateCheckout(req: Request, res: Response): Promise
   const origin = req.headers.origin || 'http://localhost:5174';
   const { url } = await createCheckoutSession({
     teamId,
-    email: user.email,
+    email: user.email ?? '',
     successUrl: `${origin}/settings/subscription?success=true`,
     cancelUrl: `${origin}/settings/subscription?cancelled=true`,
   });

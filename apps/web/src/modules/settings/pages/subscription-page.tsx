@@ -49,7 +49,7 @@ function SubscribeButton({ loading, onClick }: { loading: boolean; onClick: () =
         disabled={loading}
         className="flex w-full items-center justify-center rounded-xl bg-primary py-3.5 text-[15px] font-semibold text-white transition-opacity hover:opacity-90 active:opacity-70 disabled:opacity-50"
       >
-        {loading ? 'Redirection...' : 'S\'abonner - 49 EUR/mois'}
+        {loading ? 'Redirection...' : 'S\'abonner - 29 €TTC/mois'}
       </button>
       <p className="mt-3 text-center text-[13px] text-muted-foreground">
         Paiement securise par Stripe. Annulable a tout moment.
@@ -63,7 +63,7 @@ export function SubscriptionPage() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
 
-  const status = team?.subscriptionStatus ?? 'trial';
+  const status = team?.subscriptionStatus;
   const [daysRemaining] = useState(() => getDaysRemaining(team?.trialEndsAt ?? null));
 
   async function handleCheckout() {
@@ -102,6 +102,30 @@ export function SubscriptionPage() {
 
       <h1 className="mb-6 text-[22px] font-bold tracking-tight text-primary">Abonnement</h1>
 
+      {/* Pre-trial state (no trial started yet) */}
+      {status === null && (
+        <div className="rounded-2xl border bg-card p-5">
+          <div className="mb-4 flex items-center justify-between">
+            <span className="text-lg font-bold">Essai gratuit</span>
+            <Badge variant="info">Non commence</Badge>
+          </div>
+
+          <p className="mb-4 text-sm text-muted-foreground">
+            Ton essai gratuit de 14 jours commencera des ton premier message dans le chat.
+          </p>
+
+          <div className="my-4 h-px bg-border" />
+
+          <div className="mb-4 flex items-baseline gap-1">
+            <span className="text-[28px] font-extrabold text-primary">29 €</span>
+            <span className="text-sm text-muted-foreground">TTC / mois</span>
+          </div>
+          <p className="mb-4 text-sm text-muted-foreground">Apres l'essai, tout Tuldio sans limites.</p>
+
+          <PlanFeatures />
+        </div>
+      )}
+
       {/* Trial state */}
       {status === 'trial' && (
         <>
@@ -125,8 +149,8 @@ export function SubscriptionPage() {
 
           <div className="rounded-2xl border bg-card p-5">
             <div className="mb-1 flex items-baseline gap-1">
-              <span className="text-[28px] font-extrabold text-primary">49 EUR</span>
-              <span className="text-sm text-muted-foreground">/ mois</span>
+              <span className="text-[28px] font-extrabold text-primary">29 €</span>
+              <span className="text-sm text-muted-foreground">TTC / mois</span>
             </div>
             <p className="mb-4 text-sm text-muted-foreground">Tout Tuldio, sans limites.</p>
 
@@ -154,8 +178,8 @@ export function SubscriptionPage() {
           <div className="my-4 h-px bg-border" />
 
           <div className="mb-4 flex items-baseline gap-1">
-            <span className="text-[28px] font-extrabold text-primary">49 EUR</span>
-            <span className="text-sm text-muted-foreground">/ mois</span>
+            <span className="text-[28px] font-extrabold text-primary">29 €</span>
+            <span className="text-sm text-muted-foreground">TTC / mois</span>
           </div>
 
           <PlanFeatures />
@@ -176,8 +200,8 @@ export function SubscriptionPage() {
             </div>
 
             <div className="mb-1 flex items-baseline gap-1">
-              <span className="text-[28px] font-extrabold text-primary">49 EUR</span>
-              <span className="text-sm text-muted-foreground">/ mois</span>
+              <span className="text-[28px] font-extrabold text-primary">29 €</span>
+              <span className="text-sm text-muted-foreground">TTC / mois</span>
             </div>
 
             <div className="my-4 h-px bg-border" />

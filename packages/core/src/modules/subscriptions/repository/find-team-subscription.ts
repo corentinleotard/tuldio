@@ -1,7 +1,7 @@
 import { query } from '../../../lib/database/db.js';
 
 export interface TeamSubscriptionRow {
-  subscription_status: 'trial' | 'active' | 'cancelled' | 'expired';
+  subscription_status: 'trial' | 'active' | 'cancelled' | 'expired' | null;
   trial_ends_at: Date | null;
   subscription_period_start: Date | null;
   subscription_period_end: Date | null;

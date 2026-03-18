@@ -18,6 +18,7 @@ import {
   getStatusDotClass,
 } from '@/modules/documents/components/status-config';
 import { ClientInfoPrompt, getMissingClientFields } from './client-info-prompt';
+import { CompanyInfoModal } from '@/modules/settings/components/company-info-modal';
 
 interface DocumentReadiness {
   errors: { code: string; message: string }[];
@@ -36,6 +37,8 @@ export function RichCardInvoice({ data, onLiveData, onDeleted }: RichCardInvoice
   const [busy, setBusy] = useState<string | null>(null);
   const [deleted, setDeleted] = useState(false);
   const [pendingAction, setPendingAction] = useState<string | null>(null);
+  const [companyModalOpen, setCompanyModalOpen] = useState(false);
+  const [companyModalErrors, setCompanyModalErrors] = useState<Array<{ code: string; message: string }>>([]);
   const onLiveDataRef = useRef(onLiveData);
   const onDeletedRef = useRef(onDeleted);
   onLiveDataRef.current = onLiveData;
@@ -96,7 +99,7 @@ export function RichCardInvoice({ data, onLiveData, onDeleted }: RichCardInvoice
       if (action === 'sent') {
         const updated = await apiFetch<InvoiceView>(`/api/invoices/${data.id}/send-email`, {
           method: 'POST',
-        });
+        }, ['COMPANY_INFO_REQUIRED']);
         setLiveData(updated);
         onLiveData?.(updated);
         queryClient.invalidateQueries({ queryKey: ['invoices'] });
@@ -110,13 +113,18 @@ export function RichCardInvoice({ data, onLiveData, onDeleted }: RichCardInvoice
         await apiFetch(`/api/invoices/${data.id}/status`, {
           method: 'PUT',
           body: JSON.stringify({ status: action }),
-        });
+        }, ['COMPANY_INFO_REQUIRED']);
         setLiveData((d) => ({ ...d, status: action as InvoiceView['status'] }));
         queryClient.invalidateQueries({ queryKey: ['invoices'] });
       }
       setPendingAction(null);
-    } catch {
-      // error toast already shown by apiFetch
+    } catch (err: unknown) {
+      const error = err as { code?: string; details?: Array<{ code: string; message: string }> };
+      if (error.code === 'COMPANY_INFO_REQUIRED') {
+        setCompanyModalErrors(error.details ?? []);
+        setCompanyModalOpen(true);
+      }
+      // other errors: toast already shown by apiFetch
     } finally {
       setBusy(null);
     }
@@ -301,6 +309,21 @@ export function RichCardInvoice({ data, onLiveData, onDeleted }: RichCardInvoice
             loading={busy !== null}
           />
         )}
+
+        <CompanyInfoModal
+          open={companyModalOpen}
+          onClose={() => setCompanyModalOpen(false)}
+          onComplete={() => {
+            setCompanyModalOpen(false);
+            if (pendingAction) {
+              executeAction(pendingAction);
+            } else if (promoted) {
+              executeAction(promoted);
+            }
+          }}
+          errors={companyModalErrors}
+          documentType="invoice"
+        />
 
         {confirmingCancel && (
           <div className="mt-3 flex items-center justify-between rounded-lg border border-destructive/30 bg-destructive/5 p-3">

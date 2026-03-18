@@ -3,7 +3,11 @@ import { updateProspectStatus } from '../repository/update-prospect-status.js';
 import { getDailyCount, incrementDailyCount } from '../repository/god-send-log.js';
 import { sendEmail } from '../domain/smtp-client.js';
 import { buildProspectionEmailHtml } from '../domain/email-template.js';
+import { signInviteToken } from '../../auth/domain/invite-token.js';
 import { logger } from '../../../lib/infra/logger.js';
+
+const INVITE_SECRET = process.env.INVITE_JWT_SECRET || 'dev-invite-secret-change-in-production';
+const APP_URL = process.env.APP_URL || 'https://app.tuldio.fr';
 
 const DEFAULT_DAILY_LIMIT = 10;
 const DELAY_BETWEEN_EMAILS_MS = 120_000; // 2 minutes
@@ -78,18 +82,36 @@ export async function sendBatch(input: {
 }
 
 async function runBatch(
-  batch: Array<{ firstName: string; fullName: string; profession: string; email: string }>,
+  batch: Array<{ firstName: string; fullName: string; profession: string; email: string; phone: string | null; website: string | null }>,
   input: { subject: string; body: string },
 ): Promise<void> {
   logger.info('god-prospection.batch-start', { count: batch.length, dryRun: DRY_RUN });
 
   for (const [i, prospect] of batch.entries()) {
     try {
+      // Generate invite token with prospect data
+      const inviteToken = signInviteToken({
+        payload: {
+          name: prospect.fullName.split(' ').map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' '),
+          address: null,
+          phone: prospect.phone,
+          website: prospect.website,
+          profession: prospect.profession,
+          firstName: prospect.firstName || null,
+        },
+        secret: INVITE_SECRET,
+        expiresInDays: 30,
+      });
+      const inviteUrl = `${APP_URL}/invite/${inviteToken}`;
+
+      // Append invite block to email body
+      const bodyWithInvite = input.body + `\n\nVotre espace est déjà prêt avec vos informations : ${inviteUrl}`;
+
       const html = buildProspectionEmailHtml({
         firstName: prospect.firstName,
         fullName: prospect.fullName,
         profession: prospect.profession,
-        body: input.body,
+        body: bodyWithInvite,
       });
 
       if (DRY_RUN) {
@@ -146,11 +168,27 @@ export async function sendTestEmail(input: {
   subject: string;
   body: string;
 }): Promise<void> {
+  const inviteToken = signInviteToken({
+    payload: {
+      name: 'Cabinet Dupont Ostéopathie',
+      address: '12 rue de la Paix, 75002 Paris',
+      phone: '01 42 86 75 30',
+      website: null,
+      profession: 'Ostéopathe',
+      firstName: 'Jean',
+    },
+    secret: INVITE_SECRET,
+    expiresInDays: 30,
+  });
+  const inviteUrl = `${APP_URL}/invite/${inviteToken}`;
+
+  const bodyWithInvite = input.body + `\n\nVotre espace est déjà prêt avec vos informations : ${inviteUrl}`;
+
   const html = buildProspectionEmailHtml({
     firstName: 'Jean',
     fullName: 'DUPONT Jean',
     profession: 'Ostéopathe',
-    body: input.body,
+    body: bodyWithInvite,
   });
 
   await sendEmail({
@@ -159,5 +197,5 @@ export async function sendTestEmail(input: {
     html,
   });
 
-  logger.info('god-prospection.test-sent', { to: input.to });
+  logger.info('god-prospection.test-sent', { to: input.to, inviteUrl });
 }

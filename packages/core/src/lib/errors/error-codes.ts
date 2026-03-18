@@ -229,6 +229,21 @@ export const errorCodes = {
     statusCode: 429,
     message: 'Un email a déjà été envoyé il y a moins d\'une minute',
   },
+  companyInfoRequired: {
+    code: 'COMPANY_INFO_REQUIRED',
+    statusCode: 422,
+    message: 'Informations entreprise requises',
+  },
+  invalidInviteToken: {
+    code: 'INVALID_INVITE_TOKEN',
+    statusCode: 400,
+    message: "Lien d'invitation invalide ou expiré",
+  },
+  emailAlreadyUsed: {
+    code: 'EMAIL_ALREADY_USED',
+    statusCode: 409,
+    message: 'Cette adresse email est déjà utilisée par un autre compte',
+  },
 } as const;
 
 export type ErrorCode = (typeof errorCodes)[keyof typeof errorCodes];

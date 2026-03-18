@@ -1,9 +1,8 @@
-import { Navigate, useLocation } from 'react-router-dom';
+import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/lib/auth-context';
 
 export function AuthGuard({ children }: { children: React.ReactNode }) {
-  const { user, team, isLoading } = useAuth();
-  const location = useLocation();
+  const { user, isLoading } = useAuth();
 
   if (isLoading) {
     return (
@@ -15,12 +14,6 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
 
   if (!user) {
     return <Navigate to="/login" replace />;
-  }
-
-  const siret = team?.fields.find((f) => f.key === 'siret')?.value;
-  const needsOnboarding = team && (!team.termsAcceptedAt || !siret);
-  if (needsOnboarding && location.pathname !== '/onboarding') {
-    return <Navigate to="/onboarding" replace />;
   }
 
   return <>{children}</>;

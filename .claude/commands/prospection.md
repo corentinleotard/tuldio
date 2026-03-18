@@ -1,19 +1,22 @@
-# Prospection praticiens santé + artisans
+# Prospection praticiens santé + artisans + événementiel + coaches
 
-Alimente la table PostgreSQL `god_prospects` avec des prospects qualifiés (praticiens de santé libéraux + petits artisans) en France.
+Alimente la table PostgreSQL `god_prospects` avec des prospects qualifiés en France.
 
 ## Pipeline
 
 1. **Sources de données** :
    - RPPS (data.gouv.fr) → praticiens de santé libéraux
    - Annuaire des Entreprises API (INSEE/SIRENE) → artisans < 10 salariés
-2. **Enrichissement** : DDG search + Playwright → site web → extraire email pro + téléphone
+   - Mariages.net → prestataires événementiels (photographes, traiteurs, DJ, wedding planners...)
+   - Annuaire des Entreprises API → coaches, formateurs, consultants
+2. **Enrichissement** : DDG search + Playwright (artisans/santé) ou puppeteer-extra+stealth (événementiel) → site web → extraire email pro + téléphone
 3. **Qualification AI** : Claude CLI (`claude -p --model haiku`) évalue chaque prospect (score ICP 1-10). Utilise le Max subscription, pas l'API key.
 4. **Déduplication** : `ON CONFLICT (email) DO NOTHING` — unicité stricte, **jamais d'override**
 5. **Stockage** : PostgreSQL `god_prospects` table
 
-## Script
+## Scripts
 
+### Artisans + Santé (script original)
 ```bash
 node scripts/prospection.mjs                  # Full pipeline (RPPS + artisans + enrichment + AI scoring + DB)
 node scripts/prospection.mjs --skip-enrich    # Sources only, no web scraping
@@ -21,15 +24,61 @@ node scripts/prospection.mjs --artisans-only  # Skip RPPS, only artisans
 node scripts/prospection.mjs --import-excel   # One-time: import existing Excel to DB
 ```
 
-Le script est **resumable** — l'état de scraping est persisté dans `data/scrape-state.json`. Chaque exécution reprend là où la précédente s'est arrêtée.
+### Événementiel + Coaches (nouveau)
+```bash
+node scripts/prospection-events-coaches.mjs                    # Full pipeline
+node scripts/prospection-events-coaches.mjs --skip-enrich      # Sources only
+node scripts/prospection-events-coaches.mjs --enrich-only      # Just enrich existing
+node scripts/prospection-events-coaches.mjs --mariages-only    # Skip coaches
+node scripts/prospection-events-coaches.mjs --coaches-only     # Skip mariages.net
+```
 
-**Limit** : `WEB_SCRAPE_DAILY_LIMIT` dans le script (actuellement 10 pour test, monter à 100-500 pour production).
+Les deux scripts sont **resumable** — l'état de scraping est persisté dans `data/scrape-state.json` et `data/scrape-state-events-coaches.json`. Chaque exécution reprend là où la précédente s'est arrêtée.
+
+**Limit** : `WEB_SCRAPE_DAILY_LIMIT` dans chaque script (actuellement 10 pour test, monter à 100-500 pour production).
 
 ## Professions ciblées
 
 **Santé (RPPS):** Ostéopathe, Chiropracteur, Diététicien
 
 **Artisans (NAF):** Maçon, Terrassier, Électricien, Plombier, Chauffagiste, Plâtrier, Menuisier, Serrurier-Métallier, Carreleur, Peintre, Charpentier, Couvreur, Étanchéiste, Isolation, Paysagiste, Démolition, Finition, Construction
+
+**Événementiel (Mariages.net):** Photographe mariage, Vidéaste mariage, DJ/Musicien mariage, Traiteur mariage, Décorateur mariage, Wedding planner, Fleuriste mariage, Pâtissier mariage
+
+**Coaches/Formateurs (NAF):** Consultant (70.22Z), Formateur (85.59A), Coach (85.59B), Photographe (74.20Z), Organisateur événementiel (82.30Z)
+
+## Mariages.net — Details techniques
+
+**Anti-bot** : Mariages.net bloque Playwright headless ("Access Denied"). Le script utilise puppeteer-extra + stealth plugin + profil Chrome réel (même setup que fill-forms.mjs). **Copier le profil Chrome avant de lancer** (voir Etape 1 du form fill).
+
+**URL slugs confirmés** (testés 2026-03-18) :
+```
+photo-mariage          → Photographe mariage (~61 résultats page 1)
+video-mariage          → Vidéaste mariage (~36)
+musique-mariage        → DJ / Musicien mariage (~36)
+traiteur-mariage       → Traiteur mariage (~36)
+decoration-mariage     → Décorateur mariage (~36)
+organisation-mariage   → Wedding planner (~34)
+fleurs-mariage         → Fleuriste mariage (~36)
+wedding-cake           → Pâtissier mariage (~36)
+```
+
+**Structure des listings** : liens avec pattern `a[href*="--e"]` → `/category/nom--eID`. Pas de contact direct visible sur les listings (tout passe par leur plateforme). On extrait le nom + ville, puis on cherche leur vrai site via DDG.
+
+**Rendement attendu** : ~311 prospects uniques sur une passe (80 max par catégorie, dédupliqués). Augmenter `MARIAGES_PER_CATEGORY` pour plus (pagination fonctionne via `?page=N`).
+
+**Pagination** : `https://www.mariages.net/{slug}?page={N}`. ~36 résultats par page. Max 20 pages par catégorie par défaut.
+
+## Rendement attendu par source
+
+| Source | Prospects par run | Avec email pro | Notes |
+|--------|-------------------|----------------|-------|
+| RPPS (santé) | ~3000 uniques | ~200 (après SFDO + DDG) | Ostéos = meilleur taux |
+| Annuaire Entreprises (artisans) | ~1800 (100/NAF) | ~100-200 (DDG+scrape) | Petites villes = meilleur taux |
+| Mariages.net | ~311 (80/catégorie) | À valider | Prestataires ont quasi tous un site |
+| Annuaire Entreprises (coaches) | ~500 (100/NAF) | À valider | Consultants souvent sans site perso |
+
+**Priorité contact form > email.** Les prestataires événementiels lisent leurs formulaires de contact (c'est comme ça que les clients les contactent). Les artisans aussi. Les coaches sont plus variables.
 
 ## Deduplication & Safety
 
@@ -71,7 +120,7 @@ SELECT full_name, website, profession FROM god_prospects WHERE contacted_via = '
 
 ### FLOW COMPLET — de A a Z
 
-Quand l'utilisateur demande "fill N artisan forms", voici le flow exact :
+Quand l'utilisateur demande "fill N forms" (artisans, événementiel, ou coaches), voici le flow exact :
 
 **Etape 1 — Copier le profil Chrome (OBLIGATOIRE, 1 fois par session)**
 
@@ -171,14 +220,27 @@ const SITES = [
 ];
 ```
 
-Professions supportees : Plombier, Electricien, Menuisier, Macon, Carreleur, Charpentier, Peintre, Couvreur, Paysagiste, Terrassier.
+Professions supportees : Plombier, Electricien, Menuisier, Macon, Carreleur, Charpentier, Peintre, Couvreur, Paysagiste, Terrassier, Photographe mariage, Videaste mariage, DJ / Musicien mariage, Traiteur mariage, Decorateur mariage, Wedding planner, Fleuriste mariage, Patissier mariage, Coach, Formateur, Consultant, Photographe, Organisateur evenementiel.
 
 ### Trouver de nouvelles cibles
 
-1. **WebSearch** : chercher "[profession] artisan [petite ville] site web" (bloquer les plateformes connues)
-2. **Annuaire des Entreprises API** : `https://recherche-entreprises.api.gouv.fr/search?activite_principale=[NAF]&departement=[dept]&per_page=25`
-3. **Verifier le site** : vrai artisan = nom d'entreprise dans le domaine, adresse physique, SIRET, photos de chantiers
-4. **Scanner le formulaire** : visiter le site, chercher la page contact, verifier s'il y a un formulaire et quel type de captcha
+**Artisans BTP :**
+1. **Annuaire des Entreprises API** : `https://recherche-entreprises.api.gouv.fr/search?activite_principale=[NAF]&departement=[dept]&per_page=25`
+2. **WebSearch** : chercher "[nom entreprise] [profession] [ville] contact" (bloquer les plateformes)
+3. **Verifier** : nom du gerant dans le domaine, adresse physique, SIRET, photos de chantiers
+4. **Scanner le formulaire** : page contact, type de captcha
+
+**Événementiel (mariages) :**
+1. Le script `prospection-events-coaches.mjs` scrape mariages.net automatiquement (nom + ville)
+2. **WebSearch** : chercher "[nom prestataire] [profession] [ville] site" — ils ont quasi tous un site perso
+3. **Verifier** : portfolio, tarifs, formulaire de contact ou email pro
+4. Aussi cherchable via : Google Maps "[photographe/traiteur/DJ] mariage [ville]"
+
+**Coaches / Formateurs :**
+1. **Annuaire des Entreprises API** avec NAF 70.22Z (consultant), 85.59A (formateur), 85.59B (coach)
+2. **WebSearch** : chercher "[nom] [coach/formateur/consultant] [ville] site"
+3. **Verifier** : page "à propos", offres/tarifs, formulaire de contact
+4. Aussi trouvables via LinkedIn (mais on contacte via leur site, pas LinkedIn)
 
 ### Infos a utiliser pour remplir les formulaires
 
@@ -188,16 +250,45 @@ Professions supportees : Plombier, Electricien, Menuisier, Macon, Carreleur, Cha
 - Email : corentin@try-tuldio.fr
 - Telephone : 06 31 86 33 77 (uniquement dans le champ telephone si requis, JAMAIS dans le message)
 
-### Message type
+### Messages type
 
 IMPORTANT : pas de caracteres speciaux. Adapter au domaine du prospect. Rester simple et direct. Ne PAS mettre le telephone dans le message.
 
+**Artisans BTP :**
 ```
 Bonjour,
 
 Je me permets de vous contacter car j ai cree Tuldio, un outil simple pour les [plombiers/electriciens/macons...].
 
 Vous envoyez un message, votre devis ou facture est pret en 30 secondes. C est tout. Pas de logiciel, pas de formation, pas de prise de tete.
+
+Jetez un oeil ici : https://tuldio.fr
+
+Bonne journee,
+Corentin
+```
+
+**Événementiel (photographes, traiteurs, DJ, wedding planners...) :**
+```
+Bonjour,
+
+Je me permets de vous contacter car j ai cree Tuldio, un outil simple pour les [photographes/traiteurs/wedding planners...].
+
+Vous envoyez un message, votre devis est pret en 30 secondes. Depuis votre telephone, entre deux prestations. Pas de logiciel, pas de formation.
+
+Jetez un oeil ici : https://tuldio.fr
+
+Bonne journee,
+Corentin
+```
+
+**Coaches / Formateurs / Consultants :**
+```
+Bonjour,
+
+Je me permets de vous contacter car j ai cree Tuldio, un outil simple pour les [coachs et formateurs/consultants independants/formateurs independants].
+
+Vous envoyez un message, votre devis ou facture est pret en 30 secondes. Pas de logiciel complique, pas de formation. Tout se fait par message.
 
 Jetez un oeil ici : https://tuldio.fr
 
@@ -239,10 +330,18 @@ mission-plomberie.fr, missionelectricien.fr, plomberie-toulouse.fr,
 plombierstoulouse.com, plombierthononlesbains.fr, bons-artisans.fr
 ```
 
-### Comment reconnaitre un VRAI site d'artisan
+### Sites a BLOQUER (événementiel / coaches)
 
-**Vrai** : nom du gerant dans le domaine, adresse physique, tel local, photos de chantiers, SIRET visible.
-**Faux** : domaine generique, "Trouvez un artisan", formulaire qui dispatche a plusieurs artisans, pas de SIRET.
+```
+mariages.net, zankyou.fr, mariee.fr, lamarieeencolere.com, theknot.com,
+weddingwire.com, fearlessphotographers.com, malt.fr, superprof.fr,
+doctolib.fr, pinterest.com, pinterest.fr
+```
+
+### Comment reconnaitre un VRAI site de prestataire
+
+**Vrai** : nom du gerant/entreprise dans le domaine, adresse physique, tel, portfolio/photos de realisations, SIRET visible, formulaire de contact.
+**Faux** : domaine generique, plateforme/annuaire, formulaire qui dispatche a plusieurs prestataires, pas de SIRET.
 
 ## Progress & state
 
@@ -252,10 +351,12 @@ SELECT full_name, profession, website, contacted_via, status FROM god_prospects 
 ```
 
 ### Prochaines etapes
-1. Continuer form fill (ajouter des URLs dans SITES, relancer le script)
-2. Augmenter WEB_SCRAPE_DAILY_LIMIT a 100+ pour enrichir plus d'artisans via prospection.mjs
-3. Lancer envoi email sur les prospects qualifies (icp_score >= 7)
-4. Nettoyer les emails junk dans la DB
+1. Continuer form fill artisans (ajouter des URLs dans SITES, relancer le script)
+2. Lancer `prospection-events-coaches.mjs` pour scraper mariages.net + coaches
+3. Form fill sur les prestataires événementiels et coaches avec site web
+4. Augmenter WEB_SCRAPE_DAILY_LIMIT a 100+ pour enrichir plus de prospects
+5. Lancer envoi email sur les prospects qualifies (icp_score >= 7)
+6. Nettoyer les emails junk dans la DB
 
 ## Frontend
 

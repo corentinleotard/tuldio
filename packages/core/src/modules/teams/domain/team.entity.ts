@@ -14,7 +14,7 @@ export const teamSchema = z.object({
   stripe_customer_id: z.string().nullable(),
   stripe_subscription_id: z.string().nullable(),
   trial_ends_at: z.date().nullable(),
-  subscription_status: z.enum(['trial', 'active', 'cancelled', 'expired']),
+  subscription_status: z.enum(['trial', 'active', 'cancelled', 'expired']).nullable(),
   subscription_period_start: z.date().nullable(),
   subscription_period_end: z.date().nullable(),
   ai_cost_limit_cents: z.number().int(),

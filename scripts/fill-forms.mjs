@@ -44,12 +44,64 @@ const CONTACT_INFO = {
 
 function getMessage(profession) {
   const map = {
+    // Artisans BTP
     Plombier: 'plombiers', Électricien: 'electriciens', Menuisier: 'menuisiers',
     Maçon: 'macons', Carreleur: 'carreleurs', Charpentier: 'charpentiers',
     Peintre: 'peintres', Couvreur: 'couvreurs', Paysagiste: 'paysagistes',
     Terrassier: 'terrassiers',
+    // Événementiel
+    'Photographe mariage': 'photographes',
+    'Vidéaste mariage': 'videastes',
+    'DJ / Musicien mariage': 'DJ et musiciens',
+    'Traiteur mariage': 'traiteurs',
+    'Décorateur mariage': 'decorateurs evenementiels',
+    'Wedding planner': 'wedding planners',
+    'Fleuriste mariage': 'fleuristes',
+    'Pâtissier mariage': 'patissiers',
+    // Coaches / Formateurs
+    Coach: 'coachs et formateurs',
+    Formateur: 'formateurs independants',
+    Consultant: 'consultants independants',
+    Photographe: 'photographes',
+    'Organisateur événementiel': 'organisateurs evenementiels',
   };
-  const target = map[profession] || 'artisans';
+
+  const target = map[profession] || 'independants';
+
+  // Adapted message per segment
+  const isEvent = profession.includes('mariage') || profession === 'Wedding planner' || profession === 'Organisateur événementiel';
+  const isCoach = ['Coach', 'Formateur', 'Consultant'].includes(profession);
+
+  if (isEvent) {
+    return [
+      'Bonjour,',
+      '',
+      `Je me permets de vous contacter car j ai cree Tuldio, un outil simple pour les ${target}.`,
+      '',
+      'Vous envoyez un message, votre devis est pret en 30 secondes. Depuis votre telephone, entre deux prestations. Pas de logiciel, pas de formation.',
+      '',
+      'Jetez un oeil ici : https://tuldio.fr',
+      '',
+      'Bonne journee,',
+      'Corentin',
+    ].join('\n');
+  }
+
+  if (isCoach) {
+    return [
+      'Bonjour,',
+      '',
+      `Je me permets de vous contacter car j ai cree Tuldio, un outil simple pour les ${target}.`,
+      '',
+      'Vous envoyez un message, votre devis ou facture est pret en 30 secondes. Pas de logiciel complique, pas de formation. Tout se fait par message.',
+      '',
+      'Jetez un oeil ici : https://tuldio.fr',
+      '',
+      'Bonne journee,',
+      'Corentin',
+    ].join('\n');
+  }
+
   return [
     'Bonjour,',
     '',

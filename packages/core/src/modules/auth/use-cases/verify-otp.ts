@@ -9,16 +9,19 @@ import { insertRefreshToken } from '../repository/insert-refresh-token.js';
 import { findUserByEmailUc, createUser } from '../../users/index.js';
 import { createTeam, getTeam } from '../../teams/index.js';
 import { createMessage } from '../../messages/index.js';
+import { updateUserEmail } from '../../users/repository/update-user-email.js';
+import { findUserById } from '../../users/repository/find-user-by-id.js';
 
 export async function verifyOtp(input: {
   email: string;
   code: string;
+  attachToUserId?: string;
 }): Promise<{ auth: AuthResponse; refreshToken: string }> {
   const email = normalizeEmail(input.email);
 
   // Dev bypass: accept any code
   if (process.env.NODE_ENV !== 'production') {
-    logger.info(`[OTP] Dev bypass for ${email} — skipping verification`);
+    logger.info(`[OTP] Dev bypass for ${email},skipping verification`);
   } else {
     const otp = await findValidOtp({ email, code: input.code });
     if (!otp) {
@@ -27,6 +30,46 @@ export async function verifyOtp(input: {
     await markOtpUsed(otp.id);
   }
 
+  // Attach email to existing user (token flow: user exists but has no email yet)
+  if (input.attachToUserId) {
+    const existingWithEmail = await findUserByEmailUc(email);
+    if (existingWithEmail) {
+      throw new HandledError(errorCodes.emailAlreadyUsed);
+    }
+
+    const userRow = await findUserById(input.attachToUserId);
+    if (!userRow) {
+      throw new HandledError(errorCodes.userNotFound);
+    }
+
+    if (userRow.email) {
+      throw new HandledError(errorCodes.emailAlreadyUsed);
+    }
+
+    await updateUserEmail({ userId: input.attachToUserId, email });
+    logger.info('auth.email_attached', { userId: input.attachToUserId, email });
+
+    const refreshToken = generateRefreshToken();
+    await insertRefreshToken({ userId: userRow.id, token: refreshToken });
+    const team = await getTeam(userRow.team_id);
+
+    return {
+      auth: {
+        user: {
+          id: userRow.id,
+          email,
+          name: userRow.name,
+          teamId: userRow.team_id,
+          role: userRow.role,
+          god: userRow.god,
+        },
+        team,
+      },
+      refreshToken,
+    };
+  }
+
+  // Standard flow: find or create user
   const existingUser = await findUserByEmailUc(email);
 
   let user;
@@ -64,12 +107,12 @@ export async function verifyOtp(input: {
       '',
       '> « Fais un devis pour Jean Martin, pose de carrelage 35m² à 55€/m² »',
       '',
-      "Je m'occupe du devis, du PDF, et je peux l'envoyer par email — tout ça depuis cette conversation.",
+      "Je m'occupe du devis, du PDF, et je peux l'envoyer par email,tout ça depuis cette conversation.",
       '',
       'Quelques idées de ce que je sais faire :',
-      '- **Devis & factures** — "Fais un devis…", "Facture le devis de Martin"',
-      '- **Clients** — "Ajoute un client Dupont, 06 12 34 56 78"',
-      '- **Stats** — "Combien j\'ai facturé ce mois-ci ?"',
+      '- **Devis & factures**,"Fais un devis…", "Facture le devis de Martin"',
+      '- **Clients**,"Ajoute un client Dupont, 06 12 34 56 78"',
+      '- **Stats**,"Combien j\'ai facturé ce mois-ci ?"',
       '',
       "**Qu'est-ce que je peux faire pour toi ?**",
     ].join('\n');

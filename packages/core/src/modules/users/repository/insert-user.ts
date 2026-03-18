@@ -5,14 +5,14 @@ import type { UserRow } from '../domain/user.entity.js';
 
 const insertUserSchema = z.object({
   teamId: z.string().uuid(),
-  email: z.string().email(),
+  email: z.string().email().nullable(),
   name: z.string().min(1),
   role: z.enum(['owner', 'member']),
 });
 
 export async function insertUser(input: {
   teamId: string;
-  email: string;
+  email: string | null;
   name: string;
   role: 'owner' | 'member';
 }): Promise<UserRow> {

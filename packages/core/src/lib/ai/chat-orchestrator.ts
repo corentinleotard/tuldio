@@ -18,6 +18,7 @@ import { errorCodes } from '../errors/error-codes.js';
 import { logger } from '../infra/logger.js';
 import { assertSubscriptionActive } from '../../modules/subscriptions/use-cases/assert-subscription-active.js';
 import { checkAiLimit } from '../../modules/subscriptions/use-cases/check-ai-limit.js';
+import { activateTrial } from '../../modules/subscriptions/use-cases/activate-trial.js';
 import type { Message, MessageMetadata, DebugTrace, DebugTraceRound, DebugTraceToolCall } from '@tuldio/common';
 
 const MAX_TOOL_ROUNDS = 10;
@@ -66,7 +67,8 @@ export async function processMessage(input: {
   processingUsers.add(userId);
 
   try {
-  // 0. Subscription + AI limit checks
+  // 0. Auto-activate trial on first message, then check subscription + AI limit
+  await activateTrial({ teamId });
   await assertSubscriptionActive({ teamId });
   await checkAiLimit({ teamId });
 

@@ -7,13 +7,14 @@ interface UnsentProspect {
   fullName: string;
   email: string;
   phone: string | null;
+  website: string | null;
 }
 
 export async function findUnsentProspects(input: {
   limit: number;
 }): Promise<UnsentProspect[]> {
   const result = await query<UnsentProspect>(
-    `SELECT id, profession, first_name AS "firstName", full_name AS "fullName", email, phone
+    `SELECT id, profession, first_name AS "firstName", full_name AS "fullName", email, phone, website
      FROM god_prospects
      WHERE status = 'new'
      ORDER BY created_at ASC

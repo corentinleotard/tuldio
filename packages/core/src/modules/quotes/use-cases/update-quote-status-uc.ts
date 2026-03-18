@@ -4,6 +4,7 @@ import { errorCodes } from '../../../lib/errors/error-codes.js';
 import { logger } from '../../../lib/infra/logger.js';
 import { validateQuoteStatusTransition } from '../domain/validators.js';
 import { validateDocumentReady } from '../../documents/domain/validate-document-ready.js';
+import { categorizeReadinessErrors } from '../../documents/domain/categorize-readiness-errors.js';
 import { fetchDocumentContext } from '../../documents/repository/fetch-document-context.js';
 import { findQuoteById } from '../repository/find-quote-by-id.js';
 import { updateQuoteStatus } from '../repository/update-quote-status.js';
@@ -64,6 +65,10 @@ export async function updateQuoteStatusUc(input: {
       lines: current.lines,
     });
     if (readinessErrors.length > 0) {
+      const { teamErrors } = categorizeReadinessErrors({ errors: readinessErrors });
+      if (teamErrors.length > 0) {
+        throw new HandledError(errorCodes.companyInfoRequired, teamErrors[0]!.message, readinessErrors);
+      }
       throw new HandledError(errorCodes.documentNotReady, readinessErrors[0]!.message, readinessErrors);
     }
   }

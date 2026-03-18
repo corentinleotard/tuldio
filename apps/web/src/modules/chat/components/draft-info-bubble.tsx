@@ -8,6 +8,17 @@ interface ReadinessError {
 
 const CLIENT_ERROR_CODES = new Set(['MISSING_CLIENT_ADDRESS', 'MISSING_CLIENT_SIRET']);
 
+const TEAM_ERROR_CODES = new Set([
+  'MISSING_TEAM_NAME',
+  'MISSING_TEAM_SIRET',
+  'MISSING_TEAM_ADDRESS',
+  'MISSING_TVA_NUMBER',
+  'MISSING_EARLY_PAYMENT_DISCOUNT',
+  'MISSING_LATE_PENALTY_RATE',
+  'MISSING_RECOVERY_FEE',
+  'MISSING_PAYMENT_TERMS',
+]);
+
 interface DraftInfoBubbleProps {
   documentType: 'quote' | 'invoice';
   errors: ReadinessError[];
@@ -16,9 +27,9 @@ interface DraftInfoBubbleProps {
 
 export function DraftInfoBubble({ documentType, errors, showTutorial }: DraftInfoBubbleProps) {
   const isQuote = documentType === 'quote';
-  // Filter out client-level errors — those are handled by the inline prompt on the rich card
-  const teamErrors = errors.filter((e) => !CLIENT_ERROR_CODES.has(e.code));
-  const hasErrors = teamErrors.length > 0;
+  // Filter out client-level errors (handled by inline prompt on rich card) and team-level errors (handled in settings)
+  const visibleErrors = errors.filter((e) => !CLIENT_ERROR_CODES.has(e.code) && !TEAM_ERROR_CODES.has(e.code));
+  const hasErrors = visibleErrors.length > 0;
 
   return (
     <div className="mt-2 max-w-[92%] rounded-bubble-ai border bg-card px-4 py-3 text-sm text-card-foreground">
@@ -30,7 +41,7 @@ export function DraftInfoBubble({ documentType, errors, showTutorial }: DraftInf
 
       {hasErrors && (
         <div className="mt-2 space-y-1">
-          {teamErrors.map((err) => (
+          {visibleErrors.map((err) => (
             <p key={err.code} className="text-sm text-destructive">
               {err.message}
             </p>

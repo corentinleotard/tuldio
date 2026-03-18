@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tuldio — New Onboarding Flow v5</title>
+  <style>
+    :root {
+      --bg: #F8F7F4; --fg: #1A1A1A; --card: #FFF; --primary: #1B4D3E;
+      --primary-fg: #FFF; --primary-lt: #2D7A5F; --primary-xlt: #EDF5F1;
+      --sec: #E8E8E0; --muted: #6B6B6B; --accent: #E8913A;
+      --dest: #C4392D; --success: #2D7A5F; --info: #3B82F6; --border: #E5E2DC;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #E5E2DC; color: var(--fg); line-height: 1.5; -webkit-font-smoothing: antialiased; }
+
+    /* NAV */
+    .nav { position: sticky; top: 0; z-index: 100; background: var(--primary); color: white; padding: 12px 16px; display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+    .nav h1 { font-size: 14px; font-weight: 700; margin-right: auto; }
+    .nav button { background: rgba(255,255,255,.15); color: white; border: none; padding: 5px 11px; border-radius: 16px; font-size: 11px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+    .nav button:hover { background: rgba(255,255,255,.25); }
+    .nav button.on { background: white; color: var(--primary); }
+
+    /* SCREEN */
+    .sc { display: none; max-width: 1100px; margin: 28px auto; padding: 0 16px 50px; }
+    .sc.on { display: block; }
+    .tag { background: var(--primary); color: white; display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 8px; }
+    .st { font-size: 18px; font-weight: 700; margin-bottom: 3px; }
+    .sd { font-size: 12px; color: var(--muted); margin-bottom: 16px; max-width: 660px; line-height: 1.6; }
+    .note { background: #FEF3C7; border: 1px solid #F59E0B; border-radius: 6px; padding: 8px 12px; font-size: 11px; color: #92400E; margin: 12px 0; line-height: 1.6; }
+    .note strong { color: #78350F; }
+    .note code { background: rgba(0,0,0,.06); padding: 0 3px; border-radius: 2px; font-size: 10px; }
+
+    /* FRAMES */
+    .phone { width: 360px; height: 700px; background: var(--bg); border-radius: 28px; overflow: hidden; flex-shrink: 0; box-shadow: 0 12px 40px rgba(0,0,0,.13), 0 0 0 1px rgba(0,0,0,.04); position: relative; }
+    .phone-in { height: 100%; overflow-y: auto; display: flex; flex-direction: column; }
+    .desk { background: var(--bg); border-radius: 12px; overflow: hidden; box-shadow: 0 12px 40px rgba(0,0,0,.1), 0 0 0 1px rgba(0,0,0,.04); position: relative; }
+    .sbs { display: flex; gap: 28px; align-items: flex-start; justify-content: center; flex-wrap: wrap; }
+    .fl { font-size: 11px; font-weight: 600; color: var(--muted); margin-bottom: 6px; text-align: center; }
+
+    /* COMPONENTS */
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 44px; padding: 0 20px; border-radius: 12px; font-size: 14px; font-weight: 600; border: none; cursor: pointer; text-decoration: none; }
+    .btn:hover { opacity: .9; }
+    .btn-p { background: var(--primary); color: white; }
+    .btn-o { background: var(--card); color: var(--fg); border: 1px solid var(--border); }
+    .btn-w { width: 100%; }
+    .btn-s { height: 36px; padding: 0 12px; font-size: 12px; border-radius: 8px; }
+    .btn-off { opacity: .4; pointer-events: none; }
+    .inp { width: 100%; height: 42px; padding: 0 12px; border: 1px solid var(--border); border-radius: 10px; font-size: 14px; background: var(--card); color: var(--fg); outline: none; }
+    .inp:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(27,77,62,.1); }
+    .inp::placeholder { color: #B5B0A8; }
+    .badge { display: inline-flex; padding: 2px 8px; border-radius: 99px; font-size: 10px; font-weight: 600; }
+    .badge-s { background: var(--success); color: white; }
+    .badge-sec { background: rgba(107,107,107,.12); color: var(--muted); }
+    .lbl { font-size: 10px; color: var(--muted); margin-bottom: 2px; display: block; text-align: left; }
+    .lbl .r { color: var(--dest); }
+    .slbl { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; color: var(--muted); margin-bottom: 5px; margin-top: 12px; }
+    .link { color: var(--primary); text-decoration: underline; cursor: pointer; }
+    .chk-row { display: flex; align-items: flex-start; gap: 8px; }
+    .chk { width: 18px; height: 18px; border: 2px solid var(--border); border-radius: 4px; flex-shrink: 0; margin-top: 1px; position: relative; }
+    .chk.on { background: var(--primary); border-color: var(--primary); }
+    .chk.on::after { content: ''; position: absolute; left: 4px; top: 1px; width: 5px; height: 8px; border: solid white; border-width: 0 2px 2px 0; transform: rotate(45deg); }
+    .g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 8px; }
+    .s2 { grid-column: span 2; }
+    .miss .inp { border-color: var(--accent); background: #FFFAF5; }
+    .tgl-row { display: flex; align-items: center; justify-content: space-between; padding: 6px 0; }
+    .tgl { width: 40px; height: 24px; border-radius: 12px; background: var(--border); position: relative; cursor: pointer; flex-shrink: 0; }
+    .tgl::after { content: ''; position: absolute; top: 2px; left: 2px; width: 20px; height: 20px; border-radius: 50%; background: white; box-shadow: 0 1px 2px rgba(0,0,0,.1); }
+    .tgl.on { background: var(--primary); }
+    .tgl.on::after { transform: translateX(16px); }
+
+    /* CHAT */
+    .ch-h { background: var(--card); border-bottom: 1px solid var(--border); padding: 10px 14px; display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+    .ch-logo { font-size: 16px; font-weight: 700; color: var(--primary); }
+    .ch-m { flex: 1; padding: 12px; display: flex; flex-direction: column; gap: 7px; overflow-y: auto; }
+    .m { max-width: 88%; padding: 9px 12px; font-size: 12px; line-height: 1.5; }
+    .m-ai { background: var(--card); border-radius: 14px 14px 14px 4px; align-self: flex-start; border: 1px solid var(--border); }
+    .m-u { background: var(--primary); color: white; border-radius: 14px 14px 4px 14px; align-self: flex-end; }
+    .rc { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 12px; max-width: 88%; align-self: flex-start; }
+    .rc-h { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+    .rc-t { font-size: 10px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .3px; }
+    .rc-c { font-size: 12px; font-weight: 600; margin-bottom: 5px; }
+    .rc-lines { border-top: 1px solid var(--border); padding-top: 5px; }
+    .rc-line { display: flex; justify-content: space-between; font-size: 11px; padding: 1px 0; }
+    .rc-tot { border-top: 1px solid var(--border); margin-top: 3px; padding-top: 3px; display: flex; justify-content: space-between; font-size: 13px; font-weight: 700; }
+    .rc-acts { display: flex; gap: 5px; margin-top: 8px; }
+    .rc-btn { flex: 1; height: 32px; border-radius: 7px; font-size: 11px; font-weight: 600; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px; }
+    .rc-btn-p { background: var(--primary); color: white; }
+    .rc-btn-o { background: var(--card); color: var(--fg); border: 1px solid var(--border); }
+    .di { max-width: 92%; border: 1px solid var(--border); background: var(--card); border-radius: 14px 14px 14px 4px; padding: 9px 12px; align-self: flex-start; }
+    .di p { font-size: 11px; color: var(--muted); line-height: 1.4; }
+    .di .err { font-size: 11px; color: var(--dest); margin-top: 2px; }
+    .ch-b { background: var(--card); border-top: 1px solid var(--border); padding: 7px 12px; display: flex; align-items: center; gap: 5px; flex-shrink: 0; }
+    .ch-i { flex: 1; height: 36px; padding: 0 12px; border: 1px solid var(--border); border-radius: 18px; font-size: 12px; background: var(--bg); outline: none; }
+    .ch-s { width: 36px; height: 36px; border-radius: 50%; background: var(--primary); border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; }
+
+    /* LANDING */
+    .land { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100%; padding: 40px 22px; text-align: center; }
+    .land-logo { font-size: 32px; font-weight: 700; color: var(--primary); }
+    .land-tag { font-size: 12px; font-style: italic; color: var(--muted); margin-top: 2px; }
+    .land-h { margin-top: 26px; font-size: 18px; font-weight: 600; }
+    .land-sub { font-size: 12px; color: var(--muted); margin-top: 5px; max-width: 300px; line-height: 1.5; }
+    .land-card { background: var(--primary-xlt); border: 1px solid rgba(27,77,62,.12); border-radius: 10px; padding: 12px; text-align: left; width: 100%; margin-top: 18px; }
+    .land-card-hdr { display: flex; align-items: center; gap: 7px; margin-bottom: 6px; }
+    .land-card-icon { width: 28px; height: 28px; border-radius: 6px; background: var(--primary); display: flex; align-items: center; justify-content: center; }
+    .land-card-title { font-size: 12px; font-weight: 600; color: var(--primary); }
+    .land-card-f { font-size: 11px; color: var(--fg); padding: 1px 0; }
+    .land-card-f span { color: var(--muted); margin-right: 4px; }
+    .land-terms { margin-top: 12px; font-size: 10px; color: var(--muted); line-height: 1.5; }
+
+    /* FULLSCREEN MODAL */
+    .fs { position: absolute; inset: 0; background: var(--bg); z-index: 20; display: flex; flex-direction: column; overflow-y: auto; }
+    .fs-h { background: var(--card); border-bottom: 1px solid var(--border); padding: 10px 12px; display: flex; align-items: center; gap: 7px; flex-shrink: 0; }
+    .fs-x { width: 28px; height: 28px; border-radius: 50%; border: none; background: var(--sec); display: flex; align-items: center; justify-content: center; cursor: pointer; }
+    .fs-t { font-size: 15px; font-weight: 600; flex: 1; }
+    .fs-b { flex: 1; padding: 14px; overflow-y: auto; }
+    .fs-f { padding: 10px 14px; background: var(--card); border-top: 1px solid var(--border); flex-shrink: 0; }
+
+    /* DOTS */
+    .dots { display: flex; align-items: center; justify-content: center; gap: 4px; margin-bottom: 14px; }
+    .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--sec); }
+    .dot.on { width: 16px; background: var(--primary); border-radius: 3px; }
+    .dot.done { background: var(--primary); }
+
+    /* OTP */
+    .otp { display: flex; gap: 4px; }
+    .otp-b { width: 38px; height: 44px; border: 2px solid var(--border); border-radius: 7px; text-align: center; font-size: 17px; font-weight: 700; background: var(--card); outline: none; }
+    .otp-b.f { border-color: var(--primary); }
+    .ok { display: flex; align-items: center; gap: 4px; margin-top: 4px; }
+    .ok svg { flex-shrink: 0; }
+    .ok span { font-size: 10px; color: var(--success); font-weight: 600; }
+
+    /* UPLOAD */
+    .up { border: 2px dashed var(--border); border-radius: 10px; padding: 12px; text-align: center; cursor: pointer; }
+    .up:hover { border-color: var(--primary); background: var(--primary-xlt); }
+    .up-icon { width: 30px; height: 30px; border-radius: 6px; background: var(--primary-xlt); margin: 0 auto 5px; display: flex; align-items: center; justify-content: center; color: var(--primary); }
+    .up-l { font-size: 12px; font-weight: 600; }
+    .up-h { font-size: 10px; color: var(--muted); margin-top: 1px; }
+    .div { display: flex; align-items: center; gap: 8px; margin: 10px 0; }
+    .div::before, .div::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+    .div span { font-size: 10px; color: var(--muted); text-transform: uppercase; font-weight: 600; }
+
+    /* SUMMARY */
+    .sum { border: 1px solid var(--border); border-radius: 10px; padding: 12px; background: var(--card); }
+    .sum-r { display: flex; justify-content: space-between; padding: 3px 0; font-size: 12px; }
+    .sum-r .k { color: var(--muted); }
+    .sum-r .v { font-weight: 500; }
+    .sum-info { margin-top: 6px; padding: 6px 8px; background: rgba(59,130,246,.06); border-radius: 5px; display: flex; align-items: flex-start; gap: 5px; }
+    .sum-info span { font-size: 10px; color: var(--info); line-height: 1.4; }
+
+    /* DESKTOP MODAL */
+    .dm-o { position: absolute; inset: 0; background: rgba(0,0,0,.3); display: flex; align-items: center; justify-content: center; z-index: 10; }
+    .dm { background: var(--card); border-radius: 16px; width: 520px; max-height: 92%; overflow-y: auto; padding: 28px; box-shadow: 0 12px 40px rgba(0,0,0,.16); }
+
+    /* EMAIL */
+    .em { background: var(--card); border-radius: 10px; overflow: hidden; box-shadow: 0 3px 12px rgba(0,0,0,.06); max-width: 560px; margin: 0 auto; }
+    .em-h { background: #F5F5F5; padding: 12px 16px; border-bottom: 1px solid #E0E0E0; }
+    .em-m { font-size: 11px; color: #666; margin-bottom: 2px; }
+    .em-m b { color: #333; }
+    .em-s { font-size: 14px; font-weight: 600; color: #333; margin-top: 5px; }
+    .em-body { padding: 20px 18px; font-size: 13px; line-height: 1.7; color: #333; }
+    .em-cta { margin: 18px 0; padding: 16px; background: var(--primary-xlt); border-radius: 8px; border: 1px solid rgba(27,77,62,.1); text-align: center; }
+    .em-cta h3 { font-size: 13px; font-weight: 600; color: var(--primary); margin-bottom: 3px; }
+    .em-cta p { font-size: 11px; color: var(--muted); margin-bottom: 10px; }
+    .em-cta a { display: inline-flex; align-items: center; gap: 4px; background: var(--primary); color: white; padding: 8px 18px; border-radius: 7px; font-size: 12px; font-weight: 600; text-decoration: none; }
+    .em-sig { margin-top: 16px; padding-top: 12px; border-top: 1px solid #E5E5E5; font-size: 11px; color: #666; line-height: 1.5; }
+    .em-sig strong { color: #333; }
+
+    /* FLOW */
+    .fl-s { display: flex; gap: 10px; margin-bottom: 2px; }
+    .fl-l { display: flex; flex-direction: column; align-items: center; width: 24px; flex-shrink: 0; }
+    .fl-d { width: 24px; height: 24px; border-radius: 50%; background: var(--primary); color: white; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0; }
+    .fl-d.alt { background: var(--accent); }
+    .fl-c { width: 2px; flex: 1; background: var(--border); min-height: 14px; }
+    .fl-co { padding-top: 2px; padding-bottom: 14px; flex: 1; }
+    .fl-ti { font-size: 12px; font-weight: 600; margin-bottom: 1px; }
+    .fl-de { font-size: 11px; color: var(--muted); line-height: 1.5; }
+    .fl-br { margin-top: 5px; padding: 5px 8px; background: var(--primary-xlt); border-radius: 5px; font-size: 11px; }
+    .fl-br-alt { background: #FEF3C7; }
+  </style>
+</head>
+<body>
+
+<nav class="nav">
+  <h1>Tuldio — Onboarding v4</h1>
+  <button class="on" onclick="show('landing')">1. Landing</button>
+  <button onclick="show('chat')">2. Chat</button>
+  <button onclick="show('modal-mobile')">3. Modal mobile</button>
+  <button onclick="show('modal-desktop')">4. Modal desktop</button>
+  <button onclick="show('email')">5. Email</button>
+  <button onclick="show('flow')">6. Flow</button>
+</nav>
+
+
+<!-- 1. LANDING -->
+<div class="sc on" id="s-landing">
+  <span class="tag">Screen 1</span>
+  <h2 class="st">Landing — Lien de prospection (seule page publique)</h2>
+  <p class="sd">Le prospect clique le magic link. Le JWT est decode cote frontend pour afficher les infos. Au clic "Commencer" → <code>POST /auth/invite</code> → cree user+team → retourne les memes cookies que le login OTP classique.</p>
+  <div class="note">
+    <strong>Token = JWT signe ~500 chars</strong> — cache derriere le texte du lien. Valide 30 jours. Pas single-use.
+    <br><strong>Multi-clic :</strong> 1er clic → cree compte, stocke <code>invite_accounts(token_hash, user_id, expires_at)</code>. Clics suivants (meme token, &lt;30j) → retrouve le meme user, set cookies frais. Apres 30j → expire. Si email lie → login OTP. Sinon → compte perdu (acceptable).
+    <br><strong>Forwarding OK :</strong> si le prospect forward l'email, l'assistant cree le compte, le prospect clique apres → meme compte. Pas de conflit.
+    <br><strong>Landing = frontend-only :</strong> decode le JWT sans appeler le backend. Verification (signature + expiry + lookup) au <code>POST /auth/invite</code>.
+    <br><strong>Apres "Commencer" :</strong> standard <code>tuldio_access</code> + <code>tuldio_refresh</code> cookies. Meme middleware auth.
+  </div>
+  <div class="sbs">
+    <div>
+      <div class="fl">Mobile</div>
+      <div class="phone"><div class="phone-in">
+        <div class="land">
+          <div class="land-logo">Tuldio</div>
+          <div class="land-tag">Tu lui dis, c'est fait.</div>
+          <div class="land-h">Bienvenue, Claire !</div>
+          <div class="land-sub">Nous avons prepare votre espace avec les informations de votre cabinet.</div>
+          <div class="land-card">
+            <div class="land-card-hdr">
+              <div class="land-card-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M19 21V5a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v16"/><path d="M3 21h18"/></svg></div>
+              <div class="land-card-title">Cabinet d'Osteopathie Durand</div>
+            </div>
+            <div class="land-card-f"><span>Adresse</span> 12 rue du Dr Finlay, 75015 Paris</div>
+            <div class="land-card-f"><span>Tel</span> 01 45 67 89 10</div>
+            <div class="land-card-f"><span>Site</span> osteo-paris15.fr</div>
+          </div>
+          <a class="btn btn-p btn-w" style="margin-top: 16px;">Commencer</a>
+          <div class="land-terms">En continuant, vous acceptez les <a href="#" class="link">CGU</a> et la <a href="#" class="link">politique de confidentialite</a>.</div>
+        </div>
+      </div></div>
+    </div>
+    <div style="flex: 1; max-width: 520px;">
+      <div class="fl">Desktop</div>
+      <div class="desk">
+        <div style="display: flex; align-items: center; border-bottom: 1px solid var(--border); background: var(--card); padding: 12px 24px;">
+          <span style="font-size: 18px; font-weight: 700; color: var(--primary);">Tuldio</span>
+        </div>
+        <div style="display: flex; align-items: center; justify-content: center; min-height: 380px; padding: 36px;">
+          <div style="text-align: center; max-width: 380px;">
+            <div style="font-size: 20px; font-weight: 700;">Bienvenue, Claire !</div>
+            <div style="font-size: 13px; color: var(--muted); margin-top: 5px;">Nous avons prepare votre espace avec les informations de votre cabinet.</div>
+            <div class="land-card" style="margin-top: 18px; max-width: 340px; margin-left: auto; margin-right: auto;">
+              <div class="land-card-hdr">
+                <div class="land-card-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M19 21V5a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v16"/><path d="M3 21h18"/></svg></div>
+                <div class="land-card-title">Cabinet d'Osteopathie Durand</div>
+              </div>
+              <div class="land-card-f"><span>Adresse</span> 12 rue du Dr Finlay, 75015 Paris</div>
+              <div class="land-card-f"><span>Tel</span> 01 45 67 89 10</div>
+              <div class="land-card-f"><span>Site</span> osteo-paris15.fr</div>
+            </div>
+            <a class="btn btn-p" style="margin-top: 16px; padding: 0 32px;">Commencer</a>
+            <div class="land-terms">En continuant, vous acceptez les <a href="#" class="link">CGU</a> et la <a href="#" class="link">politique de confidentialite</a>.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- 2. CHAT -->
+<div class="sc" id="s-chat">
+  <span class="tag">Screen 2</span>
+  <h2 class="st">Chat — Sans barriere</h2>
+  <p class="sd">Arrive directement. Trial 14j au 1er message. Draft-info ne montre que les erreurs CLIENT (adresse, SIRET B2B). Plus d'erreurs TEAM — collectees dans la modal au changement de statut.</p>
+  <div class="sbs">
+    <div>
+      <div class="fl">Token user</div>
+      <div class="phone"><div class="phone-in">
+        <div class="ch-h"><div class="ch-logo">Tuldio</div><div style="margin-left: auto;"><span class="badge badge-s">Essai 14j</span></div></div>
+        <div class="ch-m">
+          <div class="m m-ai"><b>Bienvenue Claire !</b> J'ai recupere les infos de ton cabinet. Essaie de creer ton premier devis !</div>
+          <div class="m m-u">Fais un devis pour Jean Martin, 3 seances d'osteo a 60 euros</div>
+          <div class="m m-ai">Devis cree !</div>
+          <div class="rc">
+            <div class="rc-h"><div class="rc-t">Devis</div><span class="badge badge-sec">Brouillon</span></div>
+            <div class="rc-c">Jean Martin</div>
+            <div class="rc-lines"><div class="rc-line"><span>Seance d'osteopathie x3</span><span style="font-weight: 600;">180,00 EUR</span></div></div>
+            <div class="rc-tot"><span>Total TTC</span><span>180,00 EUR</span></div>
+            <div class="rc-acts"><button class="rc-btn rc-btn-p">Envoyer</button><button class="rc-btn rc-btn-o">Consulter</button></div>
+          </div>
+          <div class="di"><p>Ton devis est en brouillon. Ecris-moi ce que tu veux changer.</p><div class="err">L'adresse du client est requise</div></div>
+        </div>
+        <div class="ch-b"><input class="ch-i" placeholder="Ecris ton message..." /><button class="ch-s"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg></button></div>
+      </div></div>
+    </div>
+    <div>
+      <div class="fl">Classic OTP user</div>
+      <div class="phone"><div class="phone-in">
+        <div class="ch-h"><div class="ch-logo">Tuldio</div><div style="margin-left: auto;"><span class="badge badge-s">Essai 14j</span></div></div>
+        <div class="ch-m">
+          <div class="m m-ai"><b>Bienvenue sur Tuldio !</b> Dis-moi ce dont tu as besoin.<br><br><em>"Fais un devis pour Jean Martin, pose de carrelage 35m2 a 55 EUR/m2"</em></div>
+          <div class="m m-u">Devis pour Dupont, pose carrelage 20m2 a 55 euros</div>
+          <div class="m m-ai">Devis cree !</div>
+          <div class="rc">
+            <div class="rc-h"><div class="rc-t">Devis</div><span class="badge badge-sec">Brouillon</span></div>
+            <div class="rc-c">Dupont</div>
+            <div class="rc-lines"><div class="rc-line"><span>Pose carrelage 20m2</span><span style="font-weight: 600;">1 100,00 EUR</span></div></div>
+            <div class="rc-tot"><span>Total TTC</span><span>1 100,00 EUR</span></div>
+            <div class="rc-acts"><button class="rc-btn rc-btn-p">Envoyer</button><button class="rc-btn rc-btn-o">Consulter</button></div>
+          </div>
+          <div class="di"><p>Ton devis est en brouillon. Ecris-moi ce que tu veux changer.</p><div class="err">L'adresse du client est requise</div></div>
+        </div>
+        <div class="ch-b"><input class="ch-i" placeholder="Ecris ton message..." /><button class="ch-s"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg></button></div>
+      </div></div>
+    </div>
+  </div>
+</div>
+
+
+<!-- 3. MODAL MOBILE -->
+<div class="sc" id="s-modal-mobile">
+  <span class="tag">Screen 3</span>
+  <h2 class="st">Modal — Mobile (plein ecran, 3 etapes)</h2>
+  <p class="sd">Declenchee a tout changement de statut si des infos manquent. Etapes adaptatives : si upload remplit tout → passe direct au resume. Token users ont l'etape email. Endpoints reutilises : <code>PATCH /teams/me/fields</code>, <code>PUT /teams/me</code>, <code>POST /teams/me/document</code>, <code>POST /auth/otp/send</code>, <code>POST /teams/me/accept-terms</code>.</p>
+  <div class="sbs">
+    <!-- Step 1 -->
+    <div>
+      <div class="fl">Etape 1 — Entreprise</div>
+      <div class="phone" style="height: 740px;"><div class="phone-in" style="position: relative;"><div class="fs">
+        <div class="fs-h">
+          <button class="fs-x"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--fg)" stroke-width="2"><path d="M18 6L6 18"/><path d="M6 6l12 12"/></svg></button>
+          <div class="fs-t">Infos entreprise</div>
+          <span style="font-size: 11px; color: var(--muted);">1/3</span>
+        </div>
+        <div class="fs-b">
+          <div class="dots"><div class="dot on"></div><div class="dot"></div><div class="dot"></div></div>
+          <p style="font-size: 12px; color: var(--muted); margin-bottom: 12px;">Pour envoyer ce document, on a besoin de tes informations legales.</p>
+          <div class="up">
+            <div class="up-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><polyline points="9 15 12 12 15 15"/></svg></div>
+            <div class="up-l">Importer un document existant</div>
+            <div class="up-h">Devis ou facture — on recupere tout</div>
+          </div>
+          <div class="div"><span>ou remplir</span></div>
+          <div class="slbl" style="margin-top: 0;">Obligatoires</div>
+          <div class="g2">
+            <div class="s2 miss"><label class="lbl">Nom entreprise <span class="r">*</span></label><input class="inp" placeholder="Ex : Dupont Renovation" /></div>
+            <div class="miss"><label class="lbl">SIRET <span class="r">*</span></label><input class="inp" placeholder="123 456 789 00012" /></div>
+            <div class="miss"><label class="lbl">Adresse <span class="r">*</span></label><input class="inp" placeholder="12 rue des Lilas, 75011" /></div>
+          </div>
+          <div class="slbl">TVA</div>
+          <div class="tgl-row"><div><div style="font-size: 12px; font-weight: 500;">Exonere de TVA</div><div style="font-size: 10px; color: var(--muted);">Micro-entrepreneur...</div></div><div class="tgl"></div></div>
+          <div class="g2" style="margin-top: 2px;"><div class="s2 miss"><label class="lbl">N° TVA <span class="r">*</span></label><input class="inp" placeholder="FR 32 123456789" /></div></div>
+          <div class="slbl">Complementaires</div>
+          <div class="g2"><div><label class="lbl">Telephone</label><input class="inp" placeholder="06 12 34 56 78" /></div><div><label class="lbl">Email entreprise</label><input class="inp" placeholder="contact@..." /></div></div>
+        </div>
+        <div class="fs-f"><button class="btn btn-p btn-w btn-off">Continuer</button></div>
+      </div></div></div>
+    </div>
+
+    <!-- Step 2 -->
+    <div>
+      <div class="fl">Etape 2 — Client + email (token)</div>
+      <div class="phone" style="height: 740px;"><div class="phone-in" style="position: relative;"><div class="fs">
+        <div class="fs-h">
+          <button class="fs-x" style="background: none;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--fg)" stroke-width="2"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg></button>
+          <div class="fs-t">Derniers details</div>
+          <span style="font-size: 11px; color: var(--muted);">2/3</span>
+        </div>
+        <div class="fs-b">
+          <div class="dots"><div class="dot done"></div><div class="dot on"></div><div class="dot"></div></div>
+          <div class="slbl" style="margin-top: 0;">Infos du document</div>
+          <div class="g2"><div class="s2 miss"><label class="lbl">Adresse de Jean Martin <span class="r">*</span></label><input class="inp" placeholder="Adresse postale du client" /></div></div>
+          <div class="slbl">Votre email de connexion</div>
+          <p style="font-size: 10px; color: var(--muted); margin-bottom: 6px;">Pour vous reconnecter et recevoir vos documents.</p>
+          <div class="g2">
+            <div class="s2"><label class="lbl">Email <span class="r">*</span></label><div style="display: flex; gap: 5px;"><input class="inp" value="claire@osteo-paris15.fr" style="flex: 1;" /><button class="btn btn-s" style="background: var(--primary); color: white; height: 42px;">Code</button></div></div>
+            <div class="s2"><label class="lbl">Code recu</label><div class="otp"><input class="otp-b f" value="7" /><input class="otp-b f" value="3" /><input class="otp-b f" value="1" /><input class="otp-b f" value="5" /><input class="otp-b f" value="9" /><input class="otp-b f" value="2" /></div><div class="ok"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg><span>Verifie</span></div></div>
+          </div>
+          <div class="chk-row" style="margin-top: 14px;"><div class="chk on"></div><p style="font-size: 11px; color: var(--muted); line-height: 1.4;">J'accepte les <a href="#" class="link">CGU</a> et la <a href="#" class="link">politique de confidentialite</a>.</p></div>
+        </div>
+        <div class="fs-f"><button class="btn btn-p btn-w">Continuer</button></div>
+      </div></div></div>
+    </div>
+
+    <!-- Step 3 -->
+    <div>
+      <div class="fl">Etape 3 — Resume</div>
+      <div class="phone" style="height: 740px;"><div class="phone-in" style="position: relative;"><div class="fs">
+        <div class="fs-h">
+          <button class="fs-x" style="background: none;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--fg)" stroke-width="2"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg></button>
+          <div class="fs-t">Pret a envoyer</div>
+          <span style="font-size: 11px; color: var(--muted);">3/3</span>
+        </div>
+        <div class="fs-b">
+          <div class="dots"><div class="dot done"></div><div class="dot done"></div><div class="dot on"></div></div>
+          <p style="font-size: 12px; color: var(--muted); margin-bottom: 12px;">Ces informations apparaitront sur tes documents. Modifiables a tout moment dans les parametres.</p>
+          <div class="sum" style="margin-bottom: 10px;">
+            <div style="font-size: 9px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .3px; margin-bottom: 5px;">Ton entreprise</div>
+            <div class="sum-r"><span class="k">Nom</span><span class="v">Cabinet Osteo Durand</span></div>
+            <div class="sum-r"><span class="k">SIRET</span><span class="v">823 456 789 00014</span></div>
+            <div class="sum-r"><span class="k">Adresse</span><span class="v">12 rue du Dr Finlay, 75015</span></div>
+            <div class="sum-r"><span class="k">TVA</span><span class="v">FR 82 823456789</span></div>
+          </div>
+          <div class="sum">
+            <div style="font-size: 9px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .3px; margin-bottom: 5px; display: flex; justify-content: space-between;">
+              <span>Mentions legales (auto-remplies)</span><a href="#" class="link" style="font-size: 9px; text-transform: none; font-weight: 600;">Modifier</a>
+            </div>
+            <div class="sum-r"><span class="k">Paiement</span><span class="v">A reception</span></div>
+            <div class="sum-r"><span class="k">Escompte</span><span class="v">Pas d'escompte</span></div>
+            <div class="sum-r"><span class="k">Penalites</span><span class="v">3x taux legal</span></div>
+            <div class="sum-r"><span class="k">Recouvrement</span><span class="v">40 EUR</span></div>
+            <div class="sum-info">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--info)" stroke-width="2" style="flex-shrink: 0; margin-top: 1px;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+              <span>Conformes a la loi. Modifiables dans Parametres > Mon entreprise.</span>
+            </div>
+          </div>
+        </div>
+        <div class="fs-f">
+          <button class="btn btn-p btn-w">Valider et envoyer le devis</button>
+          <p style="font-size: 10px; color: var(--muted); text-align: center; margin-top: 5px;">Sans engagement.</p>
+        </div>
+      </div></div></div>
+    </div>
+  </div>
+</div>
+
+
+<!-- 4. MODAL DESKTOP -->
+<div class="sc" id="s-modal-desktop">
+  <span class="tag">Screen 4</span>
+  <h2 class="st">Modal — Desktop</h2>
+  <p class="sd">Modal centree, meme contenu. Etapes 1 et 3 montrees.</p>
+
+  <div class="fl">Etape 1</div>
+  <div class="desk" style="min-height: 620px; position: relative;">
+    <div style="filter: blur(3px); opacity: .3; padding: 40px; text-align: center; color: var(--muted);">
+      <div style="border-bottom: 1px solid var(--border); background: var(--card); padding: 10px 20px; display: flex; align-items: center; position: absolute; top: 0; left: 0; right: 0;"><span style="font-size: 16px; font-weight: 700; color: var(--primary);">Tuldio</span></div>
+      <div style="padding-top: 80px;">Chat</div>
+    </div>
+    <div class="dm-o"><div class="dm">
+      <div class="dots"><div class="dot on"></div><div class="dot"></div><div class="dot"></div></div>
+      <h2 style="font-size: 16px; font-weight: 600; margin-bottom: 2px;">Infos entreprise</h2>
+      <p style="font-size: 12px; color: var(--muted); margin-bottom: 14px;">Pour envoyer ce document, on a besoin de tes informations legales.</p>
+      <div class="up" style="margin-bottom: 0;"><div style="display: flex; align-items: center; gap: 8px; justify-content: center;"><div class="up-icon" style="margin: 0;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><polyline points="9 15 12 12 15 15"/></svg></div><div style="text-align: left;"><div class="up-l">Importer un document existant</div><div class="up-h">Devis ou facture — on recupere tout</div></div></div></div>
+      <div class="div"><span>ou remplir</span></div>
+      <div class="g2">
+        <div class="s2 miss"><label class="lbl">Nom entreprise <span class="r">*</span></label><input class="inp" placeholder="Ex : Dupont Renovation" /></div>
+        <div class="miss"><label class="lbl">SIRET <span class="r">*</span></label><input class="inp" placeholder="123 456 789 00012" /></div>
+        <div class="miss"><label class="lbl">Adresse <span class="r">*</span></label><input class="inp" placeholder="12 rue des Lilas" /></div>
+      </div>
+      <div class="slbl">TVA</div>
+      <div class="tgl-row" style="padding: 3px 0;"><div><div style="font-size: 12px; font-weight: 500;">Exonere de TVA</div><div style="font-size: 10px; color: var(--muted);">Micro-entrepreneur...</div></div><div class="tgl"></div></div>
+      <div class="g2" style="margin-top: 2px;"><div class="s2 miss"><label class="lbl">N° TVA <span class="r">*</span></label><input class="inp" placeholder="FR 32 123456789" /></div></div>
+      <div class="slbl">Complementaires</div>
+      <div class="g2"><div><label class="lbl">Telephone</label><input class="inp" placeholder="06 12..." /></div><div><label class="lbl">Email entreprise</label><input class="inp" placeholder="contact@..." /></div></div>
+      <div style="display: flex; gap: 8px; margin-top: 14px;"><button class="btn btn-o" style="flex: 1;">Annuler</button><button class="btn btn-p btn-off" style="flex: 2;">Continuer</button></div>
+    </div></div>
+  </div>
+
+  <div style="margin-top: 28px;"><div class="fl">Etape 3 — Resume</div>
+  <div class="desk" style="min-height: 560px; position: relative;">
+    <div style="filter: blur(3px); opacity: .3; padding: 80px; text-align: center; color: var(--muted);">Chat</div>
+    <div class="dm-o"><div class="dm">
+      <div class="dots"><div class="dot done"></div><div class="dot done"></div><div class="dot on"></div></div>
+      <h2 style="font-size: 16px; font-weight: 600; margin-bottom: 2px;">Pret a envoyer</h2>
+      <p style="font-size: 12px; color: var(--muted); margin-bottom: 14px;">Voici ce qui apparaitra sur tes documents.</p>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+        <div class="sum">
+          <div style="font-size: 9px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .3px; margin-bottom: 4px;">Entreprise</div>
+          <div class="sum-r"><span class="k">Nom</span><span class="v">Dupont Renovation</span></div>
+          <div class="sum-r"><span class="k">SIRET</span><span class="v">512 345 678 00021</span></div>
+          <div class="sum-r"><span class="k">Adresse</span><span class="v">8 rue du Moulin, 69001</span></div>
+          <div class="sum-r"><span class="k">TVA</span><span class="v">FR 51 512345678</span></div>
+        </div>
+        <div class="sum">
+          <div style="font-size: 9px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .3px; margin-bottom: 4px; display: flex; justify-content: space-between;"><span>Mentions legales</span><a href="#" class="link" style="font-size: 9px; text-transform: none; font-weight: 600;">Modifier</a></div>
+          <div class="sum-r"><span class="k">Paiement</span><span class="v">A reception</span></div>
+          <div class="sum-r"><span class="k">Escompte</span><span class="v">Pas d'escompte</span></div>
+          <div class="sum-r"><span class="k">Penalites</span><span class="v">3x taux legal</span></div>
+          <div class="sum-r"><span class="k">Recouvrement</span><span class="v">40 EUR</span></div>
+        </div>
+      </div>
+      <div class="sum-info" style="margin-top: 8px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--info)" stroke-width="2" style="flex-shrink: 0; margin-top: 1px;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg><span>Conformes a la loi. Modifiables dans Parametres > Mon entreprise.</span></div>
+      <div style="display: flex; gap: 8px; margin-top: 14px;"><button class="btn btn-o" style="flex: 1;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg> Retour</button><button class="btn btn-p" style="flex: 2;">Valider et envoyer</button></div>
+      <p style="font-size: 10px; color: var(--muted); text-align: center; margin-top: 6px;">Sans engagement.</p>
+    </div></div>
+  </div></div>
+</div>
+
+
+<!-- 5. EMAIL -->
+<div class="sc" id="s-email">
+  <span class="tag">Screen 5</span>
+  <h2 class="st">Email de prospection</h2>
+  <p class="sd">Email simple avec magic link. Pas de PDF attache — le wow moment c'est l'app pre-remplie, pas un PDF generique.</p>
+  <div class="em" style="margin-bottom: 24px;">
+    <div class="em-h">
+      <div class="em-m"><b>De :</b> Corentin &lt;corentin@tuldio.com&gt;</div>
+      <div class="em-m"><b>A :</b> claire.durand@osteo-paris15.fr</div>
+      <div class="em-s">Vos factures patients en 10 secondes</div>
+    </div>
+    <div class="em-body">
+      <p>Bonjour Claire,</p><br>
+      <p>Je suis Corentin, co-fondateur de <b>Tuldio</b>. On a cree un outil qui permet aux praticiens en liberal de faire leurs devis et factures par simple message.</p><br>
+      <p>J'ai deja prepare votre espace avec les informations de votre cabinet. Vous pouvez creer votre premier devis en moins d'une minute.</p>
+      <div class="em-cta">
+        <h3>Votre espace est pret</h3>
+        <p>Infos de votre cabinet deja renseignees.<br>Essai gratuit 14 jours, sans engagement.</p>
+        <a href="#">Acceder a mon espace <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg></a>
+      </div>
+      <div class="em-sig"><strong>Corentin</strong><br>Co-fondateur, Tuldio<br><span style="color: var(--primary);">tuldio.com</span></div>
+    </div>
+  </div>
+  <div class="fl">Variante artisan</div>
+  <div class="em">
+    <div class="em-h">
+      <div class="em-m"><b>De :</b> Corentin &lt;corentin@tuldio.com&gt;</div>
+      <div class="em-m"><b>A :</b> contact@plomberie-leblanc.fr</div>
+      <div class="em-s">Vos devis chantier en 10 secondes</div>
+    </div>
+    <div class="em-body">
+      <p>Bonjour,</p><br>
+      <p>Je suis Corentin, co-fondateur de <b>Tuldio</b>. On a cree un outil qui permet aux artisans de faire leurs devis et factures par simple message.</p><br>
+      <p>J'ai prepare votre espace avec les informations de Plomberie Leblanc. Vous pouvez creer votre premier devis en moins d'une minute.</p>
+      <div class="em-cta">
+        <h3>Votre espace est pret</h3>
+        <p>Vos informations d'entreprise pre-remplies.<br>Essai gratuit 14 jours, sans engagement.</p>
+        <a href="#">Acceder a mon espace <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg></a>
+      </div>
+      <div class="em-sig"><strong>Corentin</strong><br>Co-fondateur, Tuldio<br><span style="color: var(--primary);">tuldio.com</span></div>
+    </div>
+  </div>
+</div>
+
+
+<!-- 6. FLOW -->
+<div class="sc" id="s-flow">
+  <span class="tag">Screen 6</span>
+  <h2 class="st">Flow complet</h2>
+  <div class="desk" style="padding: 24px;">
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 32px;">
+      <div>
+        <div style="font-size: 14px; font-weight: 700; color: var(--primary); margin-bottom: 14px;">Parcours Token</div>
+        <div class="fl-s"><div class="fl-l"><div class="fl-d">1</div><div class="fl-c"></div></div><div class="fl-co"><div class="fl-ti">Email prospection</div><div class="fl-de">Magic link = JWT signe (donnees scrapees, exp 30j). Pas single-use — multi-clic OK.</div></div></div>
+        <div class="fl-s"><div class="fl-l"><div class="fl-d">2</div><div class="fl-c"></div></div><div class="fl-co"><div class="fl-ti">Landing publique (seule page publique)</div><div class="fl-de">Frontend decode le JWT. Affiche nom/adresse/tel. Pas de call backend.</div></div></div>
+        <div class="fl-s"><div class="fl-l"><div class="fl-d">3</div><div class="fl-c"></div></div><div class="fl-co"><div class="fl-ti">"Commencer" → <code>POST /auth/invite</code></div><div class="fl-de">Verifie signature + expiry. Lookup <code>invite_accounts</code> : si existe → login user existant. Sinon → cree user + team + seed fields. Retourne <code>AuthResponse</code> + cookies standard.</div><div class="fl-br"><strong>Token = acces au meme compte pendant 30j.</strong> Forwarding OK, multi-device OK. Apres 30j : si email lie → OTP. Sinon → perdu.</div></div></div>
+        <div class="fl-s"><div class="fl-l"><div class="fl-d" style="background: var(--success);">4</div><div class="fl-c"></div></div><div class="fl-co"><div class="fl-ti">1er message → Trial 14 jours</div><div class="fl-de">Dans <code>POST /api/messages</code> : si <code>subscription_status = null</code> → <code>trial</code> + <code>trial_ends_at = now + 14d</code>.</div></div></div>
+        <div class="fl-s"><div class="fl-l"><div class="fl-d alt">5</div><div class="fl-c"></div></div><div class="fl-co"><div class="fl-ti">Changement de statut → Modal 3 etapes</div><div class="fl-de"><strong>E1 :</strong> Infos entreprise — champs pre-remplis si donnees scrapees, sinon vides. Pas de skip, toujours affiche pour verification.<br><strong>E2 :</strong> Adresse client + email + OTP (token users) + CGU.<br><strong>E3 :</strong> Resume avec valeurs auto-remplies. Lien "Modifier".</div><div class="fl-br fl-br-alt"><strong>Email collecte ici</strong> — devient le login OTP. Pas de skip d'etapes, champs pre-remplis a la place.</div></div></div>
+        <div class="fl-s"><div class="fl-l"><div class="fl-d" style="background: var(--success);">6</div></div><div class="fl-co"><div class="fl-ti">acceptTerms() → Action executee</div><div class="fl-de"><code>POST /teams/me/accept-terms</code> → ensure-legal-defaults. Action originale re-executee.</div></div></div>
+      </div>
+      <div>
+        <div style="font-size: 14px; font-weight: 700; color: var(--info); margin-bottom: 14px;">Parcours Classique (OTP)</div>
+        <div class="fl-s"><div class="fl-l"><div class="fl-d" style="background: var(--info);">1</div><div class="fl-c"></div></div><div class="fl-co"><div class="fl-ti">Login email + OTP</div><div class="fl-de">Inchange. Cree user + team si nouveau. Email deja verifie.</div></div></div>
+        <div class="fl-s"><div class="fl-l"><div class="fl-d" style="background: var(--info);">2</div><div class="fl-c"></div></div><div class="fl-co"><div class="fl-ti">Chat direct</div><div class="fl-de">Plus de redirect /onboarding. Welcome message classique.</div></div></div>
+        <div class="fl-s"><div class="fl-l"><div class="fl-d" style="background: var(--success);">3</div><div class="fl-c"></div></div><div class="fl-co"><div class="fl-ti">1er message → Trial 14 jours</div><div class="fl-de">Meme logique.</div></div></div>
+        <div class="fl-s"><div class="fl-l"><div class="fl-d alt">4</div><div class="fl-c"></div></div><div class="fl-co"><div class="fl-ti">Changement de statut → Modal</div><div class="fl-de">Meme modal. <strong>Pas d'etape email</strong> (deja verifie). E1: entreprise. E2: client + CGU. E3: resume.</div></div></div>
+        <div class="fl-s"><div class="fl-l"><div class="fl-d" style="background: var(--success);">5</div></div><div class="fl-co"><div class="fl-ti">acceptTerms() → Action executee</div><div class="fl-de">Identique.</div></div></div>
+
+        <div style="margin-top: 18px; padding: 12px; background: #FEF3C7; border-radius: 8px; border: 1px solid #F59E0B;">
+          <div style="font-size: 12px; font-weight: 700; color: #78350F; margin-bottom: 4px;">Bilan technique</div>
+          <div style="font-size: 11px; color: #92400E; line-height: 1.7;">
+            <strong>1 nouvel endpoint :</strong> <code>POST /auth/invite</code>
+            <br><strong>1 petite modif :</strong> attacher email a un user existant (OTP verify)
+            <br><strong>1 nouvelle table :</strong> <code>invite_accounts(token_hash, user_id, created_at, expires_at)</code>
+            <br><strong>Endpoints reutilises :</strong> PATCH fields, PUT team, POST document, POST accept-terms, POST otp/send, POST otp/verify
+            <br><br>
+            <strong>Frontend :</strong>
+            <br>• Page <code>/invite/:token</code> (decode JWT cote client)
+            <br>• Supprimer redirect onboarding dans route-guards
+            <br>• Masquer erreurs TEAM_* dans draft-info-bubble
+            <br>• Composant <code>CompanyInfoModal</code> (fullscreen mobile, modal desktop)
+            <br>• Intercepter erreur sur tout changement de statut
+            <br><br>
+            <strong>Core :</strong>
+            <br>• <code>subscription_status</code> nullable (null = pas de trial)
+            <br>• <code>check-subscription</code> : null = autorise
+            <br>• 1er message active trial
+            <br>• Signer JWT dans script prospection (secret partage)
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<script>
+function show(id) {
+  document.querySelectorAll('.sc').forEach(s => s.classList.remove('on'));
+  document.getElementById('s-' + id).classList.add('on');
+  document.querySelectorAll('.nav button').forEach(b => b.classList.remove('on'));
+  event.target.classList.add('on');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+</script>
+</body>
+</html>

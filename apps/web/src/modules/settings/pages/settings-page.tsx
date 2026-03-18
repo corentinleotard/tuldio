@@ -58,7 +58,7 @@ export function SettingsPage() {
             {team?.name && (
               <p className="text-sm text-muted-foreground">{team.name}</p>
             )}
-            <p className="text-sm text-muted-foreground">{user.email}</p>
+            {user.email && <p className="text-sm text-muted-foreground">{user.email}</p>}
           </div>
         </div>
       )}

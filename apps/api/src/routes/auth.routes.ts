@@ -8,6 +8,7 @@ import { handleRefresh } from '../controllers/handle-refresh.js';
 import { handleLogout } from '../controllers/handle-logout.js';
 import { handleMe } from '../controllers/handle-me.js';
 import { handleBootstrap } from '../controllers/handle-bootstrap.js';
+import { handleActivateInvite } from '../controllers/handle-activate-invite.js';
 
 const router: RouterType = Router();
 
@@ -15,6 +16,7 @@ const router: RouterType = Router();
 router.post('/otp/send', otpLimiter, wrapHandler(handleSendOtp));
 router.post('/otp/verify', wrapHandler(handleVerifyOtp));
 router.post('/refresh', wrapHandler(handleRefresh));
+router.post('/invite', wrapHandler(handleActivateInvite));
 
 // Protected
 router.get('/me', authMiddleware, wrapHandler(handleMe));

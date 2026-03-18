@@ -10,7 +10,7 @@ export interface OtpVerifyRequest {
 
 export interface AuthUser {
   id: string;
-  email: string;
+  email: string | null;
   name: string;
   teamId: string;
   role: 'owner' | 'member';
@@ -42,7 +42,7 @@ export interface TeamSummary {
   invoiceLastNumber: number;
   invoicePaymentDelayDays: number;
   termsAcceptedAt: string | null;
-  subscriptionStatus: 'trial' | 'active' | 'cancelled' | 'expired';
+  subscriptionStatus: 'trial' | 'active' | 'cancelled' | 'expired' | null;
   trialEndsAt: string | null;
   subscriptionPeriodEnd: string | null;
 }
