@@ -18,16 +18,18 @@ export function SettingsPage() {
   const { user, team, signOut } = useAuth();
   const navigate = useNavigate();
   const subscriptionLabel =
-    team?.subscriptionStatus === 'trial'
+    team?.subscriptionStatus === null
       ? 'Essai gratuit'
-      : team?.subscriptionStatus === 'active'
-        ? 'Abonnement actif'
-        : team?.subscriptionStatus === 'cancelled'
-          ? 'Abonnement annule'
-          : 'Abonnement expire';
+      : team?.subscriptionStatus === 'trial'
+        ? 'Essai gratuit'
+        : team?.subscriptionStatus === 'active'
+          ? 'Abonnement actif'
+          : team?.subscriptionStatus === 'cancelled'
+            ? 'Abonnement annule'
+            : 'Abonnement expire';
 
   const subscriptionVariant =
-    team?.subscriptionStatus === 'active' || team?.subscriptionStatus === 'trial'
+    team?.subscriptionStatus === 'active' || team?.subscriptionStatus === 'trial' || team?.subscriptionStatus === null
       ? 'success'
       : 'warning';
 
@@ -88,9 +90,11 @@ export function SettingsPage() {
           iconClassName="bg-accent/10 text-accent"
           trailing={
             <Badge variant={subscriptionVariant}>
-              {team?.subscriptionStatus === 'trial'
-                ? `${trialDaysRemaining} jours restants`
-                : subscriptionLabel}
+              {team?.subscriptionStatus === null
+                ? 'Non commence'
+                : team?.subscriptionStatus === 'trial'
+                  ? `${trialDaysRemaining} jours restants`
+                  : subscriptionLabel}
             </Badge>
           }
           onClick={() => navigate('/settings/subscription')}
