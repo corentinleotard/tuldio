@@ -19,6 +19,7 @@ COPY apps/crons/package.json apps/crons/package.json
 COPY apps/web/package.json apps/web/package.json
 COPY packages/core/package.json packages/core/package.json
 COPY packages/common/package.json packages/common/package.json
+COPY scripts/patch-baileys.sh scripts/patch-baileys.sh
 
 RUN pnpm install --frozen-lockfile
 
