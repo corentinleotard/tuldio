@@ -250,6 +250,50 @@ export async function pauseProspect(input: {
   });
 }
 
+export interface ProspectDetailView {
+  id: string;
+  profession: string;
+  firstName: string;
+  fullName: string;
+  email: string;
+  phone: string | null;
+  whatsappPhone: string | null;
+  website: string | null;
+  status: string;
+  sequenceStatus: string | null;
+  currentStep: number;
+  nextStepAt: string | null;
+  sentAt: string | null;
+  sentSubject: string | null;
+  icpScore: number | null;
+  icpReason: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export async function fetchProspectDetail(input: {
+  id: string;
+}): Promise<ProspectDetailView> {
+  return apiFetch(`/api/god-prospection/prospects/${input.id}`);
+}
+
+export async function updateProspectApi(input: {
+  id: string;
+  firstName?: string;
+  fullName?: string;
+  email?: string;
+  phone?: string | null;
+  whatsappPhone?: string | null;
+  profession?: string;
+  website?: string | null;
+}): Promise<ProspectDetailView> {
+  const { id, ...body } = input;
+  return apiFetch(`/api/god-prospection/prospects/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(body),
+  });
+}
+
 export async function fetchSequences(): Promise<SequenceView[]> {
   return apiFetch('/api/god-prospection/sequences');
 }
@@ -316,8 +360,12 @@ export interface SequenceProspectView {
 
 export async function fetchSequenceProspects(input: {
   sequenceId: string;
+  step?: number;
 }): Promise<SequenceProspectView[]> {
-  return apiFetch(`/api/god-prospection/sequences/${input.sequenceId}/prospects`);
+  const params = new URLSearchParams();
+  if (input.step !== undefined) params.set('step', String(input.step));
+  const qs = params.toString();
+  return apiFetch(`/api/god-prospection/sequences/${input.sequenceId}/prospects${qs ? `?${qs}` : ''}`);
 }
 
 export async function fetchSequenceReport(input: {

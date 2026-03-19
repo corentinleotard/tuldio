@@ -28,6 +28,8 @@ export { readWhatsAppStatus, requestWhatsAppConnect, consumeConnectRequest } fro
 // Prospect management
 export { pauseProspectUc } from './use-cases/pause-prospect.js';
 export { findSequenceProspects, type SequenceProspectRow } from './repository/find-sequence-prospects.js';
+export { findProspectById, type GodProspectRow } from './repository/find-prospect-by-id.js';
+export { updateProspectFields } from './repository/update-prospect-fields.js';
 
 // Domain helpers (for test endpoints)
 export { sendWhatsAppMessage } from './domain/whatsapp-client.js';

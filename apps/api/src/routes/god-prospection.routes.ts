@@ -26,6 +26,8 @@ import { handlePauseProspect } from '../controllers/god-prospection/handle-pause
 import { handleSequenceProspects } from '../controllers/god-prospection/handle-sequence-prospects.js';
 import { handleSendTestWhatsApp } from '../controllers/god-prospection/handle-send-test-whatsapp.js';
 import { handleListReceivedMessages } from '../controllers/god-prospection/handle-list-received-messages.js';
+import { handleGetProspect } from '../controllers/god-prospection/handle-get-prospect.js';
+import { handleUpdateProspect } from '../controllers/god-prospection/handle-update-prospect.js';
 
 const router: RouterType = Router();
 
@@ -55,6 +57,8 @@ router.put('/sequences/:id', wrapHandler(handleUpdateSequence));
 router.delete('/sequences/:id', wrapHandler(handleDeleteSequence));
 
 // Prospect management
+router.get('/prospects/:id', wrapHandler(handleGetProspect));
+router.put('/prospects/:id', wrapHandler(handleUpdateProspect));
 router.put('/prospects/:id/pause', wrapHandler(handlePauseProspect));
 
 // Channel limits

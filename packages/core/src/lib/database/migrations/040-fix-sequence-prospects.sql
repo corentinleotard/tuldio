@@ -18,7 +18,7 @@ SET body = E'Bonjour {{firstName}}, je vous ai envoyé un email il y a quelques 
 WHERE channel = 'whatsapp'
   AND body LIKE '%cree un outil%';
 
--- Add phone to test prospect so it receives the WhatsApp step
+-- Add phone to test prospect and make it due now so we can test
 UPDATE god_prospects
-SET phone = '0631863377', updated_at = now()
+SET phone = '0631863377', next_step_at = now(), updated_at = now()
 WHERE email = 'leotardcorentin+testmagiclink@gmail.com';

@@ -1,14 +1,17 @@
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Mail, MessageCircle, Users, Reply, CheckCircle, AlertTriangle, Pause, Play } from 'lucide-react';
+import { Mail, MessageCircle, Users, Reply, CheckCircle, AlertTriangle, Pause, Play, Eye } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   fetchSequenceReport,
   fetchSequenceProspects,
   pauseProspect,
 } from '../api/god-prospection.api';
+import { ProspectDetailModal } from './prospect-detail-modal';
 
 export function SequenceReport(props: { sequenceId: string }) {
   const queryClient = useQueryClient();
+  const [detailId, setDetailId] = useState<string | null>(null);
 
   const { data: report, isLoading } = useQuery({
     queryKey: ['god-prospection', 'sequence-report', props.sequenceId],
@@ -120,6 +123,13 @@ export function SequenceReport(props: { sequenceId: string }) {
                   </div>
                 </div>
                 <button
+                  onClick={() => setDetailId(p.id)}
+                  className="rounded-md p-1.5 text-muted-foreground hover:text-foreground"
+                  title="Details"
+                >
+                  <Eye className="h-3.5 w-3.5" />
+                </button>
+                <button
                   onClick={() => pauseMutation.mutate({
                     prospectId: p.id,
                     paused: p.sequenceStatus === 'active',
@@ -161,6 +171,13 @@ export function SequenceReport(props: { sequenceId: string }) {
             ))}
           </div>
         </div>
+      )}
+
+      {detailId && (
+        <ProspectDetailModal
+          prospectId={detailId}
+          onClose={() => setDetailId(null)}
+        />
       )}
     </div>
   );
