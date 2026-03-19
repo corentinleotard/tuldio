@@ -82,13 +82,18 @@ export interface RecentSendView {
   prospectEmail: string;
   channel: string;
   stepOrder: number;
+  subject: string | null;
+  body: string | null;
   sentAt: string;
 }
 
 export async function fetchRecentSends(input: {
+  channel?: string;
   limit: number;
 }): Promise<RecentSendView[]> {
-  return apiFetch(`/api/god-prospection/sends?limit=${input.limit}`);
+  const params = new URLSearchParams({ limit: String(input.limit) });
+  if (input.channel) params.set('channel', input.channel);
+  return apiFetch(`/api/god-prospection/sends?${params}`);
 }
 
 export async function fetchSentEmails(input: {

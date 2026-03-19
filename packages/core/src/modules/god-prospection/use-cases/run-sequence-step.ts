@@ -99,6 +99,9 @@ export async function runSequenceStep(): Promise<void> {
         const code = await insertInviteCode({ payload: invitePayload, expiresAt });
         const inviteUrl = `${APP_URL}/i/${code}`;
 
+        let sentSubject: string | null = null;
+        let sentBody = '';
+
         if (channel === 'email') {
           const html = buildProspectionEmailHtml({
             firstName: prospect.firstName,
@@ -108,12 +111,13 @@ export async function runSequenceStep(): Promise<void> {
             inviteUrl,
           });
 
-          const subject = prospect.subject || 'Vos devis et factures, vous les faites comment ?';
+          sentSubject = prospect.subject || 'Vos devis et factures, vous les faites comment ?';
+          sentBody = html;
 
           if (DRY_RUN) {
-            logger.info('god-prospection.sequence-dry-run', { channel, to: prospect.email, subject });
+            logger.info('god-prospection.sequence-dry-run', { channel, to: prospect.email, subject: sentSubject });
           } else {
-            await sendEmail({ to: prospect.email, subject, html });
+            await sendEmail({ to: prospect.email, subject: sentSubject, html });
           }
         } else if (channel === 'whatsapp') {
           const text = buildMessageText({
@@ -121,6 +125,8 @@ export async function runSequenceStep(): Promise<void> {
             prospect: { firstName: prospect.firstName, fullName: prospect.fullName, profession: prospect.profession },
             inviteUrl,
           });
+
+          sentBody = text;
 
           const rawPhone = prospect.whatsappPhone || prospect.phone;
           if (!rawPhone) {
@@ -148,13 +154,15 @@ export async function runSequenceStep(): Promise<void> {
 
         // Post-send bookkeeping (must not fail the send -- wrapped separately)
         try {
-          // Record the send in history
+          // Record the send in history with the actual content sent
           if (!DRY_RUN) {
             await insertSequenceSend({
               prospectId: prospect.id,
               sequenceId: prospect.sequenceId,
               stepOrder: prospect.currentStep,
               channel,
+              subject: sentSubject,
+              body: sentBody,
             });
           }
 

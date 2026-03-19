@@ -5,6 +5,8 @@ CREATE TABLE god_sequence_sends (
   sequence_id UUID NOT NULL REFERENCES god_sequences(id),
   step_order SMALLINT NOT NULL,
   channel TEXT NOT NULL CHECK (channel IN ('email', 'whatsapp')),
+  subject TEXT,
+  body TEXT NOT NULL,
   sent_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
