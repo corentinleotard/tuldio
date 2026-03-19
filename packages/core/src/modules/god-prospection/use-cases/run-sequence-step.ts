@@ -24,7 +24,7 @@ function isBusinessHours(): boolean {
   const now = new Date();
   const parisTime = new Date(now.toLocaleString('en-US', { timeZone: 'Europe/Paris' }));
   const hour = parisTime.getHours();
-  return hour >= 8 && hour < 19;
+  return hour >= 8 && hour <= 20;
 }
 
 function randomDelay(): number {
