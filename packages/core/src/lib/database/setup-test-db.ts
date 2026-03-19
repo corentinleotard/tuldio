@@ -43,7 +43,7 @@ async function run() {
 
   for (const file of files) {
     if (applied.has(file)) continue;
-    const sql = await readFile(join(MIGRATIONS_DIR, file), 'utf-8');
+    const sql = await readFile(join(MIGRATIONS_DIR, file), { encoding: 'utf8' });
     console.log(`Applying: ${file}`);
     await query('BEGIN');
     try {

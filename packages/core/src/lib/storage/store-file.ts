@@ -15,7 +15,7 @@ export async function storeFile(input: {
   const filename = `${generateId()}${input.extension}`;
   const filePath = path.join(dir, filename);
 
-  fs.writeFileSync(filePath, input.buffer);
+  fs.writeFileSync(filePath, new Uint8Array(input.buffer));
 
   return `/files/${input.subdir}/${filename}`;
 }

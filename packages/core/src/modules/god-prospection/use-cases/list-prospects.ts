@@ -25,7 +25,7 @@ export interface ProspectListResult {
 }
 
 export async function listProspects(): Promise<ProspectListResult> {
-  const [rows, dailyUsed] = await Promise.all([findAllProspects(), getDailyCount()]);
+  const [rows, dailyUsed] = await Promise.all([findAllProspects(), getDailyCount({ channel: 'email' })]);
 
   const dailyLimit = Number(process.env.PROSPECTION_DAILY_LIMIT || DEFAULT_DAILY_LIMIT);
   const totalWithEmail = rows.length;

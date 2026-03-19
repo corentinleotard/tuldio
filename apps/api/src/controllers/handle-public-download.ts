@@ -5,7 +5,7 @@ import { downloadInvoicePdf } from '@tuldio/core/invoices';
 import { logger } from '@tuldio/core/lib';
 
 function sanitizeFileName(name: string): string {
-  return name.replace(/[^\w.\-]/g, '_');
+  return name.replace(/[^\w.-]/g, '_');
 }
 
 export async function handlePublicDownload(req: Request, res: Response): Promise<void> {

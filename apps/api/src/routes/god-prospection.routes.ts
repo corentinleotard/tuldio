@@ -12,12 +12,27 @@ import { handleListReceived } from '../controllers/god-prospection/handle-list-r
 import { handleReply } from '../controllers/god-prospection/handle-reply.js';
 import { handleReport } from '../controllers/god-prospection/handle-report.js';
 import { handleSendQueue } from '../controllers/god-prospection/handle-send-queue.js';
+import { handleListSequences } from '../controllers/god-prospection/handle-list-sequences.js';
+import { handleCreateSequence } from '../controllers/god-prospection/handle-create-sequence.js';
+import { handleUpdateSequence } from '../controllers/god-prospection/handle-update-sequence.js';
+import { handleDeleteSequence } from '../controllers/god-prospection/handle-delete-sequence.js';
+import { handleAssignToSequence } from '../controllers/god-prospection/handle-assign-to-sequence.js';
+import { handleSequenceReport } from '../controllers/god-prospection/handle-sequence-report.js';
+import { handleGetChannelLimits } from '../controllers/god-prospection/handle-get-channel-limits.js';
+import { handleUpdateChannelLimit } from '../controllers/god-prospection/handle-update-channel-limit.js';
+import { handleSetupWhatsApp } from '../controllers/god-prospection/handle-setup-whatsapp.js';
+import { handleGetWhatsAppStatus } from '../controllers/god-prospection/handle-get-whatsapp-status.js';
+import { handlePauseProspect } from '../controllers/god-prospection/handle-pause-prospect.js';
+import { handleSequenceProspects } from '../controllers/god-prospection/handle-sequence-prospects.js';
+import { handleSendTestWhatsApp } from '../controllers/god-prospection/handle-send-test-whatsapp.js';
+import { handleListReceivedMessages } from '../controllers/god-prospection/handle-list-received-messages.js';
 
 const router: RouterType = Router();
 
 router.use(authMiddleware);
 router.use(requireGod);
 
+// Existing routes
 router.get('/prospects', wrapHandler(handleListProspects));
 router.post('/send', wrapHandler(handleSendBatch));
 router.post('/send-test', wrapHandler(handleSendTest));
@@ -25,8 +40,30 @@ router.get('/batch-status', wrapHandler(handleBatchStatus));
 router.post('/cancel', wrapHandler(handleCancelBatch));
 router.get('/sent', wrapHandler(handleListSent));
 router.get('/received', wrapHandler(handleListReceived));
+router.get('/received-messages', wrapHandler(handleListReceivedMessages));
 router.post('/reply', wrapHandler(handleReply));
 router.get('/report', wrapHandler(handleReport));
 router.get('/send-queue', wrapHandler(handleSendQueue));
+
+// Sequences
+router.get('/sequences', wrapHandler(handleListSequences));
+router.post('/sequences', wrapHandler(handleCreateSequence));
+router.post('/sequences/assign', wrapHandler(handleAssignToSequence));
+router.get('/sequences/:id/report', wrapHandler(handleSequenceReport));
+router.get('/sequences/:id/prospects', wrapHandler(handleSequenceProspects));
+router.put('/sequences/:id', wrapHandler(handleUpdateSequence));
+router.delete('/sequences/:id', wrapHandler(handleDeleteSequence));
+
+// Prospect management
+router.put('/prospects/:id/pause', wrapHandler(handlePauseProspect));
+
+// Channel limits
+router.get('/channel-limits', wrapHandler(handleGetChannelLimits));
+router.put('/channel-limits/:channel', wrapHandler(handleUpdateChannelLimit));
+
+// WhatsApp
+router.post('/whatsapp/setup', wrapHandler(handleSetupWhatsApp));
+router.get('/whatsapp/status', wrapHandler(handleGetWhatsAppStatus));
+router.post('/whatsapp/send-test', wrapHandler(handleSendTestWhatsApp));
 
 export default router;

@@ -15,7 +15,7 @@ export async function findUnsentProspects(input: {
   profession: string | null;
 }): Promise<UnsentProspect[]> {
   const params: Array<string | number> = [];
-  let where = `WHERE status = 'new'`;
+  let where = `WHERE status = 'new' AND sequence_status IS DISTINCT FROM 'active'`;
 
   if (input.profession) {
     params.push(input.profession);

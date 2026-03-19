@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Send, Loader2, FlaskConical, OctagonX } from 'lucide-react';
 import { toast } from 'sonner';
@@ -39,19 +39,20 @@ export function SendControls(props: SendControlsProps) {
 
   const { data: batchStatus } = useQuery({
     queryKey: ['god-prospection', 'batch-status'],
-    queryFn: fetchBatchStatus,
+    queryFn: async () => {
+      const status = await fetchBatchStatus();
+      // Detect batch completion inside queryFn to avoid setState-in-effect
+      if (status && !status.running && status.total > 0) {
+        setPolling(false);
+        queryClient.invalidateQueries({ queryKey: ['god-prospection'] });
+      }
+      return status;
+    },
     refetchInterval: polling ? 30000 : false,
     enabled: polling,
   });
 
   const isRunning = batchStatus?.running === true;
-
-  useEffect(() => {
-    if (batchStatus && !batchStatus.running && batchStatus.total > 0) {
-      setPolling(false);
-      queryClient.invalidateQueries({ queryKey: ['god-prospection'] });
-    }
-  }, [batchStatus, queryClient]);
 
   const sendMutation = useMutation({
     mutationFn: sendBatch,

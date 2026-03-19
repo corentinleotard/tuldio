@@ -1,14 +1,17 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Megaphone, BarChart3 } from 'lucide-react';
+import { Megaphone, BarChart3, ListOrdered } from 'lucide-react';
 import { fetchProspects } from '../api/god-prospection.api';
 import { SendControls } from '../components/send-controls';
 import { SentEmailList } from '../components/sent-email-list';
 import { ReceivedEmailList } from '../components/received-email-list';
 import { SendQueue } from '../components/send-queue';
 import { ProspectReport } from '../components/prospect-report';
+import { SequenceList } from '../components/sequence-list';
+import { ChannelLimitsEditor } from '../components/channel-limits-editor';
+import { WhatsAppSetup } from '../components/whatsapp-setup';
 
-type MainTab = 'prospection' | 'reports';
+type MainTab = 'prospection' | 'sequences' | 'reports';
 type SubTab = 'queue' | 'sent' | 'received';
 
 export function GodProspectionPage() {
@@ -42,6 +45,17 @@ export function GodProspectionPage() {
         >
           <Megaphone className="h-3.5 w-3.5" />
           Prospection
+        </button>
+        <button
+          onClick={() => setMainTab('sequences')}
+          className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium transition-colors ${
+            mainTab === 'sequences'
+              ? 'border-b-2 border-primary text-primary'
+              : 'text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          <ListOrdered className="h-3.5 w-3.5" />
+          Sequences
         </button>
         <button
           onClick={() => setMainTab('reports')}
@@ -94,7 +108,7 @@ export function GodProspectionPage() {
                     : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
-                Envoyés
+                Envoyes
               </button>
               <button
                 onClick={() => setSubTab('received')}
@@ -104,7 +118,7 @@ export function GodProspectionPage() {
                     : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
-                Reçus
+                Recus
               </button>
             </div>
 
@@ -119,6 +133,18 @@ export function GodProspectionPage() {
             </div>
           </div>
         </>
+      ) : mainTab === 'sequences' ? (
+        <div className="mt-4 space-y-4">
+          <div className="rounded-lg border border-border bg-card">
+            <SequenceList />
+          </div>
+          <div className="rounded-lg border border-border bg-card">
+            <ChannelLimitsEditor />
+          </div>
+          <div className="rounded-lg border border-border bg-card">
+            <WhatsAppSetup />
+          </div>
+        </div>
       ) : (
         <div className="mt-0 rounded-b-lg border-x border-b border-border bg-card">
           <ProspectReport />

@@ -171,7 +171,7 @@ export async function extractLogoFromPdf(input: {
 
     const fileName = `${input.teamId}.png`;
     const filePath = path.join(logoDir, fileName);
-    await fs.promises.writeFile(filePath, pngBuffer);
+    await fs.promises.writeFile(filePath, new Uint8Array(pngBuffer));
 
     logger.info('Logo extracted from PDF', {
       teamId: input.teamId,

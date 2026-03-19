@@ -3,6 +3,7 @@ import { updateProspectStatus } from '../repository/update-prospect-status.js';
 import { getDailyCount, incrementDailyCount } from '../repository/god-send-log.js';
 import { sendEmail } from '../domain/smtp-client.js';
 import { buildProspectionEmailHtml, getSubjectForProfession } from '../domain/email-template.js';
+import { buildInvitePayload } from '../domain/invite-payload.js';
 import { insertInviteCode } from '../../auth/repository/insert-invite-code.js';
 import { logger } from '../../../lib/infra/logger.js';
 
@@ -49,11 +50,11 @@ export async function sendBatch(input: {
   profession: string | null;
 }): Promise<SendBatchAccepted> {
   if (currentBatch.running) {
-    return { accepted: false, batchSize: 0, dailyUsed: await getDailyCount(), dailyRemaining: 0 };
+    return { accepted: false, batchSize: 0, dailyUsed: await getDailyCount({ channel: 'email' }), dailyRemaining: 0 };
   }
 
   const dailyLimit = Number(process.env.PROSPECTION_DAILY_LIMIT || DEFAULT_DAILY_LIMIT);
-  const dailyUsed = await getDailyCount();
+  const dailyUsed = await getDailyCount({ channel: 'email' });
   const remaining = Math.max(0, dailyLimit - dailyUsed);
   const toSend = Math.min(Math.max(0, input.count), remaining);
 
@@ -69,7 +70,7 @@ export async function sendBatch(input: {
 
   // Reserve the count immediately to prevent race conditions (skip in dry-run)
   if (!DRY_RUN) {
-    await incrementDailyCount({ count: batch.length });
+    await incrementDailyCount({ channel: 'email', count: batch.length });
   }
 
   currentBatch = { running: true, sent: 0, errors: 0, total: batch.length };
@@ -105,15 +106,13 @@ async function runBatch(
 
     try {
       // Generate short invite code and store payload in DB
-      const invitePayload = {
-        name: prospect.fullName.split(' ').map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' '),
-        address: null,
+      const { payload: invitePayload, expiresAt } = buildInvitePayload({
+        fullName: prospect.fullName,
+        firstName: prospect.firstName,
         phone: prospect.phone,
         website: prospect.website,
         profession: prospect.profession,
-        firstName: prospect.firstName || null,
-      };
-      const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+      });
       const code = await insertInviteCode({ payload: invitePayload, expiresAt });
       const inviteUrl = `${APP_URL}/i/${code}`;
 

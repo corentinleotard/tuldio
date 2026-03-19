@@ -32,7 +32,7 @@ async function runMigrations(): Promise<void> {
   for (const file of files) {
     if (applied.has(file)) continue;
 
-    const sql = await readFile(join(MIGRATIONS_DIR, file), 'utf-8');
+    const sql = await readFile(join(MIGRATIONS_DIR, file), { encoding: 'utf8' });
     logger.info(`Running migration: ${file}`);
 
     await query('BEGIN');

@@ -76,6 +76,28 @@ export async function fetchReceivedEmails(input: {
   return apiFetch(`/api/god-prospection/received?${params}`);
 }
 
+export interface ReceivedMessageView {
+  id: string;
+  channel: 'email' | 'whatsapp';
+  from: string;
+  fromName: string;
+  subject: string | null;
+  body: string;
+  date: string;
+  messageId: string | null;
+  inReplyTo: string | null;
+}
+
+export async function fetchReceivedMessages(input: {
+  channel: 'all' | 'email' | 'whatsapp';
+  limit: number;
+  olderThan?: string;
+}): Promise<ReceivedMessageView[]> {
+  const params = new URLSearchParams({ limit: String(input.limit), channel: input.channel });
+  if (input.olderThan) params.set('olderThan', input.olderThan);
+  return apiFetch(`/api/god-prospection/received-messages?${params}`);
+}
+
 export async function sendBatch(input: {
   count: number;
   body: string;
@@ -161,13 +183,167 @@ export interface SendQueueProspect {
   website: string | null;
   icpScore: number | null;
   icpReason: string | null;
+  hasMobile: boolean;
+  status: string;
+  sequenceStatus: string | null;
 }
 
 export async function fetchSendQueue(input: {
   profession: string | null;
   limit: number;
+  includeContacted?: boolean;
 }): Promise<SendQueueProspect[]> {
   const params = new URLSearchParams({ limit: String(input.limit) });
   if (input.profession) params.set('profession', input.profession);
+  if (input.includeContacted) params.set('includeContacted', 'true');
   return apiFetch(`/api/god-prospection/send-queue?${params}`);
+}
+
+// --- Sequences ---
+
+export interface SequenceStepView {
+  id: string;
+  stepOrder: number;
+  channel: string;
+  delayDays: number;
+  subject: string | null;
+  body: string;
+}
+
+export interface SequenceView {
+  id: string;
+  name: string;
+  isActive: boolean;
+  steps: SequenceStepView[];
+  stats: { active: number; completed: number; replied: number; error: number };
+}
+
+export interface ChannelLimitView {
+  channel: string;
+  dailyLimit: number;
+  dailyUsed: number;
+}
+
+export interface WhatsAppStatus {
+  connected: boolean;
+  phone: string | null;
+}
+
+export interface SequenceReportView {
+  sequenceId: string;
+  sequenceName: string;
+  funnel: Array<{ stepOrder: number; channel: string; sent: number; pending: number }>;
+  replyRate: number;
+  totalAssigned: number;
+  completed: number;
+  errors: number;
+  recentActivity: Array<{ prospectName: string; channel: string; stepOrder: number; sentAt: string }>;
+}
+
+export async function pauseProspect(input: {
+  prospectId: string;
+  paused: boolean;
+}): Promise<void> {
+  await apiFetch(`/api/god-prospection/prospects/${input.prospectId}/pause`, {
+    method: 'PUT',
+    body: JSON.stringify({ paused: input.paused }),
+  });
+}
+
+export async function fetchSequences(): Promise<SequenceView[]> {
+  return apiFetch('/api/god-prospection/sequences');
+}
+
+export async function createSequence(input: {
+  name: string;
+  steps: Array<{
+    stepOrder: number;
+    channel: string;
+    delayDays: number;
+    subject: string | null;
+    body: string;
+  }>;
+}): Promise<{ id: string }> {
+  return apiFetch('/api/god-prospection/sequences', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+}
+
+export async function updateSequence(input: {
+  id: string;
+  name?: string;
+  isActive?: boolean;
+  steps?: Array<{
+    stepOrder: number;
+    channel: string;
+    delayDays: number;
+    subject: string | null;
+    body: string;
+  }>;
+}): Promise<void> {
+  const { id, ...body } = input;
+  await apiFetch(`/api/god-prospection/sequences/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(body),
+  });
+}
+
+export async function deleteSequence(input: { id: string }): Promise<void> {
+  await apiFetch(`/api/god-prospection/sequences/${input.id}`, { method: 'DELETE' });
+}
+
+export async function assignToSequence(input: {
+  prospectIds: string[];
+  sequenceId: string;
+}): Promise<{ assigned: number }> {
+  return apiFetch('/api/god-prospection/sequences/assign', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+}
+
+export interface SequenceProspectView {
+  id: string;
+  fullName: string;
+  email: string;
+  phone: string | null;
+  hasMobile: boolean;
+  currentStep: number;
+  sequenceStatus: string;
+  nextStepAt: string | null;
+}
+
+export async function fetchSequenceProspects(input: {
+  sequenceId: string;
+}): Promise<SequenceProspectView[]> {
+  return apiFetch(`/api/god-prospection/sequences/${input.sequenceId}/prospects`);
+}
+
+export async function fetchSequenceReport(input: {
+  sequenceId: string;
+}): Promise<SequenceReportView> {
+  return apiFetch(`/api/god-prospection/sequences/${input.sequenceId}/report`);
+}
+
+export async function fetchChannelLimits(): Promise<ChannelLimitView[]> {
+  return apiFetch('/api/god-prospection/channel-limits');
+}
+
+export async function updateChannelLimitApi(input: {
+  channel: string;
+  dailyLimit: number;
+}): Promise<void> {
+  await apiFetch(`/api/god-prospection/channel-limits/${input.channel}`, {
+    method: 'PUT',
+    body: JSON.stringify({ dailyLimit: input.dailyLimit }),
+  });
+}
+
+export async function setupWhatsApp(): Promise<WhatsAppStatus & { qrCode: string | null }> {
+  return apiFetch('/api/god-prospection/whatsapp/setup', { method: 'POST' });
+}
+
+export async function fetchWhatsAppStatus(): Promise<WhatsAppStatus> {
+  return apiFetch('/api/god-prospection/whatsapp/status');
 }

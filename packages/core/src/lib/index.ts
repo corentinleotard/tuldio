@@ -1,4 +1,4 @@
-export { connectDb, getPool, query } from './database/db.js';
+export { connectDb, getPool, query, withTransaction } from './database/db.js';
 export { logger } from './infra/logger.js';
 export { generateId } from './infra/id.js';
 export { HandledError } from './errors/handled-error.js';

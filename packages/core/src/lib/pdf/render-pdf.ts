@@ -33,7 +33,7 @@ export async function renderPdf(input: {
   await fs.mkdir(pdfDir, { recursive: true });
 
   const filePath = path.join(pdfDir, input.fileName);
-  await fs.writeFile(filePath, pdfBuffer);
+  await fs.writeFile(filePath, new Uint8Array(pdfBuffer));
 
   return `/files/pdfs/${input.fileName}`;
 }
