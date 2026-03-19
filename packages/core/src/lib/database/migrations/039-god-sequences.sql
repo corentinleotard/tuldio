@@ -90,7 +90,7 @@ BEGIN
     'email',
     0,
     'Vos devis et factures, vous les faites comment ?',
-    E'Bonjour {{firstName}},\n\nJe contacte quelques {{professionPlural}} pour leur poser une question : vous faites vos devis comment aujourd''hui ? Word, Excel, papier ?\n\nJ''ai cree un outil qui permet de faire un devis en 30 sec depuis le telephone, juste en envoyant un message ou un vocal.\n\nSi ca vous parle, votre espace est deja pret :\n\nCorentin'
+    E'Bonjour {{firstName}},\n\nJe contacte quelques {{professionPlural}} pour leur poser une question : vous faites vos devis comment aujourd''hui ? Word, Excel, papier ?\n\nJ''ai créé un outil qui permet de faire un devis en 30 sec depuis le téléphone, juste en envoyant un message ou un vocal.\n\nSi ça vous parle, votre espace est déjà prêt :\n\nCorentin'
   );
 
   -- Step 1: whatsapp follow-up (day 2)
@@ -102,7 +102,7 @@ BEGIN
     'whatsapp',
     2,
     NULL,
-    E'Bonjour {{firstName}}, je vous ai envoye un email il y a quelques jours.\n\nJ''ai cree un outil pour les {{professionPlural}} : devis en 30 sec depuis le telephone, juste en envoyant un message.\n\nVotre espace est pret si ca vous interesse !'
+    E'Bonjour {{firstName}}, je vous ai envoyé un email il y a quelques jours.\n\nJ''ai créé un outil pour les {{professionPlural}} : devis en 30 sec depuis le téléphone, juste en envoyant un message.'
   );
 
   -- Already-emailed prospects WITH a valid mobile: set to step 1 (waiting for WhatsApp)
