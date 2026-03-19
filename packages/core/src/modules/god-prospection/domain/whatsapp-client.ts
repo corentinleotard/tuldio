@@ -2,6 +2,7 @@ import { makeWASocket, useMultiFileAuthState, DisconnectReason } from '@whiskeys
 import type { WASocket } from '@whiskeysockets/baileys';
 import type { Boom } from '@hapi/boom';
 import { logger } from '../../../lib/infra/logger.js';
+import { writeWhatsAppStatus } from './whatsapp-status-file.js';
 
 const FILES_DIR = process.env.FILES_DIR || '/var/tuldio/files';
 const SESSION_DIR = `${FILES_DIR}/whatsapp-session`;
@@ -44,6 +45,7 @@ export async function initWhatsApp(): Promise<{ qrCode: string | null; connected
 
       if (qr) {
         latestQr = qr;
+        writeWhatsAppStatus({ connected: false, phone: null, qrCode: qr });
         logger.info('god-prospection.whatsapp-qr', { message: 'QR code available' });
       }
 
@@ -52,12 +54,14 @@ export async function initWhatsApp(): Promise<{ qrCode: string | null; connected
         latestQr = null;
         reconnectAttempts = 0;
         currentPhone = sock?.user?.id?.split(':')[0] ?? null;
+        writeWhatsAppStatus({ connected: true, phone: currentPhone, qrCode: null });
         logger.info('god-prospection.whatsapp-connected', { phone: currentPhone });
       }
 
       if (connection === 'close') {
         connected = false;
         currentPhone = null;
+        writeWhatsAppStatus({ connected: false, phone: null, qrCode: null });
         initializing = false;
         const statusCode = (lastDisconnect?.error as Boom)?.output?.statusCode;
 

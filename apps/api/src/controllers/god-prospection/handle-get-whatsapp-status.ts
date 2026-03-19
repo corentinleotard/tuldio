@@ -1,7 +1,7 @@
 import type { Request, Response } from 'express';
-import { getWhatsAppStatusUc } from '@tuldio/core/god-prospection';
+import { readWhatsAppStatus } from '@tuldio/core/god-prospection';
 
 export async function handleGetWhatsAppStatus(_req: Request, res: Response): Promise<void> {
-  const status = getWhatsAppStatusUc();
-  res.json({ data: status });
+  const status = readWhatsAppStatus();
+  res.json({ data: { connected: status.connected, phone: status.phone } });
 }

@@ -23,6 +23,7 @@ export { updateChannelLimitsUc } from './use-cases/update-channel-limits.js';
 // WhatsApp
 export { setupWhatsApp } from './use-cases/setup-whatsapp.js';
 export { getWhatsAppStatusUc } from './use-cases/get-whatsapp-status.js';
+export { readWhatsAppStatus, requestWhatsAppConnect, consumeConnectRequest } from './domain/whatsapp-status-file.js';
 
 // Prospect management
 export { pauseProspectUc } from './use-cases/pause-prospect.js';
