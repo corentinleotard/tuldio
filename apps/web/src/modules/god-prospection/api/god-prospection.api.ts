@@ -60,6 +60,21 @@ export async function fetchProspects(): Promise<ProspectListResult> {
   return apiFetch<ProspectListResult>('/api/god-prospection/prospects');
 }
 
+export interface RecentSendView {
+  id: string;
+  prospectName: string;
+  prospectEmail: string;
+  channel: string;
+  stepOrder: number;
+  sentAt: string;
+}
+
+export async function fetchRecentSends(input: {
+  limit: number;
+}): Promise<RecentSendView[]> {
+  return apiFetch(`/api/god-prospection/sends?limit=${input.limit}`);
+}
+
 export async function fetchSentEmails(input: {
   limit: number;
   offset: number;

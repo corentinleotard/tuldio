@@ -18,10 +18,13 @@ export function writeWhatsAppStatus(input: {
 }): void {
   const dir = path.dirname(STATUS_FILE);
   fs.mkdirSync(dir, { recursive: true });
-  fs.writeFileSync(STATUS_FILE, JSON.stringify({
+  // Atomic write: write to temp file then rename (prevents partial reads)
+  const tmpFile = STATUS_FILE + '.tmp';
+  fs.writeFileSync(tmpFile, JSON.stringify({
     ...input,
     updatedAt: new Date().toISOString(),
   }));
+  fs.renameSync(tmpFile, STATUS_FILE);
 }
 
 export function readWhatsAppStatus(): WhatsAppStatusFile {

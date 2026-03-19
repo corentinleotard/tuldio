@@ -36,6 +36,9 @@ export { sendWhatsAppMessage } from './domain/whatsapp-client.js';
 export { normalizePhoneToInternational } from './domain/phone-utils.js';
 export { buildMessageText } from './domain/sequence-template.js';
 
+// Send history
+export { findRecentSends, type RecentSendRow } from './repository/find-recent-sends.js';
+
 // Received messages
 export { listReceivedMessages, type ReceivedMessageView } from './use-cases/list-received-messages.js';
 export { insertReceivedMessage } from './repository/insert-received-message.js';

@@ -22,5 +22,9 @@ export async function handleUpdateProspect(req: Request, res: Response): Promise
 
   await updateProspectFields({ id, ...parsed.data });
   const prospect = await findProspectById({ id });
+  if (!prospect) {
+    res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Prospect introuvable' } });
+    return;
+  }
   res.json({ data: prospect });
 }

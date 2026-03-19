@@ -11,6 +11,7 @@ import { buildProspectionEmailHtml } from '../domain/email-template.js';
 import { normalizePhoneToInternational } from '../domain/phone-utils.js';
 import { buildInvitePayload } from '../domain/invite-payload.js';
 import { insertInviteCode } from '../../auth/repository/insert-invite-code.js';
+import { insertSequenceSend } from '../repository/insert-sequence-send.js';
 import { logger } from '../../../lib/infra/logger.js';
 import type { GodSequenceStepRow } from '../repository/find-steps-by-sequence.js';
 
@@ -142,31 +143,50 @@ export async function runSequenceStep(): Promise<void> {
           }
         }
 
-        // Advance to next step IMMEDIATELY after send (before delay)
-        let allSteps = stepsCache.get(prospect.sequenceId);
-        if (!allSteps) {
-          allSteps = await findStepsBySequence({ sequenceId: prospect.sequenceId });
-          stepsCache.set(prospect.sequenceId, allSteps);
-        }
+        // Post-send bookkeeping (must not fail the send -- wrapped separately)
+        try {
+          // Record the send in history
+          if (!DRY_RUN) {
+            await insertSequenceSend({
+              prospectId: prospect.id,
+              sequenceId: prospect.sequenceId,
+              stepOrder: prospect.currentStep,
+              channel,
+            });
+          }
 
-        const sortedSteps = allSteps.sort((a, b) => a.stepOrder - b.stepOrder);
-        const currentIdx = sortedSteps.findIndex((s) => s.stepOrder === prospect.currentStep);
-        const nextStep = currentIdx >= 0 ? sortedSteps[currentIdx + 1] : undefined;
+          // Advance to next step IMMEDIATELY after send (before delay)
+          let allSteps = stepsCache.get(prospect.sequenceId);
+          if (!allSteps) {
+            allSteps = await findStepsBySequence({ sequenceId: prospect.sequenceId });
+            stepsCache.set(prospect.sequenceId, allSteps);
+          }
 
-        if (nextStep) {
-          const nextStepAt = new Date(Date.now() + nextStep.delayDays * 24 * 60 * 60 * 1000);
-          await advanceProspectStep({
+          const sortedSteps = allSteps.sort((a, b) => a.stepOrder - b.stepOrder);
+          const currentIdx = sortedSteps.findIndex((s) => s.stepOrder === prospect.currentStep);
+          const nextStep = currentIdx >= 0 ? sortedSteps[currentIdx + 1] : undefined;
+
+          if (nextStep) {
+            const nextStepAt = new Date(Date.now() + nextStep.delayDays * 24 * 60 * 60 * 1000);
+            await advanceProspectStep({
+              prospectId: prospect.id,
+              nextStepOrder: nextStep.stepOrder,
+              nextStepAt,
+              sequenceStatus: 'active',
+            });
+          } else {
+            await advanceProspectStep({
+              prospectId: prospect.id,
+              nextStepOrder: prospect.currentStep + 1,
+              nextStepAt: null,
+              sequenceStatus: 'completed',
+            });
+          }
+        } catch (bookkeepingErr) {
+          // Send succeeded but bookkeeping failed -- log but don't mark as error
+          logger.error('god-prospection.sequence-bookkeeping-error', {
             prospectId: prospect.id,
-            nextStepOrder: nextStep.stepOrder,
-            nextStepAt,
-            sequenceStatus: 'active',
-          });
-        } else {
-          await advanceProspectStep({
-            prospectId: prospect.id,
-            nextStepOrder: prospect.currentStep + 1,
-            nextStepAt: null,
-            sequenceStatus: 'completed',
+            error: bookkeepingErr instanceof Error ? bookkeepingErr.message : 'Unknown error',
           });
         }
 

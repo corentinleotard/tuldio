@@ -1,17 +1,32 @@
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
-import { Mail, ChevronLeft, ChevronRight } from 'lucide-react';
-import { fetchSentEmails, type SentEmailView } from '../api/god-prospection.api';
+import { Mail, MessageCircle, Send } from 'lucide-react';
+import { fetchSentEmails, fetchRecentSends } from '../api/god-prospection.api';
 
-const PAGE_SIZE = 40;
+interface UnifiedSend {
+  id: string;
+  name: string;
+  email: string;
+  profession: string | null;
+  channel: 'email' | 'whatsapp';
+  step: number | null;
+  sentAt: string;
+  subject: string | null;
+  bodyHtml: string | null;
+}
 
 export function SentEmailList() {
-  const [offset, setOffset] = useState(0);
-
-  const { data, isLoading } = useQuery({
-    queryKey: ['god-prospection', 'sent', offset],
-    queryFn: () => fetchSentEmails({ limit: PAGE_SIZE, offset }),
+  const { data: batchData, isLoading: batchLoading } = useQuery({
+    queryKey: ['god-prospection', 'sent', 0],
+    queryFn: () => fetchSentEmails({ limit: 100, offset: 0 }),
   });
+
+  const { data: sequenceSends, isLoading: seqLoading } = useQuery({
+    queryKey: ['god-prospection', 'sends'],
+    queryFn: () => fetchRecentSends({ limit: 100 }),
+  });
+
+  const isLoading = batchLoading || seqLoading;
 
   if (isLoading) {
     return (
@@ -21,93 +36,111 @@ export function SentEmailList() {
     );
   }
 
-  const emails = data?.emails ?? [];
-  const total = data?.total ?? 0;
+  // Merge both sources
+  const sends: UnifiedSend[] = [];
 
-  if (emails.length === 0) {
+  for (const e of batchData?.emails ?? []) {
+    sends.push({
+      id: `batch-${e.email}-${e.sentAt}`,
+      name: e.nom,
+      email: e.email,
+      profession: e.profession,
+      channel: 'email',
+      step: null,
+      sentAt: e.sentAt,
+      subject: e.sentSubject,
+      bodyHtml: e.sentBodyHtml,
+    });
+  }
+
+  for (const s of sequenceSends ?? []) {
+    sends.push({
+      id: s.id,
+      name: s.prospectName,
+      email: s.prospectEmail,
+      profession: null,
+      channel: s.channel as 'email' | 'whatsapp',
+      step: s.stepOrder,
+      sentAt: s.sentAt,
+      subject: null,
+      bodyHtml: null,
+    });
+  }
+
+  // Sort by date DESC, deduplicate by email+date (batch and sequence might overlap for migrated prospects)
+  sends.sort((a, b) => new Date(b.sentAt).getTime() - new Date(a.sentAt).getTime());
+
+  if (sends.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
-        <Mail className="mb-2 h-8 w-8" />
-        <p>Aucun email envoyé</p>
+        <Send className="mb-2 h-8 w-8" />
+        <p>Aucun envoi</p>
       </div>
     );
   }
 
   return (
-    <div>
-      <div className="divide-y divide-border">
-        {emails.map((email, i) => (
-          <SentEmailItem key={`${email.email}-${i}`} email={email} />
-        ))}
-      </div>
-
-      {total > PAGE_SIZE && (
-        <div className="flex items-center justify-between border-t border-border px-5 py-3">
-          <span className="text-sm text-muted-foreground">
-            {offset + 1}-{Math.min(offset + PAGE_SIZE, total)} sur {total}
-          </span>
-          <div className="flex gap-2">
-            <button
-              onClick={() => setOffset(Math.max(0, offset - PAGE_SIZE))}
-              disabled={offset === 0}
-              className="rounded-md p-1.5 hover:bg-secondary disabled:opacity-30"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </button>
-            <button
-              onClick={() => setOffset(offset + PAGE_SIZE)}
-              disabled={offset + PAGE_SIZE >= total}
-              className="rounded-md p-1.5 hover:bg-secondary disabled:opacity-30"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
-      )}
+    <div className="divide-y divide-border">
+      {sends.map((send) => (
+        <SentItem key={send.id} send={send} />
+      ))}
     </div>
   );
 }
 
-function SentEmailItem(props: { email: SentEmailView }) {
-  const { email } = props;
+function SentItem(props: { send: UnifiedSend }) {
+  const { send } = props;
   const [expanded, setExpanded] = useState(false);
+
+  const date = new Date(send.sentAt);
+  const formattedDate = date.toLocaleDateString('fr-FR', {
+    day: 'numeric',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  });
 
   return (
     <div>
       <div
-        className="flex cursor-pointer items-center gap-4 px-5 py-3 transition-colors hover:bg-secondary/30"
+        className="flex cursor-pointer items-center gap-3 px-5 py-3 transition-colors hover:bg-secondary/30"
         onClick={() => setExpanded(!expanded)}
       >
-        <div className="flex-1 min-w-0">
+        {send.channel === 'email' ? (
+          <Mail className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+        ) : (
+          <MessageCircle className="h-3.5 w-3.5 shrink-0 text-success" />
+        )}
+        <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <span className="font-medium truncate">{email.nom}</span>
-            <span className="text-xs text-muted-foreground">{email.profession}</span>
+            <span className="truncate font-medium">{send.name}</span>
+            {send.profession && (
+              <span className="text-xs text-muted-foreground">{send.profession}</span>
+            )}
+            {send.step !== null && (
+              <span className="rounded-full bg-secondary px-1.5 py-0.5 text-xs text-muted-foreground">
+                Etape {send.step + 1}
+              </span>
+            )}
           </div>
-          <p className="text-sm text-muted-foreground truncate">{email.email}</p>
+          <p className="truncate text-sm text-muted-foreground">{send.email}</p>
         </div>
-        <span className="shrink-0 text-sm text-muted-foreground">{email.sentAt}</span>
+        <span className="shrink-0 text-xs text-muted-foreground">{formattedDate}</span>
       </div>
 
-      {expanded && (
+      {expanded && send.bodyHtml && (
         <div className="border-t border-border bg-secondary/20 px-5 py-4">
-          {email.sentSubject || email.sentBodyHtml ? (
-            <div className="space-y-3">
-              {email.sentSubject && (
-                <div className="text-sm">
-                  <span className="text-muted-foreground">Objet : </span>
-                  <span className="font-medium">{email.sentSubject}</span>
-                </div>
-              )}
-              {email.sentBodyHtml && (
-                <div
-                  className="rounded-md border border-border bg-background p-4 text-sm"
-                  dangerouslySetInnerHTML={{ __html: email.sentBodyHtml }}
-                />
-              )}
+          {send.subject && (
+            <div className="mb-2 text-sm">
+              <span className="text-muted-foreground">Objet : </span>
+              <span className="font-medium">{send.subject}</span>
             </div>
-          ) : (
-            <p className="text-sm text-muted-foreground">Contenu non disponible (envoyé avant le stockage)</p>
           )}
+          <div
+            className="rounded-md border border-border bg-background p-4 text-sm"
+            dangerouslySetInnerHTML={{ __html: send.bodyHtml }}
+          />
         </div>
       )}
     </div>
