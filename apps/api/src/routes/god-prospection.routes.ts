@@ -29,6 +29,7 @@ import { handleListReceivedMessages } from '../controllers/god-prospection/handl
 import { handleGetProspect } from '../controllers/god-prospection/handle-get-prospect.js';
 import { handleUpdateProspect } from '../controllers/god-prospection/handle-update-prospect.js';
 import { handleRecentSends } from '../controllers/god-prospection/handle-recent-sends.js';
+import { handleUpcomingSends } from '../controllers/god-prospection/handle-upcoming-sends.js';
 
 const router: RouterType = Router();
 
@@ -43,6 +44,7 @@ router.get('/batch-status', wrapHandler(handleBatchStatus));
 router.post('/cancel', wrapHandler(handleCancelBatch));
 router.get('/sent', wrapHandler(handleListSent));
 router.get('/sends', wrapHandler(handleRecentSends));
+router.get('/upcoming', wrapHandler(handleUpcomingSends));
 router.get('/received', wrapHandler(handleListReceived));
 router.get('/received-messages', wrapHandler(handleListReceivedMessages));
 router.post('/reply', wrapHandler(handleReply));

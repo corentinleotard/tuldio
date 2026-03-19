@@ -117,8 +117,11 @@ export function SequenceReport(props: { sequenceId: string }) {
                   <div className="flex items-center gap-3 text-xs text-muted-foreground">
                     <span>Etape {p.currentStep + 1}</span>
                     <span>{p.email}</span>
+                    {p.lastSentAt && (
+                      <span>Envoye : {new Date(p.lastSentAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
+                    )}
                     {p.nextStepAt && (
-                      <span>Prochain : {new Date(p.nextStepAt).toLocaleDateString('fr-FR')}</span>
+                      <span>Prochain : {new Date(p.nextStepAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
                     )}
                   </div>
                 </div>

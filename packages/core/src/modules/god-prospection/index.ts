@@ -38,6 +38,7 @@ export { buildMessageText } from './domain/sequence-template.js';
 
 // Send history
 export { findRecentSends, type RecentSendRow } from './repository/find-recent-sends.js';
+export { findProspectsDueForStep, type DueProspectRow } from './repository/find-prospects-due-for-step.js';
 
 // Received messages
 export { listReceivedMessages, type ReceivedMessageView } from './use-cases/list-received-messages.js';

@@ -60,6 +60,22 @@ export async function fetchProspects(): Promise<ProspectListResult> {
   return apiFetch<ProspectListResult>('/api/god-prospection/prospects');
 }
 
+export interface UpcomingSendView {
+  id: string;
+  fullName: string;
+  email: string;
+  phone: string | null;
+  channel: string;
+  stepOrder: number;
+  nextStepAt: string;
+}
+
+export async function fetchUpcomingSends(input: {
+  limit: number;
+}): Promise<UpcomingSendView[]> {
+  return apiFetch(`/api/god-prospection/upcoming?limit=${input.limit}`);
+}
+
 export interface RecentSendView {
   id: string;
   prospectName: string;
@@ -371,6 +387,7 @@ export interface SequenceProspectView {
   currentStep: number;
   sequenceStatus: string;
   nextStepAt: string | null;
+  lastSentAt: string | null;
 }
 
 export async function fetchSequenceProspects(input: {

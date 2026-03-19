@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Megaphone, Users, Send, Inbox, Settings, Mail, MessageCircle } from 'lucide-react';
-import { fetchProspects, fetchRecentSends, fetchChannelLimits } from '../api/god-prospection.api';
+import { Megaphone, Users, Send, Inbox, Settings, Mail, MessageCircle, Clock } from 'lucide-react';
+import { fetchProspects, fetchRecentSends, fetchUpcomingSends, fetchChannelLimits } from '../api/god-prospection.api';
 import { SendControls } from '../components/send-controls';
 import { SentEmailList } from '../components/sent-email-list';
 import { ReceivedEmailList } from '../components/received-email-list';
@@ -26,6 +26,11 @@ export function GodProspectionPage() {
   const { data: recentSends } = useQuery({
     queryKey: ['god-prospection', 'sends'],
     queryFn: () => fetchRecentSends({ limit: 5 }),
+  });
+
+  const { data: upcoming } = useQuery({
+    queryKey: ['god-prospection', 'upcoming'],
+    queryFn: () => fetchUpcomingSends({ limit: 10 }),
   });
 
   const { data: channelLimits } = useQuery({
@@ -132,6 +137,44 @@ export function GodProspectionPage() {
             ) : (
               <div className="px-4 py-6 text-center text-sm text-muted-foreground">
                 Aucun envoi de sequence pour le moment
+              </div>
+            )}
+          </div>
+
+          {/* Upcoming sends */}
+          <div className="rounded-lg border border-border bg-card">
+            <div className="flex items-center gap-2 px-4 py-3">
+              <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+              <h3 className="text-sm font-semibold">Prochains envois (24h)</h3>
+            </div>
+            {upcoming && upcoming.length > 0 ? (
+              <div className="max-h-[30vh] divide-y divide-border overflow-y-auto">
+                {upcoming.map((s) => {
+                  const isOverdue = new Date(s.nextStepAt) <= new Date();
+                  return (
+                    <div key={s.id} className="flex items-center gap-3 px-4 py-2 text-sm">
+                      {s.channel === 'email' ? (
+                        <Mail className="h-3.5 w-3.5 text-muted-foreground" />
+                      ) : (
+                        <MessageCircle className="h-3.5 w-3.5 text-success" />
+                      )}
+                      <span className="flex-1 truncate font-medium">{s.fullName}</span>
+                      <span className="text-xs text-muted-foreground">Etape {s.stepOrder + 1}</span>
+                      <span className={`text-xs ${isOverdue ? 'font-medium text-primary' : 'text-muted-foreground'}`}>
+                        {isOverdue ? 'Maintenant' : new Date(s.nextStepAt).toLocaleDateString('fr-FR', {
+                          day: 'numeric',
+                          month: 'short',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="px-4 py-6 text-center text-sm text-muted-foreground">
+                Aucun envoi prevu dans les 24h
               </div>
             )}
           </div>

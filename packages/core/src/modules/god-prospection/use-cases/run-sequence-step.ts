@@ -60,7 +60,7 @@ export async function runSequenceStep(): Promise<void> {
       continue;
     }
 
-    const dueProspects = await findProspectsDueForStep({ channel, limit: remaining });
+    const dueProspects = await findProspectsDueForStep({ channel, dueWithinHours: 0, limit: remaining });
     if (dueProspects.length === 0) continue;
 
     logger.info('god-prospection.sequence-batch', { channel, count: dueProspects.length });
@@ -125,6 +125,9 @@ export async function runSequenceStep(): Promise<void> {
           const rawPhone = prospect.whatsappPhone || prospect.phone;
           if (!rawPhone) {
             logger.warn('god-prospection.sequence-no-phone', { prospectId: prospect.id });
+            if (!DRY_RUN) {
+              await incrementDailyCount({ channel, count: -1 });
+            }
             await advanceProspectStep({
               prospectId: prospect.id,
               nextStepOrder: prospect.currentStep,
