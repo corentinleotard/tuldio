@@ -160,6 +160,8 @@ function makeInvoiceView(overrides?: Partial<InvoiceView>): InvoiceView {
     situationNumber: null,
     avoirId: null,
     pdfUrl: null,
+    pdpId: null,
+    pdpStatus: null,
     sentAt: null,
     paidAt: null,
     dueDate: null,

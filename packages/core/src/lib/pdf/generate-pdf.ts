@@ -1,7 +1,14 @@
+import fs from 'node:fs/promises';
+import path from 'node:path';
 import { renderPdf, renderPdfBuffer } from './render-pdf.js';
 import { renderQuoteHtml } from './templates/quote.js';
 import { renderInvoiceHtml } from './templates/invoice.js';
 import { resolveLogoDataUri, type PdfTeam, type PdfClient, type PdfLine, type PdfTvaGroup } from './templates/shared.js';
+import { embedFacturX } from '../facturx/embed-facturx.js';
+import { buildInvoiceXml } from '../facturx/build-invoice-xml.js';
+import { logger } from '../infra/logger.js';
+
+const FILES_DIR = process.env.FILES_DIR ?? '/var/tuldio/files';
 
 export interface GeneratePdfInput {
   type: 'quote' | 'invoice';
@@ -60,7 +67,28 @@ export async function generatePdf(input: GeneratePdfInput): Promise<string> {
   const prefix = input.type === 'quote' ? 'devis' : input.invoiceType === 'avoir' ? 'avoir' : 'facture';
   const fileName = `${prefix}-${input.id}.pdf`;
 
-  return renderPdf({ html, fileName });
+  const pdfUrl = await renderPdf({ html, fileName });
+
+  // Post-process: embed Factur-X XML into invoice PDFs for e-invoicing compliance
+  if (input.type === 'invoice') {
+    const filePath = path.join(FILES_DIR, 'pdfs', fileName);
+    const pdfBuffer = await fs.readFile(filePath);
+    logger.info('facturx.embedding', { filePath, puppeteerSize: pdfBuffer.length });
+    const xml = buildInvoiceXml(input);
+    const facturxBuffer = await embedFacturX({
+      pdf: Buffer.from(pdfBuffer),
+      xml,
+      metadata: {
+        title: `${input.team.name}: Facture ${input.number}`,
+        subject: `Facture ${input.number} - ${input.team.name}`,
+        author: input.team.name,
+      },
+    });
+    logger.info('facturx.embedded', { filePath, facturxSize: facturxBuffer.length });
+    await fs.writeFile(filePath, new Uint8Array(facturxBuffer));
+  }
+
+  return pdfUrl;
 }
 
 /** Generate PDF in memory (no disk write). Returns the raw buffer. */

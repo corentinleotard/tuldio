@@ -193,6 +193,8 @@ export interface InvoiceView {
   situationNumber: number | null;
   avoirId: string | null;
   pdfUrl: string | null;
+  pdpId: string | null;
+  pdpStatus: string | null;
   sentAt: string | null;
   paidAt: string | null;
   cancelledAt: string | null;

@@ -58,7 +58,8 @@ export function RichCardQuote({ data, onLiveData, onDeleted }: RichCardQuoteProp
   const currentStatus = liveData.status;
   const status = statusConfig[currentStatus] ?? defaultStatus;
   const pdfUrl = `/api/quotes/${liveData.id}/pdf`;
-  const readinessErrors = data._readiness?.errors ?? [];
+  const [resolvedFields, setResolvedFields] = useState<Set<string>>(new Set());
+  const readinessErrors = (data._readiness?.errors ?? []).filter((e) => !resolvedFields.has(e.code));
   const transitions = quoteTransitions[currentStatus] ?? [];
 
   const promoted = transitions[0] ?? null;
@@ -133,6 +134,11 @@ export function RichCardQuote({ data, onLiveData, onDeleted }: RichCardQuoteProp
       if (values.email) {
         setLiveData((d) => ({ ...d, clientEmail: values.email }));
       }
+      const newResolved = new Set(resolvedFields);
+      if (values.address) newResolved.add('MISSING_CLIENT_ADDRESS');
+      if (values.siret) newResolved.add('MISSING_CLIENT_SIRET');
+      setResolvedFields(newResolved);
+
       queryClient.invalidateQueries({ queryKey: ['clients'] });
       await executeAction(action);
     } catch {

@@ -21,6 +21,9 @@ import { createAvoir } from './create-avoir.js';
 import { findInvoicesByQuote } from '../repository/find-invoices-by-quote.js';
 import { findQuoteById } from '../../quotes/repository/find-quote-by-id.js';
 import { insertDocumentLog } from '../../documents/repository/insert-document-log.js';
+import { getPdpClient } from '../../../lib/pdp/pdp-client.js';
+import { updateInvoicePdpStatus } from '../repository/update-invoice-pdp-status.js';
+import { getField } from '../../../lib/pdf/templates/shared.js';
 
 export async function updateInvoiceStatusUc(input: {
   teamId: string;
@@ -123,6 +126,9 @@ export async function updateInvoiceStatusUc(input: {
     }
   }
 
+  // Track pdp_id across the function -- invoice object is stale after PDP submission
+  let activePdpId: string | null = invoice.pdp_id;
+
   // Freeze PDF when leaving draft
   if (invoice.status === 'draft' && !invoice.pdf_url) {
     const lineViews = toLineViews(invoice.lines);
@@ -153,6 +159,37 @@ export async function updateInvoiceStatusUc(input: {
     });
     const pdfUrl = await generatePdf(pdfInput);
     await updateInvoicePdfUrl({ teamId: input.teamId, invoiceId: invoice.id, pdfUrl });
+
+    // Submit to PDP (e-invoicing for B2B, e-reporting for B2C -- PDP handles classification)
+    // Non-blocking: PDP failure must not prevent invoice freeze
+    try {
+      const pdpClient = getPdpClient();
+      const teamSiret = getField(pdfInput.team.fields, 'siret');
+      const { pdpId } = await pdpClient.sendInvoice({
+        invoiceId: invoice.id,
+        facturxPdf: Buffer.alloc(0), // TODO: pass actual PDF buffer when PDP client is real
+        metadata: {
+          invoiceNumber: invoice.number,
+          teamName: pdfInput.team.name,
+          teamSiret,
+          clientName: pdfInput.client.name,
+          clientSiret: pdfInput.client.siret,
+          totalTtc: invoice.total_ttc,
+          issuedAt: invoice.created_at,
+        },
+      });
+      activePdpId = pdpId;
+      await updateInvoicePdpStatus({ teamId: input.teamId, invoiceId: invoice.id, pdpId, pdpStatus: 'submitted' });
+      await insertDocumentLog({
+        teamId: input.teamId,
+        documentType: 'invoice',
+        documentId: invoice.id,
+        event: 'pdp_submitted',
+        metadata: { pdpId },
+      });
+    } catch (err) {
+      logger.error('invoice.pdp_submit_failed', { teamId: input.teamId, invoiceId: invoice.id, error: err });
+    }
   }
 
   await updateInvoiceStatus({
@@ -170,6 +207,25 @@ export async function updateInvoiceStatusUc(input: {
     event: 'status_changed',
     metadata: { from: invoice.status, to: input.status },
   });
+
+  // Report payment to PDP when invoice is marked as paid
+  // Non-blocking: PDP failure must not prevent status update
+  if (input.status === 'paid' && activePdpId) {
+    try {
+      const pdpClient = getPdpClient();
+      await pdpClient.reportPayment({ pdpId: activePdpId, paidAt: new Date(), amount: invoice.total_ttc });
+      await updateInvoicePdpStatus({ teamId: input.teamId, invoiceId: invoice.id, pdpId: activePdpId, pdpStatus: 'payment_reported' });
+      await insertDocumentLog({
+        teamId: input.teamId,
+        documentType: 'invoice',
+        documentId: invoice.id,
+        event: 'pdp_payment_reported',
+        metadata: { pdpId: activePdpId, amount: invoice.total_ttc, paidAt: new Date().toISOString() },
+      });
+    } catch (err) {
+      logger.error('invoice.pdp_payment_report_failed', { teamId: input.teamId, invoiceId: invoice.id, error: err });
+    }
+  }
 
   const full = await findInvoiceById({ teamId: input.teamId, invoiceId: input.invoiceId });
   if (!full) throw new HandledError(errorCodes.invoiceNotFound);

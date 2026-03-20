@@ -8,3 +8,4 @@ export { deleteInvoiceUc } from './use-cases/delete-invoice-uc.js';
 export { downloadInvoicePdf } from './use-cases/download-invoice-pdf.js';
 export { markOverdueInvoices } from './use-cases/mark-overdue-invoices.js';
 export { findInvoiceTeamId } from './repository/find-invoice-team-id.js';
+export { handlePdpStatusUpdate } from './use-cases/handle-pdp-status-update.js';

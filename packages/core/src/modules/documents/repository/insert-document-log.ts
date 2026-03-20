@@ -5,7 +5,7 @@ export async function insertDocumentLog(input: {
   teamId: string;
   documentType: 'quote' | 'invoice';
   documentId: string;
-  event: 'created' | 'status_changed' | 'email_sent' | 'downloaded' | 'viewed' | 'signed';
+  event: 'created' | 'status_changed' | 'email_sent' | 'downloaded' | 'viewed' | 'signed' | 'pdp_submitted' | 'pdp_status_changed' | 'pdp_payment_reported';
   recipientEmail?: string | null;
   downloadToken?: string | null;
   metadata?: Record<string, unknown>;

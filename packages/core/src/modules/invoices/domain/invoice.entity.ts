@@ -43,6 +43,8 @@ export const invoiceSchema = z.object({
   situation_number: z.number().int().nullable(),
   avoir_id: z.string().uuid().nullable(),
   pdf_url: z.string().nullable(),
+  pdp_id: z.string().nullable(),
+  pdp_status: z.string().nullable(),
   sent_at: z.date().nullable(),
   paid_at: z.date().nullable(),
   cancelled_at: z.date().nullable(),

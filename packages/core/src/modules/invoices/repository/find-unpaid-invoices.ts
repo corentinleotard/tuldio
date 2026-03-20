@@ -7,7 +7,7 @@ export async function findUnpaidInvoices(input: {
 }): Promise<InvoiceRow[]> {
   const limit = input.limit ?? 1000;
   const result = await query<InvoiceRow>(
-    `SELECT id, team_id, created_by, client_id, quote_id, number, title, total_ht, total_ttc, status, invoice_type, source_invoice_id, situation_number, avoir_id, pdf_url, sent_at, paid_at, cancelled_at, due_date, prestation_date, created_at FROM invoices
+    `SELECT id, team_id, created_by, client_id, quote_id, number, title, total_ht, total_ttc, status, invoice_type, source_invoice_id, situation_number, avoir_id, pdf_url, pdp_id, pdp_status, sent_at, paid_at, cancelled_at, due_date, prestation_date, created_at FROM invoices
      WHERE team_id = $1 AND status IN ('sent', 'overdue') AND invoice_type != 'avoir'
      ORDER BY due_date ASC
      LIMIT $2`,

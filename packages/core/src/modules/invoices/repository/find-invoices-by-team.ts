@@ -24,7 +24,7 @@ export async function findInvoicesByTeam(input: {
   params.push(limit);
 
   const result = await query<InvoiceWithClient>(
-    `SELECT i.id, i.team_id, i.created_by, i.client_id, i.quote_id, i.number, i.title, i.total_ht, i.total_ttc, i.status, i.invoice_type, i.source_invoice_id, i.situation_number, i.avoir_id, i.pdf_url, i.sent_at, i.paid_at, i.cancelled_at, i.due_date, i.prestation_date, i.created_at, COALESCE(c.company_name, COALESCE(c.first_name, '') || ' ' || COALESCE(c.last_name, '')) AS client_name, c.email AS client_email, c.phone AS client_phone
+    `SELECT i.id, i.team_id, i.created_by, i.client_id, i.quote_id, i.number, i.title, i.total_ht, i.total_ttc, i.status, i.invoice_type, i.source_invoice_id, i.situation_number, i.avoir_id, i.pdf_url, i.pdp_id, i.pdp_status, i.sent_at, i.paid_at, i.cancelled_at, i.due_date, i.prestation_date, i.created_at, COALESCE(c.company_name, COALESCE(c.first_name, '') || ' ' || COALESCE(c.last_name, '')) AS client_name, c.email AS client_email, c.phone AS client_phone
      FROM invoices i
      JOIN clients c ON c.id = i.client_id
      ${where}

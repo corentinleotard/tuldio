@@ -60,7 +60,8 @@ export function RichCardInvoice({ data, onLiveData, onDeleted }: RichCardInvoice
   const status = statusConfig[currentStatus] ?? defaultStatus;
   const isAvoir = liveData.invoiceType === 'avoir';
   const pdfUrl = `/api/invoices/${liveData.id}/pdf`;
-  const readinessErrors = data._readiness?.errors ?? [];
+  const [resolvedFields, setResolvedFields] = useState<Set<string>>(new Set());
+  const readinessErrors = (data._readiness?.errors ?? []).filter((e) => !resolvedFields.has(e.code));
 
   const transitions = (isAvoir ? avoirTransitions : invoiceTransitions)[currentStatus] ?? [];
   const promoted = transitions[0] ?? null;
@@ -149,9 +150,15 @@ export function RichCardInvoice({ data, onLiveData, onDeleted }: RichCardInvoice
     setBusy(action);
     try {
       await updateClient({ id: liveData.clientId, ...values });
+      // Update local state so the prompt fields disappear immediately
       if (values.email) {
         setLiveData((d) => ({ ...d, clientEmail: values.email }));
       }
+      const newResolved = new Set(resolvedFields);
+      if (values.address) newResolved.add('MISSING_CLIENT_ADDRESS');
+      if (values.siret) newResolved.add('MISSING_CLIENT_SIRET');
+      setResolvedFields(newResolved);
+
       queryClient.invalidateQueries({ queryKey: ['clients'] });
       await executeAction(action);
     } catch {

@@ -27,6 +27,8 @@ export async function listInvoices(input: {
     situationNumber: row.situation_number,
     avoirId: row.avoir_id,
     pdfUrl: row.pdf_url,
+    pdpId: row.pdp_id ?? null,
+    pdpStatus: row.pdp_status ?? null,
     sentAt: row.sent_at?.toISOString() ?? null,
     paidAt: row.paid_at?.toISOString() ?? null,
     cancelledAt: row.cancelled_at?.toISOString() ?? null,
