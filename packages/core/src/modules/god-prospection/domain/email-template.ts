@@ -1,4 +1,4 @@
-import { buildTemplateVariables, interpolateVariables } from './sequence-template.js';
+import { buildTemplateVariables, interpolateVariables, resolveLink } from './sequence-template.js';
 
 function escapeHtml(str: string): string {
   return str
@@ -40,13 +40,11 @@ export function buildProspectionEmailHtml(input: {
 
   let resolvedBody = interpolateVariables(input.body, variables);
   // Clean up "Bonjour ," when firstName is empty
-  resolvedBody = resolvedBody.replace(/ +([,!?])/g, '$1').trim();
+  resolvedBody = resolvedBody.replace(/ +([,!?])/g, '$1');
+  // Resolve {{link}} in plain text before HTML conversion
+  resolvedBody = resolveLink(resolvedBody, input);
 
-  const bodyHtml = linkifyUrls(escapeHtml(resolvedBody)).replace(/\n/g, '<br>');
-
-  const inviteBlock = input.linkText && input.inviteUrl
-    ? `<br><br>${escapeHtml(input.linkText)} <a href="${escapeHtml(input.inviteUrl)}" style="color:#1a6be0;">Essayer Tuldio</a>`
-    : '';
+  const bodyHtml = linkifyUrls(escapeHtml(resolvedBody.trim())).replace(/\n/g, '<br>');
 
   return `<!DOCTYPE html>
 <html lang="fr">
@@ -54,7 +52,6 @@ export function buildProspectionEmailHtml(input: {
 <body>
 <div style="font-size:small;">
 ${bodyHtml}
-${inviteBlock}
 </div>
 </body>
 </html>`;

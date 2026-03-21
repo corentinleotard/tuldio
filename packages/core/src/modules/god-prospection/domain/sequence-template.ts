@@ -48,14 +48,31 @@ export function buildTemplateVariables(input: {
   return variables;
 }
 
-/** Replace {{variable}} placeholders in template text -- throws on unknown variables */
+/** Replace {{variable}} placeholders in template text -- throws on unknown variables.
+ *  {{link}} is reserved and handled separately by resolveLink(). */
 export function interpolateVariables(template: string, variables: Record<string, string>): string {
-  return template.replace(/\{\{(\w+)\}\}/g, (_, key: string) => {
+  return template.replace(/\{\{(\w+)\}\}/g, (match, key: string) => {
+    if (key === 'link') return match; // handled by resolveLink()
     if (!(key in variables)) {
       throw new Error(`Variable inconnue : {{${key}}}`);
     }
     return variables[key] as string;
   });
+}
+
+/** Replace {{link}} with linkText + URL, or remove the line entirely if no URL */
+export function resolveLink(text: string, input: { inviteUrl: string | null; linkText: string | null }): string {
+  if (!text.includes('{{link}}')) return text;
+
+  if (input.inviteUrl) {
+    const linkValue = input.linkText ? `${input.linkText}\n${input.inviteUrl}` : input.inviteUrl;
+    return text.replace(/\{\{link\}\}/g, linkValue);
+  }
+
+  // No URL: remove lines containing {{link}} and collapse extra blank lines
+  let result = text.replace(/^.*\{\{link\}\}.*$/gm, '');
+  result = result.replace(/\n{3,}/g, '\n\n');
+  return result;
 }
 
 /** Build resolved plain text message from a template + prospect data */
@@ -69,11 +86,9 @@ export function buildMessageText(input: {
 
   let resolved = interpolateVariables(input.template, variables);
   // Clean up "Bonjour ," when firstName is empty
-  resolved = resolved.replace(/ +([,!?])/g, '$1').trim();
+  resolved = resolved.replace(/ +([,!?])/g, '$1');
+  // Replace {{link}} with invite URL or remove it
+  resolved = resolveLink(resolved, input);
 
-  if (input.linkText && input.inviteUrl) {
-    resolved += `\n\n${input.linkText} ${input.inviteUrl}`;
-  }
-
-  return resolved;
+  return resolved.trim();
 }
