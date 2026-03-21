@@ -12,6 +12,7 @@ export async function updateSequenceUc(input: {
     delayDays: number;
     subject: string | null;
     body: string;
+    linkText: string | null;
   }>;
 }): Promise<void> {
   const sequence = await findSequenceById({ id: input.id });

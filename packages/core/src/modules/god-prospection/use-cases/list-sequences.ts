@@ -11,6 +11,7 @@ export interface SequenceView {
     delayDays: number;
     subject: string | null;
     body: string;
+    linkText: string | null;
   }>;
   stats: {
     active: number;
@@ -41,9 +42,11 @@ export async function listSequences(): Promise<SequenceView[]> {
       delayDays: number;
       subject: string | null;
       body: string;
+      linkText: string | null;
     }>(
       `SELECT id, sequence_id AS "sequenceId", step_order AS "stepOrder",
-              channel, delay_days AS "delayDays", subject, body
+              channel, delay_days AS "delayDays", subject, body,
+              link_text AS "linkText"
        FROM god_sequence_steps
        ORDER BY step_order ASC`,
       [],
@@ -78,6 +81,7 @@ export async function listSequences(): Promise<SequenceView[]> {
       delayDays: s.delayDays,
       subject: s.subject,
       body: s.body,
+      linkText: s.linkText,
     });
     stepsBySeq.set(s.sequenceId, list);
   }

@@ -15,6 +15,7 @@ export interface DueProspectRow {
   channel: string;
   subject: string | null;
   body: string;
+  linkText: string | null;
   nextStepAt: string;
 }
 
@@ -45,12 +46,13 @@ export async function findProspectsDueForStep(input: {
   if (input.channel) {
     params.push(input.channel);
     conditions.push(`s.channel = $${params.length}`);
-
-    // WhatsApp: only valid French mobile numbers
-    if (input.channel === 'whatsapp') {
-      conditions.push(`(COALESCE(p.whatsapp_phone, p.phone) ~ '^(\\+33[67]|0[67])')`);
-    }
   }
+
+  // WhatsApp steps: only prospects with valid French mobile numbers
+  // Applied regardless of channel filter (also for dashboard upcoming list)
+  conditions.push(
+    `(s.channel != 'whatsapp' OR COALESCE(p.whatsapp_phone, p.phone) ~ '^(\\+33[67]|0[67])')`,
+  );
 
   params.push(input.limit);
 
@@ -60,7 +62,7 @@ export async function findProspectsDueForStep(input: {
             p.profession, p.website,
             p.sequence_id AS "sequenceId", p.current_step AS "currentStep",
             s.step_order AS "stepOrder", s.channel, s.subject, s.body,
-            p.next_step_at AS "nextStepAt"
+            s.link_text AS "linkText", p.next_step_at AS "nextStepAt"
      FROM god_prospects p
      JOIN god_sequence_steps s
        ON s.sequence_id = p.sequence_id

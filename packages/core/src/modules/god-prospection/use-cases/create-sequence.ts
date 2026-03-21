@@ -10,6 +10,7 @@ export async function createSequence(input: {
     delayDays: number;
     subject: string | null;
     body: string;
+    linkText: string | null;
   }>;
 }): Promise<{ id: string }> {
   if (!input.name.trim()) {

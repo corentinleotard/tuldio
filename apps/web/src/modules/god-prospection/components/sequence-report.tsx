@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Mail, MessageCircle, Users, Reply, CheckCircle, AlertTriangle, Pause, Play, Eye } from 'lucide-react';
+import { Mail, MessageCircle, Users, Reply, CheckCircle, AlertTriangle, Pause, Play, Eye, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   fetchSequenceReport,
@@ -9,9 +9,15 @@ import {
 } from '../api/god-prospection.api';
 import { ProspectDetailModal } from './prospect-detail-modal';
 
+const PROSPECTS_PAGE_SIZE = 20;
+const ACTIVITY_PAGE_SIZE = 20;
+
 export function SequenceReport(props: { sequenceId: string }) {
   const queryClient = useQueryClient();
   const [detailId, setDetailId] = useState<string | null>(null);
+  const [stepFilter, setStepFilter] = useState<number | null>(null);
+  const [prospectsPage, setProspectsPage] = useState(0);
+  const [activityPage, setActivityPage] = useState(0);
 
   const { data: report, isLoading } = useQuery({
     queryKey: ['god-prospection', 'sequence-report', props.sequenceId],
@@ -19,8 +25,8 @@ export function SequenceReport(props: { sequenceId: string }) {
   });
 
   const { data: prospects } = useQuery({
-    queryKey: ['god-prospection', 'sequence-prospects', props.sequenceId],
-    queryFn: () => fetchSequenceProspects({ sequenceId: props.sequenceId }),
+    queryKey: ['god-prospection', 'sequence-prospects', props.sequenceId, stepFilter],
+    queryFn: () => fetchSequenceProspects({ sequenceId: props.sequenceId, step: stepFilter ?? undefined }),
   });
 
   const pauseMutation = useMutation({
@@ -45,13 +51,37 @@ export function SequenceReport(props: { sequenceId: string }) {
 
   const maxSent = Math.max(1, ...report.funnel.map((f) => f.sent));
 
+  // Paginate prospects
+  const allProspects = prospects ?? [];
+  const prospectsStart = prospectsPage * PROSPECTS_PAGE_SIZE;
+  const pagedProspects = allProspects.slice(prospectsStart, prospectsStart + PROSPECTS_PAGE_SIZE);
+  const prospectsTotalPages = Math.ceil(allProspects.length / PROSPECTS_PAGE_SIZE);
+
+  // Paginate activity
+  const allActivity = report.recentActivity;
+  const activityStart = activityPage * ACTIVITY_PAGE_SIZE;
+  const pagedActivity = allActivity.slice(activityStart, activityStart + ACTIVITY_PAGE_SIZE);
+  const activityTotalPages = Math.ceil(allActivity.length / ACTIVITY_PAGE_SIZE);
+
+  const handleStepClick = (stepOrder: number) => {
+    const next = stepFilter === stepOrder ? null : stepOrder;
+    setStepFilter(next);
+    setProspectsPage(0);
+  };
+
   return (
     <div className="space-y-6 p-4">
       <h3 className="text-sm font-semibold">{report.sequenceName}</h3>
 
       {/* Key metrics */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <MetricCard icon={Users} label="Assignes" value={report.totalAssigned} />
+        <MetricCard
+          icon={Users}
+          label="Assignes"
+          value={report.totalAssigned}
+          active={stepFilter === null}
+          onClick={() => { setStepFilter(null); setProspectsPage(0); }}
+        />
         <MetricCard
           icon={Reply}
           label="Taux de reponse"
@@ -66,41 +96,59 @@ export function SequenceReport(props: { sequenceId: string }) {
         <div>
           <h4 className="mb-2 text-xs font-medium text-muted-foreground">Funnel</h4>
           <div className="space-y-2">
-            {report.funnel.map((step) => (
-              <div key={step.stepOrder} className="flex items-center gap-3">
-                <div className="flex w-16 items-center gap-1 text-xs text-muted-foreground">
-                  {step.channel === 'email' ? (
-                    <Mail className="h-3 w-3" />
-                  ) : (
-                    <MessageCircle className="h-3 w-3" />
-                  )}
-                  Etape {step.stepOrder + 1}
-                </div>
-                <div className="flex-1">
-                  <div className="h-4 overflow-hidden rounded-full bg-secondary">
-                    <div
-                      className="h-full rounded-full bg-primary"
-                      style={{ width: `${(step.sent / maxSent) * 100}%` }}
-                    />
+            {report.funnel.map((step) => {
+              const isActive = stepFilter === step.stepOrder;
+              return (
+                <button
+                  key={step.stepOrder}
+                  onClick={() => handleStepClick(step.stepOrder)}
+                  className={`flex w-full items-center gap-3 rounded-md px-2 py-1.5 text-left transition-colors ${
+                    isActive ? 'bg-primary/5 ring-1 ring-primary/20' : 'hover:bg-secondary/50'
+                  }`}
+                >
+                  <div className="flex w-16 items-center gap-1 text-xs text-muted-foreground">
+                    {step.channel === 'email' ? (
+                      <Mail className="h-3 w-3" />
+                    ) : (
+                      <MessageCircle className="h-3 w-3" />
+                    )}
+                    Etape {step.stepOrder + 1}
                   </div>
-                </div>
-                <span className="w-20 text-right text-xs text-muted-foreground">
-                  {step.sent} envoyes, {step.pending} en attente
-                </span>
-              </div>
-            ))}
+                  <div className="flex-1">
+                    <div className="h-4 overflow-hidden rounded-full bg-secondary">
+                      <div
+                        className="h-full rounded-full bg-primary"
+                        style={{ width: `${(step.sent / maxSent) * 100}%` }}
+                      />
+                    </div>
+                  </div>
+                  <span className="w-24 text-right text-xs text-muted-foreground">
+                    {step.sent} envoyes, {step.pending} en attente
+                  </span>
+                </button>
+              );
+            })}
           </div>
         </div>
       )}
 
       {/* Active/paused prospects */}
-      {prospects && prospects.length > 0 && (
+      {allProspects.length > 0 && (
         <div>
-          <h4 className="mb-2 text-xs font-medium text-muted-foreground">
-            Prospects actifs ({prospects.length})
-          </h4>
+          <div className="mb-2 flex items-center justify-between">
+            <h4 className="text-xs font-medium text-muted-foreground">
+              Prospects{stepFilter !== null ? ` (etape ${stepFilter + 1})` : ''} ({allProspects.length})
+            </h4>
+            {prospectsTotalPages > 1 && (
+              <PaginationControls
+                page={prospectsPage}
+                totalPages={prospectsTotalPages}
+                onPageChange={setProspectsPage}
+              />
+            )}
+          </div>
           <div className="divide-y divide-border rounded-md border border-border">
-            {prospects.map((p) => (
+            {pagedProspects.map((p) => (
               <div key={p.id} className="flex items-center gap-3 px-3 py-2">
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 text-sm">
@@ -150,16 +198,34 @@ export function SequenceReport(props: { sequenceId: string }) {
               </div>
             ))}
           </div>
+          {prospectsTotalPages > 1 && (
+            <div className="mt-2 flex justify-end">
+              <PaginationControls
+                page={prospectsPage}
+                totalPages={prospectsTotalPages}
+                onPageChange={setProspectsPage}
+              />
+            </div>
+          )}
         </div>
       )}
 
       {/* Recent activity */}
-      {report.recentActivity.length > 0 && (
+      {allActivity.length > 0 && (
         <div>
-          <h4 className="mb-2 text-xs font-medium text-muted-foreground">Activite recente</h4>
+          <div className="mb-2 flex items-center justify-between">
+            <h4 className="text-xs font-medium text-muted-foreground">Activite recente</h4>
+            {activityTotalPages > 1 && (
+              <PaginationControls
+                page={activityPage}
+                totalPages={activityTotalPages}
+                onPageChange={setActivityPage}
+              />
+            )}
+          </div>
           <div className="divide-y divide-border rounded-md border border-border">
-            {report.recentActivity.map((a, i) => (
-              <div key={i} className="flex items-center gap-3 px-3 py-2 text-xs">
+            {pagedActivity.map((a, i) => (
+              <div key={activityStart + i} className="flex items-center gap-3 px-3 py-2 text-xs">
                 {a.channel === 'email' ? (
                   <Mail className="h-3 w-3 text-muted-foreground" />
                 ) : (
@@ -173,6 +239,15 @@ export function SequenceReport(props: { sequenceId: string }) {
               </div>
             ))}
           </div>
+          {activityTotalPages > 1 && (
+            <div className="mt-2 flex justify-end">
+              <PaginationControls
+                page={activityPage}
+                totalPages={activityTotalPages}
+                onPageChange={setActivityPage}
+              />
+            </div>
+          )}
         </div>
       )}
 
@@ -191,10 +266,19 @@ function MetricCard(props: {
   label: string;
   value: number | string;
   variant?: 'destructive';
+  active?: boolean;
+  onClick?: () => void;
 }) {
   const Icon = props.icon;
+  const clickable = !!props.onClick;
+  const Component = clickable ? 'button' : 'div';
   return (
-    <div className="rounded-md border border-border p-3">
+    <Component
+      onClick={props.onClick}
+      className={`rounded-md border border-border p-3 text-left transition-colors ${
+        clickable ? 'cursor-pointer hover:bg-secondary/50' : ''
+      } ${props.active ? 'ring-1 ring-primary/20' : ''}`}
+    >
       <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
         <Icon className={`h-3 w-3 ${props.variant === 'destructive' ? 'text-destructive' : ''}`} />
         {props.label}
@@ -202,6 +286,34 @@ function MetricCard(props: {
       <div className={`mt-1 text-lg font-semibold ${props.variant === 'destructive' ? 'text-destructive' : ''}`}>
         {props.value}
       </div>
+    </Component>
+  );
+}
+
+function PaginationControls(props: {
+  page: number;
+  totalPages: number;
+  onPageChange: (page: number) => void;
+}) {
+  return (
+    <div className="flex items-center gap-2">
+      <button
+        onClick={() => props.onPageChange(props.page - 1)}
+        disabled={props.page === 0}
+        className="rounded-md p-1 text-muted-foreground hover:text-foreground disabled:opacity-30"
+      >
+        <ChevronLeft className="h-4 w-4" />
+      </button>
+      <span className="text-xs text-muted-foreground">
+        {props.page + 1} / {props.totalPages}
+      </span>
+      <button
+        onClick={() => props.onPageChange(props.page + 1)}
+        disabled={props.page >= props.totalPages - 1}
+        className="rounded-md p-1 text-muted-foreground hover:text-foreground disabled:opacity-30"
+      >
+        <ChevronRight className="h-4 w-4" />
+      </button>
     </div>
   );
 }

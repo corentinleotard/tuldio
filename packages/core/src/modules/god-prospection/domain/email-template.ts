@@ -30,6 +30,7 @@ export function buildProspectionEmailHtml(input: {
   profession: string;
   body: string;
   inviteUrl: string | null;
+  linkText: string | null;
 }): string {
   const variables = buildTemplateVariables({
     firstName: input.firstName,
@@ -39,12 +40,12 @@ export function buildProspectionEmailHtml(input: {
 
   let resolvedBody = interpolateVariables(input.body, variables);
   // Clean up "Bonjour ," when firstName is empty
-  resolvedBody = resolvedBody.replace(/ +([,!?])/g, '$1');
+  resolvedBody = resolvedBody.replace(/ +([,!?])/g, '$1').trim();
 
   const bodyHtml = linkifyUrls(escapeHtml(resolvedBody)).replace(/\n/g, '<br>');
 
-  const inviteBlock = input.inviteUrl
-    ? `<br><br>Votre espace est déjà prêt avec vos informations : <a href="${escapeHtml(input.inviteUrl)}" style="color:#1a6be0;">Essayer Tuldio</a>`
+  const inviteBlock = input.linkText && input.inviteUrl
+    ? `<br><br>${escapeHtml(input.linkText)} <a href="${escapeHtml(input.inviteUrl)}" style="color:#1a6be0;">Essayer Tuldio</a>`
     : '';
 
   return `<!DOCTYPE html>

@@ -35,7 +35,7 @@ export async function getSequenceReport(input: {
   const [stats, funnel, activity] = await Promise.all([
     findSequenceStats({ sequenceId: input.sequenceId }),
     findSequenceFunnel({ sequenceId: input.sequenceId }),
-    findSequenceActivity({ sequenceId: input.sequenceId, limit: 20 }),
+    findSequenceActivity({ sequenceId: input.sequenceId, limit: 200 }),
   ]);
 
   const replyRate = stats.totalAssigned > 0

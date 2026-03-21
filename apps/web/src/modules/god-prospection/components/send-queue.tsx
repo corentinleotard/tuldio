@@ -5,18 +5,14 @@ import { Button } from '@/components/ui/button';
 import { fetchSendQueue, type SendQueueProspect } from '../api/god-prospection.api';
 import { SequenceAssignDialog } from './sequence-assign-dialog';
 
-export function SendQueue(props: {
-  profession: string | null;
-  count: number;
-}) {
-  const { profession, count } = props;
+export function SendQueue() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [showAssign, setShowAssign] = useState(false);
   const [includeContacted, setIncludeContacted] = useState(false);
 
   const { data, isLoading } = useQuery({
-    queryKey: ['god-prospection', 'send-queue', profession, includeContacted],
-    queryFn: () => fetchSendQueue({ profession, limit: 200, includeContacted }),
+    queryKey: ['god-prospection', 'send-queue', includeContacted],
+    queryFn: () => fetchSendQueue({ profession: null, limit: 200, includeContacted }),
   });
 
   if (isLoading) {
@@ -36,8 +32,7 @@ export function SendQueue(props: {
   if (prospects.length === 0) {
     return (
       <div className="py-12 text-center text-sm text-muted-foreground">
-        Aucun prospect dans la file d'attente
-        {profession ? ` pour "${profession}"` : ''}.
+        Aucun prospect dans la file d'attente.
       </div>
     );
   }
@@ -103,7 +98,6 @@ export function SendQueue(props: {
           <QueueRow
             key={p.id}
             prospect={p}
-            inBatch={i < count}
             rank={i + 1}
             isSelected={effectiveSelected.has(p.id)}
             onToggle={() => toggleSelect(p.id)}
@@ -126,19 +120,14 @@ export function SendQueue(props: {
 
 function QueueRow(props: {
   prospect: SendQueueProspect;
-  inBatch: boolean;
   rank: number;
   isSelected: boolean;
   onToggle: () => void;
 }) {
-  const { prospect: p, inBatch, rank, isSelected, onToggle } = props;
+  const { prospect: p, rank, isSelected, onToggle } = props;
 
   return (
-    <div
-      className={`flex items-start gap-3 px-4 py-3 transition-colors ${
-        inBatch ? 'bg-primary/5' : ''
-      }`}
-    >
+    <div className="flex items-start gap-3 px-4 py-3">
       <input
         type="checkbox"
         checked={isSelected}
@@ -147,13 +136,7 @@ function QueueRow(props: {
       />
 
       {/* Rank badge */}
-      <div
-        className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${
-          inBatch
-            ? 'bg-primary text-primary-foreground'
-            : 'bg-secondary text-muted-foreground'
-        }`}
-      >
+      <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-secondary text-xs font-semibold text-muted-foreground">
         {rank}
       </div>
 

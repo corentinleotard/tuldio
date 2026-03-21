@@ -63,15 +63,16 @@ export function buildMessageText(input: {
   template: string;
   prospect: { firstName: string; fullName: string; profession: string };
   inviteUrl: string | null;
+  linkText: string | null;
 }): string {
   const variables = buildTemplateVariables(input.prospect);
 
   let resolved = interpolateVariables(input.template, variables);
   // Clean up "Bonjour ," when firstName is empty
-  resolved = resolved.replace(/ +([,!?])/g, '$1');
+  resolved = resolved.replace(/ +([,!?])/g, '$1').trim();
 
-  if (input.inviteUrl) {
-    resolved += `\n\nVotre espace est déjà prêt avec vos informations : ${input.inviteUrl}`;
+  if (input.linkText && input.inviteUrl) {
+    resolved += `\n\n${input.linkText} ${input.inviteUrl}`;
   }
 
   return resolved;

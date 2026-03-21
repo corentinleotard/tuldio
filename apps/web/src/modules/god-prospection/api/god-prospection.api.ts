@@ -42,20 +42,6 @@ export interface ReceivedEmail {
   inReplyTo: string | null;
 }
 
-export interface SendBatchAccepted {
-  accepted: boolean;
-  batchSize: number;
-  dailyUsed: number;
-  dailyRemaining: number;
-}
-
-export interface BatchStatus {
-  running: boolean;
-  sent: number;
-  errors: number;
-  total: number;
-}
-
 export async function fetchProspects(): Promise<ProspectListResult> {
   return apiFetch<ProspectListResult>('/api/god-prospection/prospects');
 }
@@ -132,36 +118,6 @@ export async function fetchReceivedMessages(input: {
   const params = new URLSearchParams({ limit: String(input.limit), channel: input.channel });
   if (input.olderThan) params.set('olderThan', input.olderThan);
   return apiFetch(`/api/god-prospection/received-messages?${params}`);
-}
-
-export async function sendBatch(input: {
-  count: number;
-  body: string;
-  profession: string | null;
-}): Promise<SendBatchAccepted> {
-  return apiFetch('/api/god-prospection/send', {
-    method: 'POST',
-    body: JSON.stringify(input),
-  });
-}
-
-export async function sendTestEmail(input: {
-  to: string;
-  body: string;
-  profession: string | null;
-}): Promise<void> {
-  await apiFetch('/api/god-prospection/send-test', {
-    method: 'POST',
-    body: JSON.stringify(input),
-  });
-}
-
-export async function fetchBatchStatus(): Promise<BatchStatus> {
-  return apiFetch('/api/god-prospection/batch-status');
-}
-
-export async function cancelBatch(): Promise<{ cancelled: boolean }> {
-  return apiFetch('/api/god-prospection/cancel', { method: 'POST' });
 }
 
 export async function replyToEmail(input: {
@@ -244,6 +200,7 @@ export interface SequenceStepView {
   delayDays: number;
   subject: string | null;
   body: string;
+  linkText: string | null;
 }
 
 export interface SequenceView {
@@ -342,6 +299,7 @@ export async function createSequence(input: {
     delayDays: number;
     subject: string | null;
     body: string;
+    linkText: string | null;
   }>;
 }): Promise<{ id: string }> {
   return apiFetch('/api/god-prospection/sequences', {
@@ -360,6 +318,7 @@ export async function updateSequence(input: {
     delayDays: number;
     subject: string | null;
     body: string;
+    linkText: string | null;
   }>;
 }): Promise<void> {
   const { id, ...body } = input;

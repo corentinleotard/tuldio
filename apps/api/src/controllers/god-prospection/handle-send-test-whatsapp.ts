@@ -25,6 +25,7 @@ export async function handleSendTestWhatsApp(req: Request, res: Response): Promi
     template: parsed.data.body,
     prospect: { firstName: parsed.data.firstName, fullName: 'Test', profession: parsed.data.profession },
     inviteUrl: null,
+    linkText: null,
   });
 
   await sendWhatsAppMessage({ phone, text });

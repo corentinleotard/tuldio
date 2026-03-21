@@ -24,7 +24,7 @@ function isBusinessHours(): boolean {
   const now = new Date();
   const parisTime = new Date(now.toLocaleString('en-US', { timeZone: 'Europe/Paris' }));
   const hour = parisTime.getHours();
-  return hour >= 8 && hour <= 20;
+  return hour >= 9 && hour <= 20;
 }
 
 function randomDelay(): number {
@@ -109,6 +109,7 @@ export async function runSequenceStep(): Promise<void> {
             profession: prospect.profession,
             body: prospect.body,
             inviteUrl,
+            linkText: prospect.linkText,
           });
 
           sentSubject = prospect.subject || 'Vos devis et factures, vous les faites comment ?';
@@ -124,6 +125,7 @@ export async function runSequenceStep(): Promise<void> {
             template: prospect.body,
             prospect: { firstName: prospect.firstName, fullName: prospect.fullName, profession: prospect.profession },
             inviteUrl,
+            linkText: prospect.linkText,
           });
 
           sentBody = text;

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Trash2, ArrowLeft, Save, Mail, MessageCircle, ArrowUp, ArrowDown } from 'lucide-react';
+import { Plus, Trash2, ArrowLeft, Save, Mail, MessageCircle, ArrowUp, ArrowDown, Link } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import {
@@ -20,6 +20,7 @@ interface StepDraft {
   delayDays: number;
   subject: string | null;
   body: string;
+  linkText: string | null;
 }
 
 function makeStep(partial?: Partial<Omit<StepDraft, 'key'>>): StepDraft {
@@ -29,6 +30,7 @@ function makeStep(partial?: Partial<Omit<StepDraft, 'key'>>): StepDraft {
     delayDays: partial?.delayDays ?? 0,
     subject: partial?.subject ?? null,
     body: partial?.body ?? '',
+    linkText: partial?.linkText ?? null,
   };
 }
 
@@ -50,6 +52,7 @@ function SequenceBuilderInner(props: {
         delayDays: s.delayDays,
         subject: s.channel === 'email' ? s.subject : null,
         body: s.body,
+        linkText: s.linkText?.trim() || null,
       }));
 
       if (props.sequenceId) {
@@ -237,6 +240,19 @@ function SequenceBuilderInner(props: {
                 <code className="rounded bg-secondary px-1">{'{{clients}}'}</code>
               </p>
             </div>
+
+            <div>
+              <label className="mb-1 flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Link className="h-3 w-3" />
+                Texte du lien (vide = pas de lien)
+              </label>
+              <input
+                value={step.linkText ?? ''}
+                onChange={(e) => updateStep(i, { linkText: e.target.value || null })}
+                placeholder="Ex: Votre espace est deja pret :"
+                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+              />
+            </div>
           </div>
         ))}
 
@@ -291,6 +307,7 @@ export function SequenceBuilder(props: {
         delayDays: s.delayDays,
         subject: s.subject,
         body: s.body,
+        linkText: s.linkText,
       }))
     : [makeStep()];
 

@@ -1,8 +1,7 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Megaphone, Users, Send, Inbox, Settings, Mail, MessageCircle, Clock } from 'lucide-react';
+import { Megaphone, Users, Send, Inbox, Settings, Mail, MessageCircle, Clock, ListOrdered } from 'lucide-react';
 import { fetchProspects, fetchRecentSends, fetchUpcomingSends, fetchChannelLimits } from '../api/god-prospection.api';
-import { SendControls } from '../components/send-controls';
 import { SentEmailList } from '../components/sent-email-list';
 import { ReceivedEmailList } from '../components/received-email-list';
 import { SendQueue } from '../components/send-queue';
@@ -11,12 +10,10 @@ import { SequenceList } from '../components/sequence-list';
 import { ChannelLimitsEditor } from '../components/channel-limits-editor';
 import { WhatsAppSetup } from '../components/whatsapp-setup';
 
-type Tab = 'dashboard' | 'prospects' | 'sent' | 'received' | 'settings';
+type Tab = 'dashboard' | 'prospects' | 'sequences' | 'sent' | 'received' | 'settings';
 
 export function GodProspectionPage() {
   const [tab, setTab] = useState<Tab>('dashboard');
-  const [profession, setProfession] = useState<string | null>(null);
-  const [count, setCount] = useState(5);
 
   const { data: prospects } = useQuery({
     queryKey: ['god-prospection', 'prospects'],
@@ -44,6 +41,7 @@ export function GodProspectionPage() {
   const tabs: Array<{ id: Tab; label: string; icon: typeof Megaphone }> = [
     { id: 'dashboard', label: 'Dashboard', icon: Megaphone },
     { id: 'prospects', label: 'Prospects', icon: Users },
+    { id: 'sequences', label: 'Sequences', icon: ListOrdered },
     { id: 'sent', label: 'Envoyes', icon: Send },
     { id: 'received', label: 'Recus', icon: Inbox },
     { id: 'settings', label: 'Reglages', icon: Settings },
@@ -179,30 +177,19 @@ export function GodProspectionPage() {
             )}
           </div>
 
-          {/* Sequences overview */}
-          <div className="rounded-lg border border-border bg-card">
-            <SequenceList />
-          </div>
         </div>
       )}
 
       {tab === 'prospects' && (
-        <>
-          {prospects && (
-            <div className="mt-4">
-              <SendControls
-                data={prospects}
-                profession={profession}
-                onProfessionChange={setProfession}
-                count={count}
-                onCountChange={setCount}
-              />
-            </div>
-          )}
-          <div className="mt-4 max-h-[60vh] overflow-y-auto rounded-lg border border-border bg-card">
-            <SendQueue profession={profession} count={count} />
-          </div>
-        </>
+        <div className="mt-4 max-h-[70vh] overflow-y-auto rounded-lg border border-border bg-card">
+          <SendQueue />
+        </div>
+      )}
+
+      {tab === 'sequences' && (
+        <div className="mt-4 rounded-lg border border-border bg-card">
+          <SequenceList />
+        </div>
       )}
 
       {tab === 'sent' && (

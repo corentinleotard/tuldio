@@ -8,6 +8,7 @@ const stepSchema = z.object({
   delayDays: z.number().int().min(0),
   subject: z.string().nullable(),
   body: z.string().min(1),
+  linkText: z.string().nullable().default(null),
 });
 
 const bodySchema = z.object({
