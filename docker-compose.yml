@@ -18,7 +18,7 @@ services:
       retries: 5
 
   # ── API ─────────────────────────────
-  api:
+  tuldio-api:
     build:
       context: .
       target: api
@@ -33,6 +33,9 @@ services:
       FILES_DIR: /var/tuldio/files
     volumes:
       - files:/var/tuldio/files
+    networks:
+      - default
+      - shared-proxy
 
   # ── Crons ───────────────────────────
   crons:
@@ -50,27 +53,10 @@ services:
     volumes:
       - files:/var/tuldio/files
 
-  # ── Caddy (web + reverse proxy) ────
-  caddy:
-    build:
-      context: .
-      target: caddy
-      args:
-        VITE_API_URL: https://${DOMAIN}
-    restart: unless-stopped
-    depends_on:
-      - api
-    ports:
-      - "80:80"
-      - "443:443"
-    environment:
-      DOMAIN: ${DOMAIN:?Set DOMAIN in .env}
-    volumes:
-      - caddy-data:/data
-      - caddy-config:/config
-
 volumes:
   pgdata:
   files:
-  caddy-data:
-  caddy-config:
+
+networks:
+  shared-proxy:
+    external: true

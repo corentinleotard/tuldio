@@ -53,12 +53,20 @@ const prodPool = new pg.Pool({ connectionString: PROD_URL });
 const DATA_COLS = [
   'profession', 'first_name', 'full_name', 'email', 'phone',
   'source', 'scraped', 'icp_score', 'icp_reason', 'website', 'page_text',
+  'linkedin_url',
 ];
 
 // Columns owned by prod (sending state)
 const SEND_COLS = [
   'status', 'sent_at', 'sent_subject', 'sent_body_html', 'contacted_via',
 ];
+
+/** Build a unique key for a prospect: email if available, otherwise linkedin_url */
+function prospectKey(row) {
+  if (row.email) return `email:${row.email.toLowerCase()}`;
+  if (row.linkedin_url) return `li:${row.linkedin_url}`;
+  return null;
+}
 
 async function run() {
   console.log('Syncing prospects between dev and prod...\n');
@@ -69,26 +77,29 @@ async function run() {
   const { rows: devRows } = await devPool.query(`SELECT ${allCols} FROM god_prospects`);
   const { rows: prodRows } = await prodPool.query(`SELECT ${allCols} FROM god_prospects`);
 
-  const devByEmail = new Map(devRows.map(r => [r.email.toLowerCase(), r]));
-  const prodByEmail = new Map(prodRows.map(r => [r.email.toLowerCase(), r]));
+  const devByKey = new Map();
+  for (const r of devRows) { const k = prospectKey(r); if (k) devByKey.set(k, r); }
+  const prodByKey = new Map();
+  for (const r of prodRows) { const k = prospectKey(r); if (k) prodByKey.set(k, r); }
 
   let pushCount = 0;
   let updateProdCount = 0;
   let pullCount = 0;
 
   // ─── Step 2: Dev → Prod (push new prospects + update data cols) ───
-  for (const [email, dev] of devByEmail) {
-    const prod = prodByEmail.get(email);
+  for (const [key, dev] of devByKey) {
+    const prod = prodByKey.get(key);
 
     if (!prod) {
-      // New prospect — insert into prod with dev data + dev status
+      // New prospect — insert into prod
       await prodPool.query(
         `INSERT INTO god_prospects (${DATA_COLS.join(', ')}, status, contacted_via, sent_at, created_at)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
-         ON CONFLICT (email) DO NOTHING`,
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+         ON CONFLICT DO NOTHING`,
         [
           dev.profession, dev.first_name, dev.full_name, dev.email, dev.phone,
           dev.source, dev.scraped, dev.icp_score, dev.icp_reason, dev.website, dev.page_text,
+          dev.linkedin_url,
           dev.status, dev.contacted_via, dev.sent_at, dev.created_at,
         ],
       );
@@ -97,16 +108,23 @@ async function run() {
       // Exists in both — update prod's data columns with dev values (keep prod's sending state)
       const changed = DATA_COLS.some(col => String(dev[col] ?? '') !== String(prod[col] ?? ''));
       if (changed) {
+        // Build WHERE clause based on which key we matched on
+        const isEmail = key.startsWith('email:');
+        const whereClause = isEmail ? 'lower(email) = lower($13)' : 'linkedin_url = $13';
+        const whereVal = isEmail ? dev.email : dev.linkedin_url;
+
         await prodPool.query(
           `UPDATE god_prospects SET
              profession = $1, first_name = $2, full_name = $3, phone = $4,
              source = $5, scraped = $6, icp_score = $7, icp_reason = $8,
-             website = $9, page_text = $10, updated_at = now()
-           WHERE lower(email) = lower($11)`,
+             website = $9, page_text = $10, linkedin_url = $11, email = $12,
+             updated_at = now()
+           WHERE ${whereClause}`,
           [
             dev.profession, dev.first_name, dev.full_name, dev.phone,
             dev.source, dev.scraped, dev.icp_score, dev.icp_reason,
-            dev.website, dev.page_text, dev.email,
+            dev.website, dev.page_text, dev.linkedin_url, dev.email,
+            whereVal,
           ],
         );
         updateProdCount++;
@@ -115,21 +133,24 @@ async function run() {
   }
 
   // ─── Step 3: Prod → Dev (pull back sending state) ─────────────────
-  for (const [email, prod] of prodByEmail) {
-    const dev = devByEmail.get(email);
-    if (!dev) continue; // Prospect only in prod (shouldn't happen, but skip)
+  for (const [key, prod] of prodByKey) {
+    const dev = devByKey.get(key);
+    if (!dev) continue;
 
-    // Only pull if prod has a more advanced status
     const prodSent = prod.status === 'sent' || prod.status === 'error';
     const devStillNew = dev.status === 'new';
 
     if (prodSent && devStillNew) {
+      const isEmail = key.startsWith('email:');
+      const whereClause = isEmail ? 'lower(email) = lower($6)' : 'linkedin_url = $6';
+      const whereVal = isEmail ? prod.email : prod.linkedin_url;
+
       await devPool.query(
         `UPDATE god_prospects SET
            status = $1, sent_at = $2, sent_subject = $3,
            sent_body_html = $4, contacted_via = $5, updated_at = now()
-         WHERE lower(email) = lower($6)`,
-        [prod.status, prod.sent_at, prod.sent_subject, prod.sent_body_html, prod.contacted_via, prod.email],
+         WHERE ${whereClause}`,
+        [prod.status, prod.sent_at, prod.sent_subject, prod.sent_body_html, prod.contacted_via, whereVal],
       );
       pullCount++;
     }
